@@ -1,0 +1,15 @@
+sudo mvn package
+sudo mvn compile assembly:single
+
+
+##test
+java -Xmx5G -cp "target/ccInference-0.1-jar-with-dependencies.jar:lib/gatk-package-distribution-3.3.jar" main.java.edu.mit.compbio.ccinference.utils.CovFragLenMetricsStats /Users/yaping/Documents/workspace/code/bis-snp2/test_data/test.interval.bed /Users/yaping/Documents/workspace/code/bis-snp2/test_data/test.bam /Users/yaping/Documents/workspace/code/bis-snp2/test_data/CovFragLenMetricsStats.summary.txt.gz -values /Users/yaping/Documents/workspace/code/bis-snp2/test_data/test.methy.bed.gz
+
+
+
+
+
+
+
+
+
