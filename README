@@ -5,6 +5,8 @@ sudo mvn compile assembly:single
 ##test
 java -Xmx5G -Djava.library.path=/Users/yaping/Documents/workspace/code/jbwa/src/main/native/ -cp "target/bisulfitehic-0.01-jar-with-dependencies.jar:lib/jbwa.jar" main.java.edu.mit.compbio.bisulfitehic.mapping.Bhmem /Users/yaping/Documents/workspace/data/genomic_data/genome/mm9/mm9.fa /Users/yaping/Documents/workspace/project/bisulfiteHaploseq/testData/bisulfite/testOut.bam /Users/yaping/Documents/workspace/project/bisulfiteHaploseq/testData/bisulfite/test_R1.fq.gz /Users/yaping/Documents/workspace/project/bisulfiteHaploseq/testData/bisulfite/test_R2.fq.gz
 
+java -Xmx5G -jar target/bisulfitehic-0.01-jar-with-dependencies.jar -Djava.library.path=/Users/yaping/Documents/workspace/code/jbwa/src/main/native/ -cp "lib/jbwa.jar" /Users/yaping/Documents/workspace/data/genomic_data/genome/mm9/mm9.fa /Users/yaping/Documents/workspace/project/bisulfiteHaploseq/testData/bisulfite/testOut.bam /Users/yaping/Documents/workspace/project/bisulfiteHaploseq/testData/bisulfite/test_R1.fq.gz /Users/yaping/Documents/workspace/project/bisulfiteHaploseq/testData/bisulfite/test_R2.fq.gz
+
 
 
 

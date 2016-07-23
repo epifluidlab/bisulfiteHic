@@ -204,7 +204,7 @@
 
 
 */
-package test.java.edu.mit.compbio.bisulfitehic.jbwa;
+package com.github.lindenb.jbwa.jni;
 import java.io.*;
 import java.util.List;
 
