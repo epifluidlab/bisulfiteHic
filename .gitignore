@@ -27,3 +27,5 @@ target/maven-archiver/pom.properties
 target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst
 target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst
 bisulfitehic-0.02-jar-with-dependencies.jar
+jbwa/jbwa-1.0.0/jbwa-native.tar
+jbwa/jbwa-1.0.0/src/main/native/libbwajni.jnilib

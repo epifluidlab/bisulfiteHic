@@ -66,9 +66,11 @@ if ( scalar(@ARGV) < 4 ) {
 my $genome=$ARGV[0];
 my $output=$ARGV[1];
 my $r1=$ARGV[2];
-my $r2=$ARGV[2];
+my $r2=$ARGV[3];
 
 my $cmd = "java -Xmx${mem}G -Djava.library.path=${bisulfitehic_path}/jbwa/jbwa-1.0.0/src/main/native/ -cp \"${bisulfitehic_path}/target/bisulfitehic-0.02-jar-with-dependencies.jar:${bisulfitehic_path}/jbwa/jbwa-1.0.0/jbwa.jar\" main.java.edu.mit.compbio.bisulfitehic.mapping.Bhmem ";
+#my $cmd = "java -Xmx${mem}G -Djava.library.path=/Users/yaping/Documents/workspace/code/jbwa/src/main/native/ -cp \"${bisulfitehic_path}/target/bisulfitehic-0.02-jar-with-dependencies.jar:${bisulfitehic_path}/jbwa/jbwa-1.0.0/jbwa.jar\" main.java.edu.mit.compbio.bisulfitehic.mapping.Bhmem ";
+
 $cmd.="$genome $output $r1 $r2 -t $cpu -score $score -buffer $buffer -clip5 $clip5 -clip3 $clip3 ";
 if($rgId ne "" and $rgSm ne ""){
 	$cmd.="-rgId $rgId -rgSm $rgSm ";
