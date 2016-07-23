@@ -19,8 +19,10 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IllegalFormatException;
 import java.util.List;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.util.Pair;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
@@ -343,8 +345,11 @@ public class Bhmem {
 			record.setMateAlignmentStart(0);
 			record.setInferredInsertSize(0);
 			//record.setReadString(splitin[9]);
-			record.setReadString(originalSeq);
+			record.setReadString(modifySeqByCigar(originalSeq, record.getCigarString()));
 			record.setBaseQualityString(splitin[10]);
+			if(record.getReadBases().length != record.getBaseQualities().length){
+				throw new IllegalArgumentException("SAMrecord " + record.getReadName()  + " read bases length: " + record.getReadBases().length + " is different from baseQ length: " + record.getBaseQualities().length);
+			}
 			//System.err.println(record.getCigarLength() + "\t" + record.getCigarString());
 			//for(char cigar : CigarUtil.cigarArrayFromString(splitin[5])){
 			//	System.err.println(cigar);
@@ -377,6 +382,8 @@ public class Bhmem {
 			record.setMateUnmappedFlag(false);
 			record.setProperPairFlag(true);
 			record.setSecondOfPairFlag(SecondEnd);
+			record.setAttribute("RG", rgId);
+			//record.setHeader(samFileHeader);
 			records.add(record);
 		}
 		
@@ -449,11 +456,14 @@ public class Bhmem {
 		
 		int offSet = 0;
 		for(char cigar : cigarList){
-			if(cigar == 'M'){
-				//cigarMLen++;
+			if(cigar == 'M' || cigar == 'S' || cigar == 'I'){
+				seqsNew.add(seqByte[offSet]);
+				offSet++;
+			}else if(cigar == 'H'){
+				offSet++;
 			}
 		}
-		return null;
+		return new String(ArrayUtils.toPrimitive(seqsNew.toArray(new Byte[seqsNew.size()])));
 	}
 	
 	private void initiate(){

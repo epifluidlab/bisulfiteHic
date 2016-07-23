@@ -26,3 +26,4 @@ target/classes/main/java/edu/mit/compbio/bisulfitehic/mapping/Bhmem.class
 target/maven-archiver/pom.properties
 target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst
 target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst
+bisulfitehic-0.02-jar-with-dependencies.jar
