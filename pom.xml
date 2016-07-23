@@ -65,7 +65,7 @@
 		<artifactId>jbwa</artifactId>
 		<version>1.0.0</version>
 		<scope>system</scope>
-		<systemPath>${basedir}/../jbwa/jbwa.jar</systemPath>
+		<systemPath>${basedir}/jbwa/jbwa-1.0.0/jbwa.jar</systemPath>
 	</dependency>
 	<!-- https://mvnrepository.com/artifact/com.github.broadinstitute/picard -->
 	<dependency>

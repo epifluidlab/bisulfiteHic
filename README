@@ -1,3 +1,19 @@
+######to install
+##pre-requisite:
+JAVA oracle JDK8
+GNU Make 3.81
+gcc 4.8.2
+wget
+maven
+
+##command to install it
+unzip dnaase-bisulfitehic-5dbb6ce7bc3c.zip
+cd dnaase-bisulfitehic-5dbb6ce7bc3c
+source ./install.sh
+
+
+
+#####################backup msg:
 sudo mvn package
 sudo mvn compile assembly:single
 
