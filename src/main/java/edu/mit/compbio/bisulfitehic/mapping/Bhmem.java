@@ -348,7 +348,9 @@ public class Bhmem {
 			record.setReadString(modifySeqByCigar(originalSeq, record.getCigarString()));
 			record.setBaseQualityString(splitin[10]);
 			if(record.getReadBases().length != record.getBaseQualities().length){
-				throw new IllegalArgumentException("SAMrecord " + record.getReadName()  + " read bases length: " + record.getReadBases().length + " is different from baseQ length: " + record.getBaseQualities().length);
+				//throw new IllegalArgumentException("SAMrecord " + record.getReadName()  + " read bases length: " + record.getReadBases().length + " is different from baseQ length: " + record.getBaseQualities().length);
+				//log.info("SAMrecord " + record.getReadName()  + " read bases length: " + record.getReadBases().length + " is different from baseQ length: " + record.getBaseQualities().length);
+
 			}
 			//System.err.println(record.getCigarLength() + "\t" + record.getCigarString());
 			//for(char cigar : CigarUtil.cigarArrayFromString(splitin[5])){
