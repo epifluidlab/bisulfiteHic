@@ -10,5 +10,7 @@
 	<classpathentry kind="lib" path="lib/log4j-1.2.17.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/jbwa"/>
 	<classpathentry kind="lib" path="lib/picard-lib.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/ccinference"/>
+	<classpathentry kind="lib" path="lib/gatk-package-distribution-3.3.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

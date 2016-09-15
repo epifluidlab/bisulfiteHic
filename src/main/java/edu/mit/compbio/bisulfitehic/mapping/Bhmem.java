@@ -345,8 +345,13 @@ public class Bhmem {
 			record.setMateAlignmentStart(0);
 			record.setInferredInsertSize(0);
 			//record.setReadString(splitin[9]);
+			String baseQ = splitin[10];
+			if(record.getReadNegativeStrandFlag()){
+				originalSeq = new StringBuilder(originalSeq).reverse().toString(); //the string output by bwa need to be reversed when the mapping strand is negative...
+				baseQ = new StringBuilder(baseQ).reverse().toString();
+			}
 			record.setReadString(modifySeqByCigar(originalSeq, record.getCigarString()));
-			record.setBaseQualityString(splitin[10]);
+			record.setBaseQualityString(baseQ);
 			if(record.getReadBases().length != record.getBaseQualities().length){
 				//throw new IllegalArgumentException("SAMrecord " + record.getReadName()  + " read bases length: " + record.getReadBases().length + " is different from baseQ length: " + record.getBaseQualities().length);
 				//log.info("SAMrecord " + record.getReadName()  + " read bases length: " + record.getReadBases().length + " is different from baseQ length: " + record.getBaseQualities().length);

@@ -22,7 +22,7 @@
   <modelVersion>4.0.0</modelVersion>
   <name>bisulfitehic</name>
   <packaging>jar</packaging>
-  <version>0.02</version>
+  <version>0.03</version>
 
  <dependencies>
   	<dependency>
@@ -60,12 +60,19 @@
 		<artifactId>jbwa</artifactId>
 		<version>1.0.0</version>
 	</dependency>
-		<dependency>
+	<dependency>
 		<groupId>com.github.lindenb</groupId>
 		<artifactId>jbwa</artifactId>
 		<version>1.0.0</version>
 		<scope>system</scope>
 		<systemPath>${basedir}/jbwa/jbwa-1.0.0/jbwa.jar</systemPath>
+	</dependency>
+	<dependency>
+		<groupId>main.java.edu.mit.compbio</groupId>
+		<artifactId>ccinference</artifactId>
+		<version>0.19</version>
+		<scope>system</scope>
+		<systemPath>${basedir}/lib/ccInference-0.19-jar-with-dependencies.jar</systemPath>
 	</dependency>
 	<!-- https://mvnrepository.com/artifact/com.github.broadinstitute/picard -->
 	<dependency>

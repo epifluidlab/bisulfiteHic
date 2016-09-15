@@ -29,3 +29,9 @@ target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst
 bisulfitehic-0.02-jar-with-dependencies.jar
 jbwa/jbwa-1.0.0/jbwa-native.tar
 jbwa/jbwa-1.0.0/src/main/native/libbwajni.jnilib
+mESC.bisulfiteHic.mm9.hiccups.test2.asm.txt.gz
+mESC.bisulfiteHic.mm9.hiccups.test2.methyCor.txt.gz
+lib/ccInference-0.19-jar-with-dependencies.jar
+target/bisulfitehic-0.03-jar-with-dependencies.jar
+target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/BisulfiteHicUtils.class
+target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/MethyCorAcrossHiccups.class
