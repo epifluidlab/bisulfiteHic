@@ -69,17 +69,17 @@ public class BisulfiteHicUtils {
 		char[] cigarList = CigarUtil.cigarArrayFromString(cigarString);
 
 		ArrayList<Byte> seqsNew = new ArrayList<Byte>();
-		
+		//System.err.println(new String(seqByte) + "\t" + seqByte.length + "\t" + cigarString);
 		int offSet = 0;
 		for(char cigar : cigarList){
-			if(cigar == 'M'){
+			if(cigar == 'M' || cigar == 'I'){
 				seqsNew.add(seqByte[offSet]);
 				offSet++;
 			}else if(cigar == 'D'){
+				//seqsNew.add(SequenceUtil.N);
+				
+			}else if(cigar == 'S'){
 				offSet++;
-			}else if(cigar == 'I'){
-				seqsNew.add(SequenceUtil.N);
-
 			}
 		}
 		return ArrayUtils.toPrimitive(seqsNew.toArray(new Byte[seqsNew.size()]));
@@ -95,14 +95,19 @@ public class BisulfiteHicUtils {
 			return Triple.of(0,0,0);
 		}
 		
-		byte[] refBases = modifyRefSeqByCigar(SequenceUtil.makeReferenceFromAlignment(read, false), read.getCigarString());
+		byte[] refBases = CcInferenceUtils.toUpperCase(modifyRefSeqByCigar(SequenceUtil.makeReferenceFromAlignment(read, false), read.getCigarString()));
 		
 		byte[] readBasesQ = getClippedReadsBaseQuality(read);
-		byte[] readBases = getClippedReadsBase(read);
+		byte[] readBases = CcInferenceUtils.toUpperCase(getClippedReadsBase(read));
+		if(negStrand){
+			//System.err.println(new String(refBases) + "\n" + new String(readBases) + "\t" +read.getCigarString() + "\t" + secondPair);
+			readBases = complementArray(readBases);
+		}
 		
 		Triple<Integer,Integer, Integer> ctSummary = Triple.of(0,0,0);
 		int pos = 0;
 		if(!turnOffBisulfiteFilter){
+			//System.err.println(new String(refBases) + "\t" + refBases.length + "\n" + new String(readBases) + "\t" + readBases.length + "\n" + new String(SequenceUtil.makeReferenceFromAlignment(read, false)) + "\t" + read.getCigarString());
 			pos = CcInferenceUtils.bisulfiteIncompleteReads(readBases, refBases, negStrand, secondPair, false, true, true, 0.1, 0.4, 0, "CH", 1);
 			if(pos<0){
 				return ctSummary;
@@ -118,11 +123,13 @@ public class BisulfiteHicUtils {
 		boolean negStrand = read.getReadNegativeStrandFlag();
 		boolean secondPair = read.getReadPairedFlag() && read.getSecondOfPairFlag();
 
-		byte[] refBases = modifyRefSeqByCigar(SequenceUtil.makeReferenceFromAlignment(read, false), read.getCigarString());
+		byte[] refBases = CcInferenceUtils.toUpperCase(modifyRefSeqByCigar(SequenceUtil.makeReferenceFromAlignment(read, false), read.getCigarString()));
 		
 		byte[] readBasesQ = getClippedReadsBaseQuality(read);
-		byte[] readBases = getClippedReadsBase(read);
-		
+		byte[] readBases = CcInferenceUtils.toUpperCase(getClippedReadsBase(read));
+		if(negStrand){
+			readBases = complementArray(readBases);
+		}
 		Triple<Integer,Integer, Integer> ctSummary = readsMethySummary(refBases, readBases, readBasesQ, negStrand, secondPair, minBaseQ);
 		
 		

@@ -22,7 +22,7 @@
   <modelVersion>4.0.0</modelVersion>
   <name>bisulfitehic</name>
   <packaging>jar</packaging>
-  <version>0.03</version>
+  <version>0.04</version>
 
  <dependencies>
   	<dependency>
@@ -73,6 +73,13 @@
 		<version>0.19</version>
 		<scope>system</scope>
 		<systemPath>${basedir}/lib/ccInference-0.19-jar-with-dependencies.jar</systemPath>
+	</dependency>
+	<dependency>
+		<groupId>org.broadinstitute.gatk</groupId>
+		<artifactId>gatk-package-distribution</artifactId>
+		<version>3.3</version>
+		<scope>system</scope>
+		<systemPath>${basedir}/lib/gatk-package-distribution-3.3.jar</systemPath>
 	</dependency>
 	<!-- https://mvnrepository.com/artifact/com.github.broadinstitute/picard -->
 	<dependency>

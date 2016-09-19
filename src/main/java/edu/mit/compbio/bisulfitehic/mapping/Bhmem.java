@@ -13,6 +13,7 @@ import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SamPairUtil;
 import htsjdk.samtools.util.CigarUtil;
+import htsjdk.samtools.util.SequenceUtil;
 import htsjdk.variant.utils.SAMSequenceDictionaryExtractor;
 
 import java.io.File;
@@ -347,7 +348,8 @@ public class Bhmem {
 			//record.setReadString(splitin[9]);
 			String baseQ = splitin[10];
 			if(record.getReadNegativeStrandFlag()){
-				originalSeq = new StringBuilder(originalSeq).reverse().toString(); //the string output by bwa need to be reversed when the mapping strand is negative...
+				originalSeq = SequenceUtil.reverseComplement(originalSeq);
+				//originalSeq = new StringBuilder(originalSeq).reverse().toString(); //the string output by bwa need to be reversed complement when the mapping strand is negative...
 				baseQ = new StringBuilder(baseQ).reverse().toString();
 			}
 			record.setReadString(modifySeqByCigar(originalSeq, record.getCigarString()));

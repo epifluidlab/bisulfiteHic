@@ -27,21 +27,20 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-import main.java.edu.mit.compbio.bissnp2.utils.BisSnp2Utils;
 import main.java.edu.mit.compbio.ccinference.utils.CcInferenceUtils;
 
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.commons.math3.random.MersenneTwister;
+import org.apache.commons.math3.stat.inference.ChiSquareTest;
 import org.apache.commons.math3.util.Pair;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
-import org.biojava.nbio.genome.parsers.twobit.TwoBitParser;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.kohsuke.args4j.Argument;
@@ -60,6 +59,8 @@ import org.kohsuke.args4j.Option;
  * (maybe further consider the other end have SNP also or not...)
  * then overlapped with GWAS other SNP loci...
  * currently only work for hiccups within the same chromosomes
+ * 
+ * Input: bam file should be sorted, calmd, and read name for end1 and end2 should be the same
  */
 
 public class MethyCorAcrossHiccups {
@@ -85,8 +86,11 @@ public class MethyCorAcrossHiccups {
 	@Option(name="-coverageAlt",usage="For ASM mode, specify the minimum coverage in SNP's allele Alt, default: 2")
 	public int coverageAlt = 2;
 	
-	@Option(name="-sample",usage="specify the sample number in the VCF file if contain multiple sample genotype. number started at 1. default: 1")
-	public int sample = 1;
+	@Option(name="-minCgNum",usage="For ASM mode, specify the minimum  number of CpG to call ASM. Default: 1")
+	public int minCgNum = 1;
+	
+	@Option(name="-sample",usage="specify the sample number in the VCF file if contain multiple sample genotype. number started at 0. default: 0")
+	public int sample = 0;
 
 	@Option(name="-randomHiccupsInput",usage="when the input file is random hiccups links for the control, no need to restrict each end of fragment at the same hiccups links.., default: not enabled")
 	public boolean randomHiccupsInput = false;
@@ -107,17 +111,16 @@ public class MethyCorAcrossHiccups {
 	@Argument
 	private List<String> arguments = new ArrayList<String>();
 
-	final private static String USAGE = "MethyCorAcrossHiccups [opts] outputPrefix mm9.2bit hiccups.bedpe.bed[.gz] input.bam";
+	final private static String USAGE = "MethyCorAcrossHiccups [opts] outputPrefix hiccups.bedpe.bed[.gz] input.bam";
 	
 	private static Logger log = Logger.getLogger(MethyCorAcrossHiccups.class);
 
 	private OutputStreamWriter methyCorWriter = null; 
 	private OutputStreamWriter asmWriter = null; 
-	private TwoBitParser refParser = null;
-	private String preChr="";
 	private MersenneTwister generator = null;
 	
 	private VCFFileReader vcfReader = null;
+	private GenomeLocParser glp = null;
 	
 	private static long startTime = -1;
 	private static long lineNum=0;
@@ -140,7 +143,7 @@ public class MethyCorAcrossHiccups {
 						//parser.setUsageWidth(80);
 						try
 						{
-							if(help || args.length < 4) throw new CmdLineException(parser, USAGE, new Throwable());
+							if(help || args.length < 3) throw new CmdLineException(parser, USAGE, new Throwable());
 							parser.parseArgument(args);
 							
 						
@@ -157,11 +160,11 @@ public class MethyCorAcrossHiccups {
 						//read input bed file, for each row,
 						//String intervalFile = arguments.get(0);
 						String outputPrefix = arguments.get(0);
-						String refFile = arguments.get(1);
-						String hiccupsFile = arguments.get(2);
-						String bamFile = arguments.get(3);
+						//String refFile = arguments.get(1);
+						String hiccupsFile = arguments.get(1);
+						String bamFile = arguments.get(2);
 
-						initiate(outputPrefix, refFile);
+						initiate(outputPrefix);
 						SamReader wgsReader = SamReaderFactory.makeDefault().setOption(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES, true).validationStringency(ValidationStringency.SILENT).open(new File(bamFile));
 						log.info("Parsing input hiccups links BEDPE format bed file ...");
 						GZIPInputStream gzipInputStream = null;
@@ -218,7 +221,11 @@ public class MethyCorAcrossHiccups {
 							lineNum++;
 							if(lineNum % 1000 == 0){
 								log.info("Processing line: " + lineNum);
-								
+								if(vcf != null){
+									asmWriter.flush();
+								}else{
+									methyCorWriter.flush();
+								}
 							}
 							
 						}
@@ -232,21 +239,20 @@ public class MethyCorAcrossHiccups {
 		
 		//currently, not consider condition that each end overlapped a SNP
 		//TODO
-		private void asmCall(String chr, int start1, int end1, int start2, int end2, SamReader wgsReader, double ob, double exp, double fdr){ 
+		private void asmCall(String chr, int start1, int end1, int start2, int end2, SamReader wgsReader, double ob, double exp, double fdr) throws Exception{ 
 			String regionName = chr + ":" + start1 + ":" + end1 + ":" + start2 + ":" + end2;
 			
 			//read SNP list
 			//region1
 			CloseableIterator<VariantContext> itSnp = vcfReader.query(chr, start1, end1);
-			SAMSequenceDictionary seqDict = VCFFileReader.getSequenceDictionary(new File(vcf));
-			GenomeLocParser glp = new GenomeLocParser(seqDict);
+			
 			HashMap<GenomeLoc, Pair<Byte, Byte>> genotypeMapList1 = new HashMap<GenomeLoc, Pair<Byte, Byte>>();
 			while(itSnp.hasNext()){
 				VariantContext vc = itSnp.next();
 				if(vc.isFiltered() || vc.isIndel() || vc.isMixed() || !vc.isPointEvent())
 					continue;
 				
-					Genotype gt = vc.getGenotype(sample);
+					Genotype gt = vc.getGenotype(0);
 					
 					if(!gt.isFiltered() && gt.isHet()){ //only phased Het SNP is considered
 						GenomeLoc genomeLoc = glp.createGenomeLoc(vc.getContig(),vc.getStart(), vc.getEnd());
@@ -267,7 +273,7 @@ public class MethyCorAcrossHiccups {
 				VariantContext vc = itSnp.next();
 				if(vc.isFiltered() || vc.isIndel() || vc.isMixed() || !vc.isPointEvent())
 					continue;
-					Genotype gt = vc.getGenotype(sample);				
+					Genotype gt = vc.getGenotype(0);				
 					if(!gt.isFiltered() && gt.isHet()){ //only phased Het SNP is considered
 						GenomeLoc genomeLoc = glp.createGenomeLoc(vc.getContig(),vc.getStart(), vc.getEnd());
 						Byte alleleA = gt.getAllele(0).getBases()[0];
@@ -315,13 +321,18 @@ public class MethyCorAcrossHiccups {
 				}
 			}
 			wgsIt.close();
+			//end1's SNP
+			processBam(genotypeMapList1, countedReadsEnd1, countedReadsEnd2, wgsReader, regionName, ob, exp, fdr);
 			
-			processBam(genotypeMapList1, genotypeMapList2, countedReadsEnd1, countedReadsEnd2, wgsReader, regionName, ob, exp, fdr);
+			//end2's SNP
+			processBam(genotypeMapList2, countedReadsEnd2, countedReadsEnd1, wgsReader, regionName, ob, exp, fdr);
+			
 		}
 		
-		private void processBam(HashMap<GenomeLoc, Pair<Byte, Byte>> genotypeMapList1, HashMap<GenomeLoc, Pair<Byte, Byte>> genotypeMapList2, HashMap<String, SAMRecord> countedReadsEnd1, 
-				HashMap<String, SAMRecord> countedReadsEnd2, SamReader wgsReader, String regionName, double ob, double exp, double fdr){
+		private void processBam(HashMap<GenomeLoc, Pair<Byte, Byte>> genotypeMapList1,  HashMap<String, SAMRecord> countedReadsEnd1, 
+				HashMap<String, SAMRecord> countedReadsEnd2, SamReader wgsReader, String regionName, double ob, double exp, double fdr) throws Exception{
 			//end1
+			int snpNum = 0;
 			for(GenomeLoc loc : genotypeMapList1.keySet()){
 				Pair<Byte, Byte> alleles = genotypeMapList1.get(loc);
 				SAMRecordIterator samIt = wgsReader.queryOverlapping(loc.getContig(), loc.getStart(), loc.getStop());
@@ -368,78 +379,114 @@ public class MethyCorAcrossHiccups {
 					if(pos < 0) //no such a postion in the clipped reads
 						continue;
 						
-					byte snpBase = readBases[pos];
+					byte snpBase = CcInferenceUtils.toUpperCase(readBases[pos]);
+					//if(negStrand){
+						//snpBase = CcInferenceUtils.toUpperCase(SequenceUtil.complement(readBases[pos]));
+					//}
 					if(readBasesQ[pos] < minBaseQ){
 						continue;
 					}
+
+					System.err.println((char)snpBase + "\t" + pos + "\t" + (char)alleles.getFirst().byteValue() + "\t" + (char)alleles.getSecond().byteValue()+ "\t" + negStrand + "\t" + secondPair + "\t" +
+					BisulfiteHicUtils.baseMatchInBisulfiteSpace(alleles.getFirst(), snpBase, negStrand, secondPair) + "\t" + 
+					new String(CcInferenceUtils.toUpperCase(readBases)));
 					
 					
-					
-					byte[] refBaseEnd1 = BisulfiteHicUtils.modifyRefSeqByCigar(refParser.loadFragment(r1.getAlignmentStart()-1, r1.getAlignmentEnd()-r1.getAlignmentStart()+1).getBytes(), r1.getCigarString());
-					if(r1.getReadNegativeStrandFlag()){
-						refBaseEnd1=BisulfiteHicUtils.complementArray(refBaseEnd1);
-					}
-					byte[] readBases1 = BisulfiteHicUtils.getClippedReadsBase(r1);
-					//System.err.println(r1.getCigarString());
-					int pos1 = 0;
-					if(!turnOffBisulfiteFilter){
-						pos1 = CcInferenceUtils.bisulfiteIncompleteReads(readBases1, refBaseEnd1, r1.getReadNegativeStrandFlag(), r1.getReadPairedFlag() & r1.getSecondOfPairFlag(), false, true, true, 0.1, 0.4, 0, "CH", 1);
-						if(pos1<0){
-							continue;
-						}
-					}
-					
-					//System.err.println(r2.getCigarString());
-					byte[] refBaseEnd2 = BisulfiteHicUtils.modifyRefSeqByCigar(refParser.loadFragment(r2.getAlignmentStart()-1, r2.getAlignmentEnd()-r2.getAlignmentStart()+1).getBytes(), r2.getCigarString());
-					if(r2.getReadNegativeStrandFlag()){
-						refBaseEnd2=BisulfiteHicUtils.complementArray(refBaseEnd2);
-					}
-					byte[] readBases2 = BisulfiteHicUtils.getClippedReadsBase(r2);
-					int pos2 = 0;
-					if(!turnOffBisulfiteFilter){
-						pos2 = CcInferenceUtils.bisulfiteIncompleteReads(readBases2, refBaseEnd2, r2.getReadNegativeStrandFlag(), r2.getReadPairedFlag() & r2.getSecondOfPairFlag(), false, true, false, 0.1, 0.4, 0, "CH", 1);
-						if(pos2<0){
-							continue;
-						}
-					}
-					
-					
-					
-					Pair<Integer, Integer> ctSummary = BisulfiteHicUtils.readsMethySummary(r1, minMapQ, minBaseQ);
-					int numC = ctSummary.getFirst();
-					int numT = ctSummary.getSecond();
-					if((numC + numT) == 0)
+					Triple<Integer,Integer, Integer> ctSummary = BisulfiteHicUtils.readsMethySummary(r1, minMapQ, minBaseQ, turnOffBisulfiteFilter);
+					int numC = ctSummary.getLeft();
+					int numT = ctSummary.getMiddle();
+					int numCg = ctSummary.getRight();
+					if((numC + numT) == 0 || numCg < minCgNum)
 						continue;
+					
+					Triple<Integer,Integer, Integer> ctSummary2 = Triple.of(0,0,0);
+					boolean matchedEndFound = false;
+					if(countedReadsEnd2.containsKey(r1.getReadName())){
+						matchedEndFound = true;
+						ctSummary2 = BisulfiteHicUtils.readsMethySummary(countedReadsEnd2.get(r1.getReadName()), minMapQ, minBaseQ, turnOffBisulfiteFilter);
+					}else{
+						
+					}
+							
 					if(BisulfiteHicUtils.baseMatchInBisulfiteSpace(alleles.getFirst(), snpBase, negStrand, secondPair)){
-						int numCRef = ctAlleleRef.getFirst() + numC;
-						int numTRef = ctAlleleRef.getSecond() + numT;
-						ctAlleleRef = new Pair<Integer, Integer>(numCRef,numTRef);
+						int numCRef = ctAlleleRefAll.getFirst() + numC;
+						int numTRef = ctAlleleRefAll.getSecond() + numT;
+						ctAlleleRefAll = new Pair<Integer, Integer>(numCRef,numTRef);
 						refAlleleCount++;
+						
+						if(matchedEndFound){
+							numCRef = ctAlleleRefEnd1.getFirst() + ctSummary.getLeft();
+							numTRef = ctAlleleRefEnd1.getSecond() + ctSummary.getMiddle();
+							ctAlleleRefEnd1 = new Pair<Integer, Integer>(numCRef,numTRef);
+							
+							numCRef = ctAlleleRefEnd2.getFirst() + ctSummary2.getLeft();
+							numTRef = ctAlleleRefEnd2.getSecond() + ctSummary2.getMiddle();
+							ctAlleleRefEnd2 = new Pair<Integer, Integer>(numCRef,numTRef);
+						}
+						
 					}else if(BisulfiteHicUtils.baseMatchInBisulfiteSpace(alleles.getSecond(), snpBase, negStrand, secondPair)){
-						int numCAlt = ctAlleleAlt.getFirst() + numC;
-						int numTAlt = ctAlleleAlt.getSecond() + numT;
-						ctAlleleAlt = new Pair<Integer, Integer>(numCAlt,numTAlt);
+						int numCAlt = ctAlleleAltAll.getFirst() + numC;
+						int numTAlt = ctAlleleAltAll.getSecond() + numT;
+						ctAlleleAltAll = new Pair<Integer, Integer>(numCAlt,numTAlt);
 						altAlleleCount++;
+						
+						if(matchedEndFound){
+							numCAlt = ctAlleleAltEnd1.getFirst() + ctSummary.getLeft();
+							numTAlt = ctAlleleAltEnd1.getSecond() + ctSummary.getMiddle();
+							ctAlleleAltEnd1 = new Pair<Integer, Integer>(numCAlt,numTAlt);
+							
+							numCAlt = ctAlleleAltEnd2.getFirst() + ctSummary2.getLeft();
+							numTAlt = ctAlleleAltEnd2.getSecond() + ctSummary2.getMiddle();
+							ctAlleleAltEnd2 = new Pair<Integer, Integer>(numCAlt,numTAlt);
+						}
 					}
 					
 					
 					
 				}
 				samIt.close();
-				if(refAlleleCount < coverageRef || altAlleleCount< coverageAlt || (ctAlleleRefAll.getFirst() + ctAlleleRefAll.getSecond() ==0 && ctAlleleAltAll.getFirst() + ctAlleleAltAll.getSecond() ==0))
+				if(refAlleleCount < coverageRef || altAlleleCount< coverageAlt || (ctAlleleRefAll.getFirst() + ctAlleleRefAll.getSecond() ==0 && ctAlleleAltAll.getFirst() + ctAlleleAltAll.getSecond() ==0)
+						|| (ctAlleleRefEnd1.getFirst() + ctAlleleRefEnd1.getSecond() ==0 && ctAlleleAltEnd1.getFirst() + ctAlleleAltEnd1.getSecond() ==0) ||
+						(ctAlleleRefEnd2.getFirst() + ctAlleleRefEnd2.getSecond() ==0 && ctAlleleAltEnd2.getFirst() + ctAlleleAltEnd2.getSecond() ==0))
 					continue;
-				writer.println(loc.getContig() + "\t" + regionStart + "\t" + regionEnd + "\t" + loc.getStop()  + "\t" + String.format("%c", alleles.getFirst()) + "\t" + refAlleleCount
-						  + "\t" + ctAlleleRef.getFirst() + "\t" + ctAlleleRef.getSecond() + "\t" +(double)ctAlleleRef.getFirst()/(double)(ctAlleleRef.getFirst() + ctAlleleRef.getSecond())
-						  + "\t" + String.format("%c", alleles.getSecond()) + "\t" + altAlleleCount
-						  + "\t" + ctAlleleAlt.getFirst() + "\t" + ctAlleleAlt.getSecond() + "\t" +(double)ctAlleleAlt.getFirst()/(double)(ctAlleleAlt.getFirst() + ctAlleleAlt.getSecond()));
-				if(VCFCOUNT % PURGE_INTERVAL == 0 ){
-					writer.flush();
-					log.info("Processing allele ... " + VCFCOUNT);
-				}
-					
-				VCFCOUNT++;
+				
+				/* SNP.chr, SNP.start,SNP.end,SNP basesA, SNP baseB, region_name, id,hiccups_ob, hiccups_exp, hiccups_fdr, SNP_end.alleleA_all.methy_count,SNP_end.alleleA_all.unmethy_count,SNP_end.alleleB_all.methy_count,SNP_end.alleleB_all.unmethy_count,methyDiff(B-A),fisher_test_p_value, 
+				 * SNP_end.alleleA.methy_count,SNP_end.alleleA.unmethy_count,SNP_end.alleleB.methy_count,SNP_end.alleleB.unmethy_count,methyDiff(B-A),fisher_test_p_value,
+				 * nonSNP_end.alleleA.methy_count,nonSNP_end.alleleA.unmethy_count,nonSNP_end.alleleB.methy_count,nonSNP_end.alleleB.unmethy_count,methyDiff(B-A), fisher_test_p_value
+				 */
+				
+				
+				Pair<Double, Double> summaryStatAll = getPvalueAndDiff(ctAlleleRefAll.getFirst(), ctAlleleRefAll.getSecond(), ctAlleleAltAll.getFirst(), ctAlleleAltAll.getSecond());
+				Pair<Double, Double> summaryStatEnd1 = getPvalueAndDiff(ctAlleleRefEnd1.getFirst(), ctAlleleRefEnd1.getSecond(), ctAlleleAltEnd1.getFirst(), ctAlleleAltEnd1.getSecond());
+				Pair<Double, Double> summaryStatEnd2 = getPvalueAndDiff(ctAlleleRefEnd2.getFirst(), ctAlleleRefEnd2.getSecond(), ctAlleleAltEnd2.getFirst(), ctAlleleAltEnd2.getSecond());
+				
+				
+				asmWriter.write(loc.getContig() + "\t" + (loc.getStart()-1)  + "\t" + loc.getStop()  + "\t" + String.format("%c", alleles.getFirst()) + "\t" + String.format("%c", alleles.getSecond()) + "\t"
+						+ regionName + "\t" + snpNum + "\t" + ob + "\t" + exp + "\t" + fdr  + "\t" + ctAlleleRefAll.getFirst() + "\t" + ctAlleleRefAll.getSecond()  + "\t" + ctAlleleAltAll.getFirst() + "\t" + ctAlleleAltAll.getSecond() + "\t" + summaryStatAll.getFirst() + "\t" + summaryStatAll.getSecond()
+						+ "\t" + ctAlleleRefEnd1.getFirst() + "\t" + ctAlleleRefEnd1.getSecond()+ "\t" + ctAlleleAltEnd1.getFirst() + "\t" + ctAlleleAltEnd1.getSecond() + "\t" + summaryStatEnd1.getFirst() + "\t" + summaryStatEnd1.getSecond()
+						+ "\t" + ctAlleleRefEnd2.getFirst() + "\t" + ctAlleleRefEnd2.getSecond()+ "\t" + ctAlleleAltEnd2.getFirst() + "\t" + ctAlleleAltEnd2.getSecond() + "\t" + summaryStatEnd2.getFirst() + "\t" + summaryStatEnd2.getSecond() + "\n");
+				snpNum++;
 			}
 			
+		}
+		
+		//first is snpB_methy_level-snpA_methy_level , second is p value
+		private Pair<Double, Double> getPvalueAndDiff(int snpA_methy, int snpA_unmethy, int snpB_methy, int snpB_unmethy){
+			double methyDiff = Double.NaN;
+			if((snpA_methy + snpA_unmethy > 0) && (snpB_methy + snpB_unmethy > 0) ){
+				methyDiff = (double)snpB_methy/(double)(snpB_methy + snpB_unmethy) - (double)snpA_methy/(double)(snpA_methy + snpA_unmethy);
+				methyDiff*=100;
+			}
+			double pvalue = Double.NaN;
+			if(snpA_methy + snpA_unmethy + snpB_methy + snpB_unmethy > 10000){ //use ChiSquareTest
+				ChiSquareTest test = new ChiSquareTest();
+				long[][] input = new long[][]{{snpA_methy, snpA_unmethy},{snpB_methy, snpB_unmethy}};
+				pvalue = test.chiSquareTest(input);
+			}else{
+				FisherExactTest test = new FisherExactTest(10000);
+				pvalue = test.getTwoTailedP(snpA_methy, snpA_unmethy, snpB_methy, snpB_unmethy);
+			}
+			return new Pair<Double, Double>(methyDiff, pvalue);
 		}
 		
 		private void methyCorrelation(String chr, int start1, int end1, int start2, int end2, SamReader wgsReader, double ob, double exp, double fdr, String bamFile) throws Exception{
@@ -559,51 +606,25 @@ public class MethyCorAcrossHiccups {
 					SAMRecord r1 = countedReadsEnd1.get(readName);
 					SAMRecord r2 = countedReadsEnd2.get(readName);
 					
-					if(!chr.equalsIgnoreCase(preChr)){
-						refParser.close();
-						refParser.setCurrentSequence(chr);
-						preChr = chr;
-					}
+					Triple<Integer,Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummary(r1, minMapQ, minBaseQ, turnOffBisulfiteFilter);
+					Triple<Integer,Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummary(r2, minMapQ, minBaseQ, turnOffBisulfiteFilter);
+					int numC1 = ctSummary1.getLeft();
+					int numT1 = ctSummary1.getMiddle();
+					int numCg1 = ctSummary1.getRight();
+					int numC2 = ctSummary2.getLeft();
+					int numT2 = ctSummary2.getMiddle();
+					int numCg2 = ctSummary2.getRight();
+					if((numC1 + numT1) == 0 || numCg1 < minCgNum || (numC2 + numT2) == 0 || numCg2 < minCgNum)
+						continue;
 					
-					byte[] refBaseEnd1 = BisulfiteHicUtils.modifyRefSeqByCigar(refParser.loadFragment(r1.getAlignmentStart()-1, r1.getAlignmentEnd()-r1.getAlignmentStart()+1).getBytes(), r1.getCigarString());
-					if(r1.getReadNegativeStrandFlag()){
-						refBaseEnd1=BisulfiteHicUtils.complementArray(refBaseEnd1);
-					}
-					byte[] readBases1 = BisulfiteHicUtils.getClippedReadsBase(r1);
-					//System.err.println(r1.getCigarString());
-					int pos1 = 0;
-					if(!turnOffBisulfiteFilter){
-						pos1 = CcInferenceUtils.bisulfiteIncompleteReads(readBases1, refBaseEnd1, r1.getReadNegativeStrandFlag(), r1.getReadPairedFlag() & r1.getSecondOfPairFlag(), false, true, true, 0.1, 0.4, 0, "CH", 1);
-						if(pos1<0){
-							continue;
-						}
-					}
 					
-					//System.err.println(r2.getCigarString());
-					byte[] refBaseEnd2 = BisulfiteHicUtils.modifyRefSeqByCigar(refParser.loadFragment(r2.getAlignmentStart()-1, r2.getAlignmentEnd()-r2.getAlignmentStart()+1).getBytes(), r2.getCigarString());
-					if(r2.getReadNegativeStrandFlag()){
-						refBaseEnd2=BisulfiteHicUtils.complementArray(refBaseEnd2);
-					}
-					byte[] readBases2 = BisulfiteHicUtils.getClippedReadsBase(r2);
-					int pos2 = 0;
-					if(!turnOffBisulfiteFilter){
-						pos2 = CcInferenceUtils.bisulfiteIncompleteReads(readBases2, refBaseEnd2, r2.getReadNegativeStrandFlag(), r2.getReadPairedFlag() & r2.getSecondOfPairFlag(), false, true, false, 0.1, 0.4, 0, "CH", 1);
-						if(pos2<0){
-							continue;
-						}
-					}
-					
-					Pair<Double,Integer> methySummaryEnd1 = BisulfiteHicUtils.readsMethySummaryWithFivePrimeFilter(refBaseEnd1,readBases1, BisulfiteHicUtils.getClippedReadsBaseQuality(r1),
-														r1.getReadNegativeStrandFlag(), r1.getReadPairedFlag() & r1.getSecondOfPairFlag(), minBaseQ, pos1);
-					Pair<Double,Integer> methySummaryEnd2 = BisulfiteHicUtils.readsMethySummaryWithFivePrimeFilter(refBaseEnd2,readBases2, BisulfiteHicUtils.getClippedReadsBaseQuality(r2),
-							r2.getReadNegativeStrandFlag(), r2.getReadPairedFlag() & r2.getSecondOfPairFlag(), minBaseQ, pos2);
 					//chr1,read.start1,read.end1,chr2,read.start2,read.end2,region_name, id, hiccups_ob, hiccups_exp, hiccups_fdr, methy_end1, cpg_num_end1, methy_end2, cpg_num_end2
-					if(!Double.isNaN(methySummaryEnd1.getFirst()) && !Double.isNaN(methySummaryEnd2.getFirst())){
-						methyCorWriter.write(chr + "\t" + start1 + "\t" + end1 + "\t" + chr + "\t" + start2 + "\t" + end2 + "\t" + 
-								regionName + "\t" + readNum + "\t" + ob+ "\t" + exp+ "\t" + fdr + "\t" + methySummaryEnd1.getFirst() + "\t" + methySummaryEnd1.getSecond()
-								 + "\t" + methySummaryEnd2.getFirst() + "\t" + methySummaryEnd2.getSecond() + "\n");
+					
+					methyCorWriter.write(chr + "\t" + start1 + "\t" + end1 + "\t" + chr + "\t" + start2 + "\t" + end2 + "\t" + 
+								regionName + "\t" + readNum + "\t" + ob+ "\t" + exp+ "\t" + fdr + "\t" + (double)numC1/(double)(numC1 + numT1) + "\t" + (numC1 + numT1)
+								 + "\t" + (double)numC2/(double)(numC2 + numT2) + "\t" + (numC2 + numT2) + "\n");
 								readNum++;
-					}
+					
 					
 				}
 				
@@ -676,51 +697,27 @@ public class MethyCorAcrossHiccups {
 					SAMRecord r2=countedReadsEnd2.get(readNames2[randomItem]);
 					
 					
-					if(!chr.equalsIgnoreCase(preChr)){
-						refParser.close();
-						refParser.setCurrentSequence(chr);
-						preChr = chr;
-					}
+					Triple<Integer,Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummary(r1, minMapQ, minBaseQ, turnOffBisulfiteFilter);
+					Triple<Integer,Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummary(r2, minMapQ, minBaseQ, turnOffBisulfiteFilter);
+					int numC1 = ctSummary1.getLeft();
+					int numT1 = ctSummary1.getMiddle();
+					int numCg1 = ctSummary1.getRight();
+					int numC2 = ctSummary2.getLeft();
+					int numT2 = ctSummary2.getMiddle();
+					int numCg2 = ctSummary2.getRight();
+					if((numC1 + numT1) == 0 || numCg1 < minCgNum || (numC2 + numT2) == 0 || numCg2 < minCgNum)
+						continue;
 					
-					byte[] refBaseEnd1 = BisulfiteHicUtils.modifyRefSeqByCigar(refParser.loadFragment(r1.getAlignmentStart()-1, r1.getAlignmentEnd()-r1.getAlignmentStart()+1).getBytes(), r1.getCigarString());
-					if(r1.getReadNegativeStrandFlag()){
-						refBaseEnd1=BisulfiteHicUtils.complementArray(refBaseEnd1);
-					}
-					byte[] readBases1 = BisulfiteHicUtils.getClippedReadsBase(r1);
-					//System.err.println(r1.getCigarString());
-					int pos1 = 0;
-					if(!turnOffBisulfiteFilter){
-						pos1 = CcInferenceUtils.bisulfiteIncompleteReads(readBases1, refBaseEnd1, r1.getReadNegativeStrandFlag(), r1.getReadPairedFlag() & r1.getSecondOfPairFlag(), false, true, true, 0.1, 0.4, 0, "CH", 1);
-						if(pos1<0){
-							continue;
-						}
-					}
 					
-					//System.err.println(r2.getCigarString());
-					byte[] refBaseEnd2 = BisulfiteHicUtils.modifyRefSeqByCigar(refParser.loadFragment(r2.getAlignmentStart()-1, r2.getAlignmentEnd()-r2.getAlignmentStart()+1).getBytes(), r2.getCigarString());
-					if(r2.getReadNegativeStrandFlag()){
-						refBaseEnd2=BisulfiteHicUtils.complementArray(refBaseEnd2);
-					}
-					byte[] readBases2 = BisulfiteHicUtils.getClippedReadsBase(r2);
-					int pos2 = 0;
-					if(!turnOffBisulfiteFilter){
-						pos2 = CcInferenceUtils.bisulfiteIncompleteReads(readBases2, refBaseEnd2, r2.getReadNegativeStrandFlag(), r2.getReadPairedFlag() & r2.getSecondOfPairFlag(), false, true, false, 0.1, 0.4, 0, "CH", 1);
-						if(pos2<0){
-							continue;
-						}
-					}
-					
-					Pair<Double,Integer> methySummaryEnd1 = BisulfiteHicUtils.readsMethySummaryWithFivePrimeFilter(refBaseEnd1,readBases1, BisulfiteHicUtils.getClippedReadsBaseQuality(r1),
-														r1.getReadNegativeStrandFlag(), r1.getReadPairedFlag() & r1.getSecondOfPairFlag(), minBaseQ, pos1);
-					Pair<Double,Integer> methySummaryEnd2 = BisulfiteHicUtils.readsMethySummaryWithFivePrimeFilter(refBaseEnd2,readBases2, BisulfiteHicUtils.getClippedReadsBaseQuality(r2),
-							r2.getReadNegativeStrandFlag(), r2.getReadPairedFlag() & r2.getSecondOfPairFlag(), minBaseQ, pos2);
 					//chr1,read.start1,read.end1,chr2,read.start2,read.end2,region_name, id, hiccups_ob, hiccups_exp, hiccups_fdr, methy_end1, cpg_num_end1, methy_end2, cpg_num_end2
-					if(!Double.isNaN(methySummaryEnd1.getFirst()) && !Double.isNaN(methySummaryEnd2.getFirst())){
-						methyCorWriter.write(chr + "\t" + start1 + "\t" + end1 + "\t" + chr + "\t" + start2 + "\t" + end2 + "\t" + 
-								regionName + "\t" + readNum + "\t" + ob+ "\t" + exp+ "\t" + fdr + "\t" + methySummaryEnd1.getFirst() + "\t" + methySummaryEnd1.getSecond()
-								 + "\t" + methySummaryEnd2.getFirst() + "\t" + methySummaryEnd2.getSecond() + "\n");
-								readNum++;
-					}
+					
+					methyCorWriter.write(chr + "\t" + start1 + "\t" + end1 + "\t" + chr + "\t" + start2 + "\t" + end2 + "\t" + 
+								regionName + "\t" + readNum + "\t" + ob+ "\t" + exp+ "\t" + fdr + "\t" + (double)numC1/(double)(numC1 + numT1) + "\t" + (numC1 + numT1)
+								 + "\t" + (double)numC2/(double)(numC2 + numT2) + "\t" + (numC2 + numT2) + "\n");
+					
+					
+					readNum++;
+					
 					if(randomSampleReads>0 && readNum > randomSampleReads){
 						break;
 					}
@@ -782,51 +779,26 @@ public class MethyCorAcrossHiccups {
 					SAMRecord r1 = countedReadsEnd1.get(readName);
 					SAMRecord r2 = countedReadsEnd2.get(readName);
 					
-					if(!chr.equalsIgnoreCase(preChr)){
-						refParser.close();
-						refParser.setCurrentSequence(chr);
-						preChr = chr;
-					}
 					
-					byte[] refBaseEnd1 = BisulfiteHicUtils.modifyRefSeqByCigar(refParser.loadFragment(r1.getAlignmentStart()-1, r1.getAlignmentEnd()-r1.getAlignmentStart()+1).getBytes(), r1.getCigarString());
-					if(r1.getReadNegativeStrandFlag()){
-						refBaseEnd1=BisulfiteHicUtils.complementArray(refBaseEnd1);
-					}
-					byte[] readBases1 = BisulfiteHicUtils.getClippedReadsBase(r1);
-					//System.err.println(r1.getCigarString());
-					int pos1 = 0;
-					if(!turnOffBisulfiteFilter){
-						pos1 = CcInferenceUtils.bisulfiteIncompleteReads(readBases1, refBaseEnd1, r1.getReadNegativeStrandFlag(), r1.getReadPairedFlag() & r1.getSecondOfPairFlag(), false, true, true, 0.1, 0.4, 0, "CH", 1);
-						if(pos1<0){
-							continue;
-						}
-					}
+					Triple<Integer,Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummary(r1, minMapQ, minBaseQ, turnOffBisulfiteFilter);
+					Triple<Integer,Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummary(r2, minMapQ, minBaseQ, turnOffBisulfiteFilter);
+					int numC1 = ctSummary1.getLeft();
+					int numT1 = ctSummary1.getMiddle();
+					int numCg1 = ctSummary1.getRight();
+					int numC2 = ctSummary2.getLeft();
+					int numT2 = ctSummary2.getMiddle();
+					int numCg2 = ctSummary2.getRight();
+					if((numC1 + numT1) == 0 || numCg1 < minCgNum || (numC2 + numT2) == 0 || numCg2 < minCgNum)
+						continue;
 					
-					//System.err.println(r2.getCigarString());
-					byte[] refBaseEnd2 = BisulfiteHicUtils.modifyRefSeqByCigar(refParser.loadFragment(r2.getAlignmentStart()-1, r2.getAlignmentEnd()-r2.getAlignmentStart()+1).getBytes(), r2.getCigarString());
-					if(r2.getReadNegativeStrandFlag()){
-						refBaseEnd2=BisulfiteHicUtils.complementArray(refBaseEnd2);
-					}
-					byte[] readBases2 = BisulfiteHicUtils.getClippedReadsBase(r2);
-					int pos2 = 0;
-					if(!turnOffBisulfiteFilter){
-						pos2 = CcInferenceUtils.bisulfiteIncompleteReads(readBases2, refBaseEnd2, r2.getReadNegativeStrandFlag(), r2.getReadPairedFlag() & r2.getSecondOfPairFlag(), false, true, false, 0.1, 0.4, 0, "CH", 1);
-						if(pos2<0){
-							continue;
-						}
-					}
 					
-					Pair<Double,Integer> methySummaryEnd1 = BisulfiteHicUtils.readsMethySummaryWithFivePrimeFilter(refBaseEnd1,readBases1, BisulfiteHicUtils.getClippedReadsBaseQuality(r1),
-														r1.getReadNegativeStrandFlag(), r1.getReadPairedFlag() & r1.getSecondOfPairFlag(), minBaseQ, pos1);
-					Pair<Double,Integer> methySummaryEnd2 = BisulfiteHicUtils.readsMethySummaryWithFivePrimeFilter(refBaseEnd2,readBases2, BisulfiteHicUtils.getClippedReadsBaseQuality(r2),
-							r2.getReadNegativeStrandFlag(), r2.getReadPairedFlag() & r2.getSecondOfPairFlag(), minBaseQ, pos2);
 					//chr1,read.start1,read.end1,chr2,read.start2,read.end2,region_name, id, hiccups_ob, hiccups_exp, hiccups_fdr, methy_end1, cpg_num_end1, methy_end2, cpg_num_end2
-					if(!Double.isNaN(methySummaryEnd1.getFirst()) && !Double.isNaN(methySummaryEnd2.getFirst())){
-						methyCorWriter.write(chr + "\t" + start1 + "\t" + end1 + "\t" + chr + "\t" + start2 + "\t" + end2 + "\t" + 
-								regionName + "\t" + readNum + "\t" + ob+ "\t" + exp+ "\t" + fdr + "\t" + methySummaryEnd1.getFirst() + "\t" + methySummaryEnd1.getSecond()
-								 + "\t" + methySummaryEnd2.getFirst() + "\t" + methySummaryEnd2.getSecond() + "\n");
-								readNum++;
-					}
+					
+					methyCorWriter.write(chr + "\t" + start1 + "\t" + end1 + "\t" + chr + "\t" + start2 + "\t" + end2 + "\t" + 
+								regionName + "\t" + readNum + "\t" + ob+ "\t" + exp+ "\t" + fdr + "\t" + (double)numC1/(double)(numC1 + numT1) + "\t" + (numC1 + numT1)
+								 + "\t" + (double)numC2/(double)(numC2 + numT2) + "\t" + (numC2 + numT2) + "\n");
+					readNum++;
+					
 					if(randomSampleReads>0 && readNum > randomSampleReads){
 						break;
 					}
@@ -846,9 +818,9 @@ public class MethyCorAcrossHiccups {
 		
 		
 		
-		private void initiate(String outputPrefix, String refFile) throws Exception{
+		private void initiate(String outputPrefix) throws Exception{
 			startTime = System.currentTimeMillis();
-			refParser = new TwoBitParser(new File(refFile));
+
 			
 			if(vcf != null){
 				asmWriter = new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(outputPrefix + ".asm.txt.gz")), "UTF-8");
@@ -858,6 +830,8 @@ public class MethyCorAcrossHiccups {
 				}
 
 				vcfReader = new VCFFileReader(new File(vcf), true);
+				SAMSequenceDictionary seqDict = VCFFileReader.getSequenceDictionary(new File(vcf));
+				glp = new GenomeLocParser(seqDict);
 			}else{
 				methyCorWriter = new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(outputPrefix + ".methyCor.txt.gz")), "UTF-8");
 			}
@@ -866,7 +840,7 @@ public class MethyCorAcrossHiccups {
 		}
 
 		private void finish() throws Exception{
-			refParser.closeParser();
+			
 			
 			
 			if(vcf != null){

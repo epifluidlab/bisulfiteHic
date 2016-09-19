@@ -35,3 +35,5 @@ lib/ccInference-0.19-jar-with-dependencies.jar
 target/bisulfitehic-0.03-jar-with-dependencies.jar
 target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/BisulfiteHicUtils.class
 target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/MethyCorAcrossHiccups.class
+target/bisulfitehic-0.04-jar-with-dependencies.jar
+target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/FisherExactTest.class
