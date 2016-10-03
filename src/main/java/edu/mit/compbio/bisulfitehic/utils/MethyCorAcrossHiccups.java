@@ -61,6 +61,7 @@ import org.kohsuke.args4j.Option;
  * currently only work for hiccups within the same chromosomes
  * 
  * Input: bam file should be sorted, calmd, and read name for end1 and end2 should be the same
+ * TODO: after get correct calmd bam file, need to change complementArray(bases) in negative strand case
  */
 
 public class MethyCorAcrossHiccups {
