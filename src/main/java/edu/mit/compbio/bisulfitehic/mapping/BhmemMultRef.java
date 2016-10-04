@@ -76,11 +76,11 @@ public class BhmemMultRef {
 	@Option(name="-rgSm",usage="readgroup SM to add. default: null")
 	public String rgSm = null;
 
-	@Option(name="-noHicMode",usage="in normal WGBS/RRBS/NOMe-seq mode, not in BisulfiteHiC mode, not implemented yet. WGBS mode is moved to BsmemMulRef.java. default: false")
-	public boolean noHicMode = false;
-
 	@Option(name="-noChimericMode",usage="not use chimeric mapped reads to increase the mapping efficiency, not implemented yet. default: false")
 	public boolean noChimericMode = false;
+
+	@Option(name="-trimReadName",usage="two ends read name are different wtih /1, /2 suffix, need to enable this option to trim it... default: false")
+	public boolean trimReadName = false;
 	
 	@Option(name="-ratio",usage="minimum probability ratio to be assigned to the best genome, rather than the second best. Otherwise, reads will be assigned as ambiguous. default: 10.0")
 	public double ratio = 10.0;
@@ -275,8 +275,14 @@ public class BhmemMultRef {
 						}
 						String seq1 = new String(read1.getBases());
 						String seq2 = new String(read2.getBases());
-						ShortRead read1ct=new ShortRead(read1.getName(), seq1.replace('C', 'T').getBytes() ,read1.getQualities());
-						ShortRead read2ga=new ShortRead(read2.getName(), seq2.replace('G', 'A').getBytes() ,read2.getQualities());
+						String r1Name = read1.getName();
+						String r2Name = read2.getName();
+						if(trimReadName){
+							r1Name.replace("/1", "");
+							r2Name.replace("/2", "");
+						}
+						ShortRead read1ct=new ShortRead(r1Name, seq1.replace('C', 'T').getBytes() ,read1.getQualities());
+						ShortRead read2ga=new ShortRead(r2Name, seq2.replace('G', 'A').getBytes() ,read2.getQualities());
 						
 						L1.add(seq1);
 						L2.add(seq2);
@@ -334,15 +340,20 @@ public class BhmemMultRef {
 							secondBestPair.put(key, p);
 						}
 					}else{
-						Pair<Integer, Pair<SAMRecord, SAMRecord>> second = secondBestPair.get(key);
-						int compare2nd = getBestSamRecordPair(tmpPair, second.getSecond());
-						if(compare2nd == -1){
-							secondBestPair.put(key, new Pair<Integer, Pair<SAMRecord, SAMRecord>>(i, tmpPair));
-						}else if(compare2nd == 0){
-							if(generator.nextDouble() < 0.5){
+						if(secondBestPair.containsKey(key)){
+							Pair<Integer, Pair<SAMRecord, SAMRecord>> second = secondBestPair.get(key);
+							int compare2nd = getBestSamRecordPair(tmpPair, second.getSecond());
+							if(compare2nd == -1){
 								secondBestPair.put(key, new Pair<Integer, Pair<SAMRecord, SAMRecord>>(i, tmpPair));
+							}else if(compare2nd == 0){
+								if(generator.nextDouble() < 0.5){
+									secondBestPair.put(key, new Pair<Integer, Pair<SAMRecord, SAMRecord>>(i, tmpPair));
+								}
 							}
+						}else{
+							secondBestPair.put(key, new Pair<Integer, Pair<SAMRecord, SAMRecord>>(i, tmpPair));
 						}
+						
 					}
 				}else if(secondBestPair.containsKey(key)){
 					Pair<Integer, Pair<SAMRecord, SAMRecord>> second = secondBestPair.get(key);

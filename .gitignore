@@ -37,3 +37,6 @@ target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/BisulfiteHicUtils.cl
 target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/MethyCorAcrossHiccups.class
 target/bisulfitehic-0.04-jar-with-dependencies.jar
 target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/FisherExactTest.class
+target/bisulfitehic-0.05-jar-with-dependencies.jar
+target/classes/main/java/edu/mit/compbio/bisulfitehic/mapping/BhmemMultRef.class
+target/classes/main/java/edu/mit/compbio/bisulfitehic/mapping/BsmemMultRef.class
