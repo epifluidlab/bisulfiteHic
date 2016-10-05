@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.random.MersenneTwister;
@@ -82,8 +84,8 @@ public class BsmemMultRef {
 	@Option(name="-trimReadName",usage="two ends read name are different wtih /1, /2 suffix, need to enable this option to trim it... default: false")
 	public boolean trimReadName = false;
 	
-	@Option(name="-ratio",usage="minimum probability ratio to be assigned to the best genome, rather than the second best. Otherwise, reads will be assigned as ambiguous. default: 10.0")
-	public double ratio = 10.0;
+	@Option(name="-ratio",usage="minimum probability ratio to be assigned to the best genome, rather than the second best. Otherwise, reads will be assigned as ambiguous. default: 0")
+	public double ratio = 0;
 	
 	@Option(name="-score",usage="minimum aligntment score to use. equal to -T in bwa mem. default: 0")
 	public int score = 0;	
@@ -157,7 +159,7 @@ public class BsmemMultRef {
 					String outputPrefix = arguments.get(1);
 					String fastq1 = arguments.get(2);
 					String fastq2 = arguments.get(3);
-
+					
 					if(refs == null || refs.size() < 2 || chains == null || chains.size() < 2 || refs.size() != chains.size()) throw new CmdLineException(parser, USAGE, new Throwable());
 					
 					initiate();	
@@ -227,8 +229,9 @@ public class BsmemMultRef {
 						SAMFileWriterFactory writerFactory = new SAMFileWriterFactory();
 						SAMFileWriter writer = writerFactory.makeBAMWriter(samFileHeader, true, new File(outputPrefix + ".alignToRef_" + numRef + ".bam"));
 						samFileWriterList.add(writer);
-						
-						chainList.add(new LiftOver(new File(chains.get(numRef-1))));
+						LiftOver chain = new LiftOver(new File(chains.get(numRef-1)));
+						chain.setLiftOverMinMatch(0.9);
+						chainList.add(chain);
 						
 						BwaIndex indexCT=new BwaIndex(new File(new File(ref).getParent() + "/Bisulfite_Genome/CT_conversion/genome_mfa.CT_conversion.fa"));
 						BwaMem memCT=new BwaMem(indexCT);
@@ -278,8 +281,11 @@ public class BsmemMultRef {
 						String r1Name = read1.getName();
 						String r2Name = read2.getName();
 						if(trimReadName){
-							r1Name.replace("/1", "");
-							r2Name.replace("/2", "");
+							Pattern replace = Pattern.compile("/\\d+$");
+			                Matcher matcher1 = replace.matcher(r1Name);
+			                r1Name=matcher1.replaceAll("");
+			                Matcher matcher2 = replace.matcher(r2Name);
+			                r2Name=matcher2.replaceAll("");
 						}
 						ShortRead read1ct=new ShortRead(r1Name, seq1.replace('C', 'T').getBytes() ,read1.getQualities());
 						ShortRead read2ga=new ShortRead(r2Name, seq2.replace('G', 'A').getBytes() ,read2.getQualities());
@@ -395,6 +401,9 @@ public class BsmemMultRef {
 			// re-infer the insertion sizes
 			Interval end1LiftOver = chain.liftOver(new Interval(chr1, end1Start, end1Start));
 			Interval end2LiftOver = chain.liftOver(new Interval(chr2, end2Start, end2Start));
+			if(end1LiftOver == null || end2LiftOver == null){
+				continue;
+			}
 			String chr1LiftOver = end1LiftOver.getContig();
 			int end1StartLiftOver = end1LiftOver.getStart();
 			String chr2LiftOver = end2LiftOver.getContig();
@@ -438,14 +447,16 @@ public class BsmemMultRef {
 					}
 				}
 			}
+			
 		}
 		
 	}
 	
 	private double mapqRatio(Pair<SAMRecord, SAMRecord> r1, Pair<SAMRecord, SAMRecord> r2){
-		double q1 = Math.pow(10, 0-(r1.getFirst().getMappingQuality()/10)*Math.pow(10, 0-(r1.getSecond().getMappingQuality())/10));
-		double q2 = Math.pow(10, 0-(r2.getFirst().getMappingQuality()/10)*Math.pow(10, 0-(r2.getSecond().getMappingQuality())/10));
-		return q2/q1;
+		//double q1 = (1-Math.pow(10, 0-(r1.getFirst().getMappingQuality()/10))*(1-Math.pow(10, 0-(r1.getSecond().getMappingQuality())/10)));
+				//double q2 = (1-Math.pow(10, 0-(r2.getFirst().getMappingQuality()/10))*(1-Math.pow(10, 0-(r2.getSecond().getMappingQuality())/10)));
+				//return q1/q2;
+				return r1.getFirst().getMappingQuality() + r1.getSecond().getMappingQuality() - r2.getFirst().getMappingQuality() - r2.getSecond().getMappingQuality();
 	}
 	
 	private HashMap<String, Pair<SAMRecord, SAMRecord>> joinTwoEnds(List<ShortRead> L1CT, List<ShortRead> L2GA, 
@@ -455,25 +466,17 @@ public class BsmemMultRef {
 		String[] samGAreadPairs = refGAList.align(L1CT, L2GA);
 		
 		HashMap<String, Pair<SAMRecord, SAMRecord>> bestPairs = new HashMap<String, Pair<SAMRecord, SAMRecord>>();
-
-		//make a hashmap about reads name
-		for(int i = 0; i < samCTreadPairs.length; i+=2){ //not use supplementary reads, after enable chimericMode, need to use it..
-			
-				System.err.println(i + "\t" + samCTreadPairs[i]);
-			
-		}
-		for(int i = 0; i < samGAreadPairs.length; i++){
-			
-			System.err.println(i + "\t" + samGAreadPairs[i]);
-		
-		}
-		System.exit(1);
 		
 		for(int i = 0, j=0; i < samCTreadPairs.length; i+=2, j++){
-			SAMRecord r1 = String2SamRecord(samCTreadPairs[i], samFileHeader, L1.get(j), true).get(0);
+			SAMRecord r1 = String2SamRecord(samCTreadPairs[i], samFileHeader, L1.get(j), false).get(0);
 			SAMRecord r2 = String2SamRecord(samCTreadPairs[i+1], samFileHeader, L2.get(j), true).get(0);
-			String readname = r1.getReadName();
 			
+			if(failFlagFilter(r1) || failFlagFilter(r2)){
+				continue;
+			}
+			
+			String readname = r1.getReadName();
+			SamPairUtil.setProperPairAndMateInfo(r1, r2, samFileHeader, ORITATION, true);
 			if(bestPairs.containsKey(readname)){
 				bestPairs.put(readname, comparingSamRecord(bestPairs.get(readname), new Pair<SAMRecord, SAMRecord>(r1, r2)));
 			}else{
@@ -482,10 +485,15 @@ public class BsmemMultRef {
 		}
 		
 		for(int i = 0, j=0; i < samGAreadPairs.length; i+=2, j++){
-			SAMRecord r1 = String2SamRecord(samGAreadPairs[i], samFileHeader, L1.get(j), true).get(0);
+			SAMRecord r1 = String2SamRecord(samGAreadPairs[i], samFileHeader, L1.get(j), false).get(0);
 			SAMRecord r2 = String2SamRecord(samGAreadPairs[i+1], samFileHeader, L2.get(j), true).get(0);
-			String readname = r1.getReadName();
 			
+			if(failFlagFilter(r1) || failFlagFilter(r2)){
+				continue;
+			}
+			
+			String readname = r1.getReadName();
+			SamPairUtil.setProperPairAndMateInfo(r1, r2, samFileHeader, ORITATION, true);
 			if(bestPairs.containsKey(readname)){
 				bestPairs.put(readname, comparingSamRecord(bestPairs.get(readname), new Pair<SAMRecord, SAMRecord>(r1, r2)));
 			}else{
@@ -655,6 +663,12 @@ public class BsmemMultRef {
 		}
 		return new String(ArrayUtils.toPrimitive(seqsNew.toArray(new Byte[seqsNew.size()])));
 	}
+	
+	private boolean failFlagFilter(SAMRecord r){
+		return r.getReadUnmappedFlag() || r.getNotPrimaryAlignmentFlag()
+				|| r.getReadFailsVendorQualityCheckFlag() ;
+	}
+
 	
 	private void initiate(){
 		startTime = System.currentTimeMillis();

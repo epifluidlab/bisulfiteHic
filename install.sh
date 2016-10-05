@@ -1,5 +1,5 @@
 #!/bin/bash
-cd jbwa/jbwa-1.0.0/ && make && cd ../../ && sudo mvn compile assembly:single
+cd jbwa/jbwa-1.0.0/ && make && cd ../../ && mvn compile assembly:single
 
 if [ -z $BISHIC ]
 then
@@ -9,3 +9,4 @@ then
 fi
 
 chmod 755 bisulfitehicMap
+cd ./target && ln -s $(ls -t | head -n1) bisulfitehic-default.jar

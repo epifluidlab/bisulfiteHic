@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.random.MersenneTwister;
@@ -76,14 +78,17 @@ public class BhmemMultRef {
 	@Option(name="-rgSm",usage="readgroup SM to add. default: null")
 	public String rgSm = null;
 
+	@Option(name="-noHicMode",usage="in normal WGBS/RRBS/NOMe-seq mode, not in BisulfiteHiC mode, not implemented yet. WGBS mode is moved to BsmemMulRef.java. default: false")
+	public boolean noHicMode = false;
+
 	@Option(name="-noChimericMode",usage="not use chimeric mapped reads to increase the mapping efficiency, not implemented yet. default: false")
 	public boolean noChimericMode = false;
 
 	@Option(name="-trimReadName",usage="two ends read name are different wtih /1, /2 suffix, need to enable this option to trim it... default: false")
 	public boolean trimReadName = false;
 	
-	@Option(name="-ratio",usage="minimum probability ratio to be assigned to the best genome, rather than the second best. Otherwise, reads will be assigned as ambiguous. default: 10.0")
-	public double ratio = 10.0;
+	@Option(name="-ratio",usage="minimum probability ratio to be assigned to the best genome, rather than the second best. Otherwise, reads will be assigned as ambiguous. default: 0")
+	public double ratio = 0;
 	
 	@Option(name="-score",usage="minimum aligntment score to use. equal to -T in bwa mem. default: 0")
 	public int score = 0;	
@@ -228,7 +233,9 @@ public class BhmemMultRef {
 						SAMFileWriter writer = writerFactory.makeBAMWriter(samFileHeader, true, new File(outputPrefix + ".alignToRef_" + numRef + ".bam"));
 						samFileWriterList.add(writer);
 						
-						chainList.add(new LiftOver(new File(chains.get(numRef-1))));
+						LiftOver chain = new LiftOver(new File(chains.get(numRef-1)));
+						chain.setLiftOverMinMatch(0.9);
+						chainList.add(chain);
 						
 						BwaIndex indexCT=new BwaIndex(new File(new File(ref).getParent() + "/Bisulfite_Genome/CT_conversion/genome_mfa.CT_conversion.fa"));
 						BwaMem memCT=new BwaMem(indexCT);
@@ -278,8 +285,11 @@ public class BhmemMultRef {
 						String r1Name = read1.getName();
 						String r2Name = read2.getName();
 						if(trimReadName){
-							r1Name.replace("/1", "");
-							r2Name.replace("/2", "");
+							Pattern replace = Pattern.compile("/\\d+$");
+			                Matcher matcher1 = replace.matcher(r1Name);
+			                r1Name=matcher1.replaceAll("");
+			                Matcher matcher2 = replace.matcher(r2Name);
+			                r2Name=matcher2.replaceAll("");
 						}
 						ShortRead read1ct=new ShortRead(r1Name, seq1.replace('C', 'T').getBytes() ,read1.getQualities());
 						ShortRead read2ga=new ShortRead(r2Name, seq2.replace('G', 'A').getBytes() ,read2.getQualities());
@@ -399,6 +409,9 @@ public class BhmemMultRef {
 			// re-infer the insertion sizes
 			Interval end1LiftOver = chain.liftOver(new Interval(chr1, end1Start, end1Start));
 			Interval end2LiftOver = chain.liftOver(new Interval(chr2, end2Start, end2Start));
+			if(end1LiftOver == null || end2LiftOver == null){
+				continue;
+			}
 			String chr1LiftOver = end1LiftOver.getContig();
 			int end1StartLiftOver = end1LiftOver.getStart();
 			String chr2LiftOver = end2LiftOver.getContig();
@@ -447,9 +460,11 @@ public class BhmemMultRef {
 	}
 	
 	private double mapqRatio(Pair<SAMRecord, SAMRecord> r1, Pair<SAMRecord, SAMRecord> r2){
-		double q1 = Math.pow(10, 0-(r1.getFirst().getMappingQuality()/10)*Math.pow(10, 0-(r1.getSecond().getMappingQuality())/10));
-		double q2 = Math.pow(10, 0-(r2.getFirst().getMappingQuality()/10)*Math.pow(10, 0-(r2.getSecond().getMappingQuality())/10));
-		return q2/q1;
+		//double q1 = (1-Math.pow(10, 0-(r1.getFirst().getMappingQuality()/10))*(1-Math.pow(10, 0-(r1.getSecond().getMappingQuality())/10)));
+		//double q2 = (1-Math.pow(10, 0-(r2.getFirst().getMappingQuality()/10))*(1-Math.pow(10, 0-(r2.getSecond().getMappingQuality())/10)));
+		//return q1/q2;
+		return r1.getFirst().getMappingQuality() + r1.getSecond().getMappingQuality() - r2.getFirst().getMappingQuality() - r2.getSecond().getMappingQuality();
+		
 	}
 	
 	private HashMap<String, Pair<SAMRecord, SAMRecord>> joinTwoEnds(String[] samsEnd1CT, String[] samsEnd1GA, String[] samsEnd2CT, String[] samsEnd2GA, SAMFileHeader samFileHeader, List<String> L1, List<String> L2){

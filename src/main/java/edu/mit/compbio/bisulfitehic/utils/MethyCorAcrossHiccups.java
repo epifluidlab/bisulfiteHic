@@ -104,6 +104,9 @@ public class MethyCorAcrossHiccups {
 	
 	@Option(name="-skipProcessFirstRow",usage="don't process first row, default: not enabled")
 	public boolean skipProcessFirstRow = false;
+
+	@Option(name="-useGeneralBedPe",usage="use general bedpe file rather than HiCUUPS link file, default: not enabled")
+	public boolean useGeneralBedPe = false;
 	
 	@Option(name="-h",usage="show option information")
 	public boolean help = false;
@@ -193,9 +196,14 @@ public class MethyCorAcrossHiccups {
 								if((!chr1.equalsIgnoreCase(chr2)) || (onlyShort<0 && Math.abs(start1-start2)<minDistEnds) || (onlyShort<0 && Math.abs(end1-end2)<minDistEnds)){
 									continue;
 								}
-								double ob = Double.parseDouble(splitin[7]);
-								double exp = Double.parseDouble(splitin[11]);
-								double fdr = Double.parseDouble(splitin[15]);
+								double ob = Double.NaN;
+								double exp = Double.NaN;
+								double fdr = Double.NaN;
+								if(!useGeneralBedPe){
+									ob = Double.parseDouble(splitin[7]);
+									exp = Double.parseDouble(splitin[11]);
+									fdr = Double.parseDouble(splitin[15]);
+								}
 								
 								if(vcf != null){
 									asmCall(chr1, start1, end1, start2, end2, wgsReader, ob, exp, fdr);

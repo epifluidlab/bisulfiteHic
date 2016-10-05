@@ -40,3 +40,5 @@ target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/FisherExactTest.clas
 target/bisulfitehic-0.05-jar-with-dependencies.jar
 target/classes/main/java/edu/mit/compbio/bisulfitehic/mapping/BhmemMultRef.class
 target/classes/main/java/edu/mit/compbio/bisulfitehic/mapping/BsmemMultRef.class
+target/bisulfitehic-0.06-jar-with-dependencies.jar
+target/bisulfitehic-default.jar
