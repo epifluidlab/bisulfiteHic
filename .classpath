@@ -12,5 +12,6 @@
 	<classpathentry kind="lib" path="lib/picard-lib.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/ccinference"/>
 	<classpathentry kind="lib" path="lib/gatk-package-distribution-3.3.jar"/>
+	<classpathentry kind="lib" path="lib/commons-collections4-4.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

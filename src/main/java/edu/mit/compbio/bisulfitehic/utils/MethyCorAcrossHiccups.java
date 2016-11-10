@@ -169,7 +169,8 @@ public class MethyCorAcrossHiccups {
 						String bamFile = arguments.get(2);
 
 						initiate(outputPrefix);
-						SamReader wgsReader = SamReaderFactory.makeDefault().setOption(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES, true).validationStringency(ValidationStringency.SILENT).open(new File(bamFile));
+						//SamReader wgsReader = SamReaderFactory.makeDefault().setOption(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES, true).validationStringency(ValidationStringency.SILENT).open(new File(bamFile));
+						SamReader wgsReader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(new File(bamFile));
 						log.info("Parsing input hiccups links BEDPE format bed file ...");
 						GZIPInputStream gzipInputStream = null;
 						BufferedReader br;
@@ -396,9 +397,9 @@ public class MethyCorAcrossHiccups {
 						continue;
 					}
 
-					System.err.println((char)snpBase + "\t" + pos + "\t" + (char)alleles.getFirst().byteValue() + "\t" + (char)alleles.getSecond().byteValue()+ "\t" + negStrand + "\t" + secondPair + "\t" +
-					BisulfiteHicUtils.baseMatchInBisulfiteSpace(alleles.getFirst(), snpBase, negStrand, secondPair) + "\t" + 
-					new String(CcInferenceUtils.toUpperCase(readBases)));
+					//System.err.println((char)snpBase + "\t" + pos + "\t" + (char)alleles.getFirst().byteValue() + "\t" + (char)alleles.getSecond().byteValue()+ "\t" + negStrand + "\t" + secondPair + "\t" +
+					//BisulfiteHicUtils.baseMatchInBisulfiteSpace(alleles.getFirst(), snpBase, negStrand, secondPair) + "\t" + 
+					//new String(CcInferenceUtils.toUpperCase(readBases)));
 					
 					
 					Triple<Integer,Integer, Integer> ctSummary = BisulfiteHicUtils.readsMethySummary(r1, minMapQ, minBaseQ, turnOffBisulfiteFilter);
@@ -605,6 +606,7 @@ public class MethyCorAcrossHiccups {
 				//wgsReader.close();
 				//wgsReader = SamReaderFactory.makeDefault().setOption(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES, true).validationStringency(ValidationStringency.SILENT).open(new File(bamFile));
 				log.info("reopen bam file to avoid too many connections...");
+				methyCorWriter.flush();
 				reopenFlag=false;
 			}
 			//System.err.println(countedReadsEnd1.size() + "\t" + countedReadsEnd2.size());
@@ -623,6 +625,7 @@ public class MethyCorAcrossHiccups {
 					int numC2 = ctSummary2.getLeft();
 					int numT2 = ctSummary2.getMiddle();
 					int numCg2 = ctSummary2.getRight();
+					//System.err.println((numC1 + numT1) + "\t" + (numC2 + numT2) + "\t" + numCg1 + "\t" + numCg2);
 					if((numC1 + numT1) == 0 || numCg1 < minCgNum || (numC2 + numT2) == 0 || numCg2 < minCgNum)
 						continue;
 					

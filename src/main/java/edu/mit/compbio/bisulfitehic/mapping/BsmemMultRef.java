@@ -81,6 +81,10 @@ public class BsmemMultRef {
 	@Option(name="-chimericMode",usage="use chimeric mapped reads to increase the mapping efficiency, not implemented yet. default: false")
 	public boolean chimericMode = false;
 
+	@Option(name="-addAmbiguousReads",usage="output ambiguous reads into each genome's bam file. default: false")
+	public boolean addAmbiguousReads = false;
+
+	
 	@Option(name="-trimReadName",usage="two ends read name are different wtih /1, /2 suffix, need to enable this option to trim it... default: false")
 	public boolean trimReadName = false;
 	
@@ -265,7 +269,11 @@ public class BsmemMultRef {
 						
 						if(read1==null || read2==null || L1.size()>buffer){
 							if(!L1.isEmpty()){
-								mapReadsToMultiGenome(L1CT, L2GA, L1, L2, refCTList, refGAList, samFileHeaderList, samFileWriterList, chainList, samFileHeaderMerge, writerMerge, writerAmb);
+								if(addAmbiguousReads){
+									mapReadsToMultiGenomeAddAmbiguous(L1CT, L2GA, L1, L2, refCTList, refGAList, samFileHeaderList, samFileWriterList);
+								}else{
+									mapReadsToMultiGenome(L1CT, L2GA, L1, L2, refCTList, refGAList, samFileHeaderList, samFileWriterList, chainList, samFileHeaderMerge, writerMerge, writerAmb);
+								}
 							}
 								
 							if(read1==null || read2==null){
@@ -318,6 +326,48 @@ public class BsmemMultRef {
 					
 					finish();
 	}
+	
+	private void mapReadsToMultiGenomeAddAmbiguous(List<ShortRead> L1CT, List<ShortRead> L2GA, 
+			List<String> L1, List<String> L2, ArrayList<BwaMem> refCTList, ArrayList<BwaMem> refGAList, ArrayList<SAMFileHeader> samFileHeaderList, ArrayList<SAMFileWriter> samFileWriterList) throws IOException{
+		
+		//go over each genome for the mapping, and select the best genome for the reads
+		for(int i = 0; i < refs.size(); i++){
+			
+			HashMap<String, Pair<SAMRecord, SAMRecord>> readPairs = joinTwoEnds(L1CT, L2GA, refCTList.get(i), refGAList.get(i), samFileHeaderList.get(i), L1, L2);
+			for(String key : readPairs.keySet()){
+				Pair<SAMRecord, SAMRecord> tmpPair = readPairs.get(key);
+				SAMRecord r1 = tmpPair.getFirst();
+				SAMRecord r2 = tmpPair.getSecond();
+				
+				samFileWriterList.get(i).addAlignment(r1);
+				samFileWriterList.get(i).addAlignment(r2);
+				if(i==0){
+					mappedReads+=2;
+					
+					if(r1.getReferenceIndex() == r2.getReferenceIndex()){
+						uniqMappedSameChrReads += 2;
+						if(Math.min(r1.getMappingQuality(), r2.getMappingQuality()) >= 1){
+							uniqMappedSameChrMapq1Reads += 2;
+							if(Math.abs(r1.getInferredInsertSize())>20000){
+								uniqMappedSameChrMapq1LongInsReads += 2;
+							}
+							if(Math.min(r1.getMappingQuality(), r2.getMappingQuality()) >= 30){
+								uniqMappedSameChrMapq30Reads += 2;
+								if(Math.abs(r1.getInferredInsertSize())>20000){
+									uniqMappedSameChrMapq30LongInsReads += 2;
+								}
+							}
+						}
+					}
+				}
+				
+			}
+			
+		}
+		
+		
+	}
+	
 	
 	private void mapReadsToMultiGenome(List<ShortRead> L1CT, List<ShortRead> L2GA, 
 			List<String> L1, List<String> L2, ArrayList<BwaMem> refCTList, ArrayList<BwaMem> refGAList, ArrayList<SAMFileHeader> samFileHeaderList, ArrayList<SAMFileWriter> samFileWriterList,

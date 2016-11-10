@@ -42,3 +42,7 @@ target/classes/main/java/edu/mit/compbio/bisulfitehic/mapping/BhmemMultRef.class
 target/classes/main/java/edu/mit/compbio/bisulfitehic/mapping/BsmemMultRef.class
 target/bisulfitehic-0.06-jar-with-dependencies.jar
 target/bisulfitehic-default.jar
+lib/commons-collections4-4.1.jar
+target/bisulfitehic-0.07-jar-with-dependencies.jar
+target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/EnhanceHicMatrix.class
+target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/SingleBaseResHicMatrix.class

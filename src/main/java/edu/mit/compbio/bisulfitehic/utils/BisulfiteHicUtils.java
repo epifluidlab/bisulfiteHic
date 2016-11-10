@@ -7,6 +7,7 @@
 package main.java.edu.mit.compbio.bisulfitehic.utils;
 
 import java.util.ArrayList;
+import java.util.TreeMap;
 
 import main.java.edu.mit.compbio.ccinference.utils.CcInferenceUtils;
 
@@ -99,10 +100,10 @@ public class BisulfiteHicUtils {
 		
 		byte[] readBasesQ = getClippedReadsBaseQuality(read);
 		byte[] readBases = CcInferenceUtils.toUpperCase(getClippedReadsBase(read));
-		if(negStrand){
+		//if(negStrand){
 			//System.err.println(new String(refBases) + "\n" + new String(readBases) + "\t" +read.getCigarString() + "\t" + secondPair);
-			readBases = complementArray(readBases);
-		}
+			//readBases = complementArray(readBases);
+		//}
 		
 		Triple<Integer,Integer, Integer> ctSummary = Triple.of(0,0,0);
 		int pos = 0;
@@ -117,6 +118,37 @@ public class BisulfiteHicUtils {
 		ctSummary = readsMethySummaryWithFivePrimeFilter(refBases, readBases, readBasesQ, negStrand, secondPair, minBaseQ, pos);
 
 		return ctSummary; //first is C, second is T
+	}
+	
+	static public TreeMap<Integer, Integer> readsMethySummaryAtEachLoc(SAMRecord read, int minMapQ, int minBaseQ, boolean turnOffBisulfiteFilter) throws Exception{
+		boolean negStrand = read.getReadNegativeStrandFlag();
+		boolean secondPair = read.getReadPairedFlag() && read.getSecondOfPairFlag();
+		//filter if it is bad reads
+		if(read.getReadUnmappedFlag() || read.getNotPrimaryAlignmentFlag() || read.getDuplicateReadFlag() 
+				|| read.getReadFailsVendorQualityCheckFlag() || (read.getReadPairedFlag() && !read.getProperPairFlag()) 
+				|| read.getMappingQuality() < minMapQ){
+			return null;
+		}
+		
+		byte[] refBases = CcInferenceUtils.toUpperCase(modifyRefSeqByCigar(SequenceUtil.makeReferenceFromAlignment(read, false), read.getCigarString()));
+		
+		byte[] readBasesQ = getClippedReadsBaseQuality(read);
+		byte[] readBases = CcInferenceUtils.toUpperCase(getClippedReadsBase(read));
+		
+		
+		TreeMap<Integer, Integer> ctSummary = new TreeMap<Integer, Integer>();
+		int pos = 0;
+		if(!turnOffBisulfiteFilter){
+			
+			pos = CcInferenceUtils.bisulfiteIncompleteReads(readBases, refBases, negStrand, secondPair, false, true, true, 0.1, 0.4, 0, "CH", 1);
+			if(pos<0){
+				return ctSummary;
+			}
+		}
+		
+		ctSummary = readsMethyAndLocWithFivePrimeFilter(refBases, readBases, readBasesQ, negStrand, secondPair, minBaseQ, pos);
+		
+		return ctSummary; //first is location, second is methylation status: 0 unmethy, 1 methy.
 	}
 	
 	static public Triple<Integer,Integer, Integer> readsMethySummary(SAMRecord read, int minMapQ, int minBaseQ){
@@ -214,6 +246,41 @@ public class BisulfiteHicUtils {
 		//}
 		 
 		return Triple.of(numC, numT,numCg); //first is numC, second is numT, third is Cpg number
+	}
+	
+	static public TreeMap<Integer, Integer> readsMethyAndLocWithFivePrimeFilter(byte[] refBases, byte[] bases, byte[] basesQ, 
+			boolean negStrand, boolean secondPair, int minBaseQ, int bisulfiteConvertStart){
+		//ArrayList<Interval> cpgLoc = new ArrayList<Interval>();
+		//ArrayList<Integer> cpgMethy = new ArrayList<Integer>();
+		//new Interval(chr, start, end);
+		TreeMap<Integer, Integer> cpgMethy = new TreeMap<Integer, Integer>(); //key: relative location from beginning of fragment, value: 0:unmethy, 1: methy
+
+		
+		if((!secondPair && !negStrand) || (secondPair && negStrand)){
+			for(int i = bisulfiteConvertStart; i < refBases.length -1; i++){
+				if(SequenceUtil.basesEqual(refBases[i], SequenceUtil.C) && SequenceUtil.basesEqual(refBases[i+1], SequenceUtil.G)){
+					if(SequenceUtil.basesEqual(bases[i], SequenceUtil.C) && basesQ[i] >= minBaseQ){
+						cpgMethy.put(i, 1);
+					}else if(SequenceUtil.basesEqual(bases[i], SequenceUtil.T) && basesQ[i] >= minBaseQ){
+						cpgMethy.put(i, 0);
+					}
+				}
+			}
+		}else{
+			for(int i = 1; i < refBases.length-bisulfiteConvertStart; i++){
+				if(SequenceUtil.basesEqual(refBases[i], SequenceUtil.G) && SequenceUtil.basesEqual(refBases[i-1], SequenceUtil.C)){
+					if(SequenceUtil.basesEqual(bases[i], SequenceUtil.G) && basesQ[i] >= minBaseQ){
+						cpgMethy.put(i-1, 1);
+					}else if(SequenceUtil.basesEqual(bases[i], SequenceUtil.A) && basesQ[i] >= minBaseQ){
+						cpgMethy.put(i-1, 0);
+					}
+				}
+				
+			}
+		}
+		
+		
+		return cpgMethy; //key: relative location from beginning of fragment, value: 0:unmethy, 1: methy
 	}
 	
 	
