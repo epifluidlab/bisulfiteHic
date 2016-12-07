@@ -74,8 +74,8 @@ public class EnhanceHicMatrix {
 	@Option(name="-window",usage="the smaller window size to look into the resolution. Default: 500")
 	public int window = 500;
 
-	@Option(name="-minReadsInWindow",usage="minimum number of reads required to calculate pearson correlation within the window at both ends Default: 2")
-	public int minReadsInWindow   = 2;
+	@Option(name="-minReadsInWindow",usage="minimum number of reads required to calculate pearson correlation within the window at both ends Default: 3")
+	public int minReadsInWindow   = 3;
 
 	@Option(name="-bedpe",usage="bedpe file to limit the analysis only in these regions. Otherwise, it will scan the whole genome for all of the possible resolution windows. Default: null")
 	public String bedpe = null;
@@ -216,7 +216,8 @@ public class EnhanceHicMatrix {
 						IntervalTree<HashMap<String,Double>> cpgMethyMatrix2 = new IntervalTree<HashMap<String,Double>>();
 						//DescriptiveStatistics summary1 = new DescriptiveStatistics();
 						//DescriptiveStatistics summary2 = new DescriptiveStatistics();
-						
+						//System.err.println(interval1);
+						//System.err.println(interval2);
 						SAMRecordIterator wgsIt = wgsReader.queryOverlapping(interval1.getContig(), interval1.getStart(), interval1.getEnd());
 						
 						while(wgsIt.hasNext()){
@@ -314,7 +315,8 @@ public class EnhanceHicMatrix {
 						wgsIt.close();
 						//get each cpg's reads/methyStatus in each read
 						//build beta-binomila distribution
-						
+						//System.err.println(cpgMethyMatrix1.size());
+						//System.err.println(cpgMethyMatrix2.size());
 						//use window size to scan all within the interval. calculate distance/correlation score within each window, for each window, also permuatte to calculate permutated distance & correlation score
 						for(int startW1 = interval1.getStart(); startW1 < interval1.getEnd()-window; startW1+=window){
 							int endW1 = startW1 + window;
@@ -345,10 +347,16 @@ public class EnhanceHicMatrix {
 								if(reads2.size() < minReadsInWindow){
 									continue;
 								}
+								//System.err.println(reads1.size());
+								//System.err.println(reads2.size());
+								
 								ArrayList<Double> ratios = cpgContactFreq(reads1, reads2);
 								queryNum++;
 								if(!ratios.get(0).isNaN()){
 									String name = interval1.getContig() + ":" + startW1 + ":" + endW1 + ":" + startW2 + ":" + endW2;
+									if(bedpe != null){
+										name = interval1.getContig() + ":" + interval1.getStart() + ":" + interval1.getEnd() + ":" + interval2.getStart() + ":" + interval2.getEnd(); //use bedpe's interval as row names...
+									}
 									writer.write(interval1.getContig() + "\t" + startW1 + "\t" + endW1 + "\t" + interval2.getContig() + "\t" + startW2 + "\t" + endW2 + "\t" + name);
 									for(Double ratio : ratios){
 										writer.write("\t" + ratio);
@@ -386,6 +394,16 @@ public class EnhanceHicMatrix {
 
 			}
 		}
+		if(xList.size() < minReadsInWindow){
+			results.add(Double.NaN);
+			results.add(Double.NaN);
+			results.add(0.);
+			results.add(Double.NaN);
+			results.add(Double.NaN);
+			results.add(0.);
+			return results;
+		}
+		
 		double[] xArray = ArrayUtils.toPrimitive(xList.toArray(new Double[xList.size()]));
 		double[] yArray = ArrayUtils.toPrimitive(yList.toArray(new Double[yList.size()]));
 		double[][] d = new double[xArray.length][2];
@@ -393,6 +411,10 @@ public class EnhanceHicMatrix {
 			d[i][0] = xArray[i];
 			d[i][1] = yArray[i];
 		}
+		//System.err.println(d.length + "\t" + d[0].length);
+		//System.err.println(d[0][0] + "\t" + d[0][1]);
+		//System.err.println(d[1][0] + "\t" + d[1][1]);
+		//System.err.println(d[2][0] + "\t" + d[2][1]);
 		PearsonsCorrelation corObserved = new PearsonsCorrelation(d);
 		Double corEff = corObserved.correlation(xArray, yArray);
 		Double pvalue = Double.NaN;

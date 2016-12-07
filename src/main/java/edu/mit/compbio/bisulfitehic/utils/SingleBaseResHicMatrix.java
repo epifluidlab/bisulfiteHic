@@ -6,11 +6,16 @@
  */
 package main.java.edu.mit.compbio.bisulfitehic.utils;
 
+import htsjdk.samtools.QueryInterval;
+import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;
+import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.ValidationStringency;
+import htsjdk.samtools.util.Interval;
+import htsjdk.samtools.util.IntervalList;
 import htsjdk.samtools.util.IntervalTree;
 import htsjdk.samtools.util.IntervalTree.Node;
 
@@ -22,9 +27,11 @@ import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -66,18 +73,23 @@ public class SingleBaseResHicMatrix {
 	@Option(name="-minMapQ",usage="minimum mapping quality score required to check. Default: 30")
 	public int minMapQ = -1;
 
-	@Option(name="-minDistEnds",usage="minimum distance between two end to be output. Default: 20000")
-	public int minDistEnds = 20000;
+	@Option(name="-minDistEnds",usage="minimum distance between two end to be output. Default: 1000")
+	public int minDistEnds = 1000;
 
-	@Option(name="-maxDistEnds",usage="maximum distance between two end to be output. Default: 3000000")
-	public int maxDistEnds = 3000000;
+	@Option(name="-maxDistEnds",usage="maximum distance between two end to be output. Default: 2000000000")
+	public int maxDistEnds = 2000000000;
 
+	@Option(name="-bedpe",usage="bedpe file to limit the analysis only in these regions. Otherwise, it will use all of the cpg provided. Default: null")
+	public String bedpe = null;
+	
+	@Option(name="-minReadsInWindow",usage="minimum number of reads required to calculate pearson correlation within the window at both ends Default: 3")
+	public int minReadsInWindow   = 3;
 	
 	//@Option(name="-minCgNum",usage="For ASM mode, specify the minimum  number of CpG to call ASM. Default: 1")
 	//public int minCgNum = 1;
 	
-	@Option(name="-permutations",usage="number of permutations to generate expectated p value within the same segments, default: 10")
-	public int permutations = 10;
+	@Option(name="-permutations",usage="number of permutations to generate expectated p value within the same segments, default: 100")
+	public int permutations = 100;
 	
 	@Option(name="-skipProcessFirstRow",usage="don't process first row, default: not enabled")
 	public boolean skipProcessFirstRow = false;
@@ -137,6 +149,84 @@ public class SingleBaseResHicMatrix {
 							String bamFile = arguments.get(2);
 
 							initiate(outputPrefix);
+							SamReader wgsReader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(new File(bamFile));
+							SAMFileHeader samFileHeader = wgsReader.getFileHeader();
+							SAMSequenceDictionary dict = samFileHeader.getSequenceDictionary();
+							
+							HashMap<String,IntervalTree<IntervalList>> intervalCollections = new HashMap<String,IntervalTree<IntervalList>>();
+							if(bedpe != null){
+								log.info("Parsing input bedpe bed file ...");
+								
+								GZIPInputStream gzipInputStream1 = null;
+								BufferedReader br;
+								if(bedpe.endsWith(".gz")){
+									gzipInputStream1 = new GZIPInputStream(new FileInputStream(bedpe));
+									br = new BufferedReader(new InputStreamReader(gzipInputStream1));
+									
+								}else{
+									br = new BufferedReader(new FileReader(bedpe));
+								}
+									
+									String line;
+									long i = 0;
+									while( (line = br.readLine()) != null){
+										if(line.startsWith("#") || (skipProcessFirstRow && i == 0))
+											continue;
+										String[] splitin = line.split("\t");
+										String chr1 = splitin[0];
+										int start1 = Integer.parseInt(splitin[1]);
+										int end1 = Integer.parseInt(splitin[2]);
+										String chr2 = splitin[3];
+										int start2 = Integer.parseInt(splitin[4]);
+										int end2 = Integer.parseInt(splitin[5]);
+										if((!chr1.equalsIgnoreCase(chr2)) || Math.abs(start1-start2)<minDistEnds || Math.abs(end1-end2)<minDistEnds ||  Math.abs(start1-start2)>maxDistEnds || Math.abs(end1-end2)>maxDistEnds){
+											continue;
+										}
+										IntervalTree<IntervalList> tree;
+										
+										if(intervalCollections.containsKey(chr1)){
+											tree = intervalCollections.get(chr1);
+										}else{
+											tree = new IntervalTree<IntervalList>();
+										}
+
+										Interval interval1 = new Interval(chr1, start1, end1);
+										Interval interval2 = new Interval(chr2, start2, end2);
+										IntervalList list1 = null;
+										if(tree.find(start1, end1) != null){
+											list1 = tree.find(start1, end1).getValue();
+											list1.add(interval2);
+										}else{
+											list1 = new IntervalList(wgsReader.getFileHeader());
+											list1.add(interval2);
+										}
+										tree.put(start1, end1, list1);
+										
+										IntervalList list2 = null;
+										if(tree.find(start2, end2) != null){
+											list2 = tree.find(start2, end2).getValue();
+											list2.add(interval1);
+										}else{
+											list2 = new IntervalList(wgsReader.getFileHeader());
+											list2.add(interval1);
+										}
+										tree.put(start2, end2, list2);
+										
+										
+										intervalCollections.put(chr1, tree);
+										
+										i++;
+										
+									}
+									if(bedpe.endsWith(".gz")){
+										gzipInputStream1.close();
+									}
+									br.close();
+								
+								
+							}
+							
+							
 							
 							log.info("Parsing input cpgList bed file ...");
 							
@@ -165,6 +255,18 @@ public class SingleBaseResHicMatrix {
 										String chr = splitLines[0];
 										int start = Integer.parseInt(splitLines[1]);
 										int end = Integer.parseInt(splitLines[2]);
+										
+										if(!intervalCollections.isEmpty()){
+											if(intervalCollections.containsKey(chr)){
+												IntervalTree<IntervalList> candidate = intervalCollections.get(chr);
+												if(candidate.overlappers(start, end) == null){
+													continue;
+												}
+											}else{
+												continue;
+											}
+										}
+										
 										IntervalTree<String> tree;
 										
 										if(allCpgLocCollections.containsKey(chr)){
@@ -190,113 +292,220 @@ public class SingleBaseResHicMatrix {
 										gzipInputStream.close();
 									}
 									br1.close();
-							
-					log.info("Extracting reads within intervals that contains cpg sites ... ");
-					HashMap<String,IntervalTree<HashMap<String,Integer>>> cpgMethyMatrix = new HashMap<String,IntervalTree<HashMap<String,Integer>>>();
-					
-					SamReader wgsReader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(new File(bamFile));
-					
-					SAMRecordIterator wgsIt = wgsReader.iterator();
-					
-					while(wgsIt.hasNext()){
-						SAMRecord r = wgsIt.next();
-						String readName = r.getReadName();
-						String chr = r.getContig();
-						int start = r.getAlignmentStart();
-						int end = r.getAlignmentEnd();
-						Iterator<IntervalTree.Node<String>> cpgs = null;
-						if(allCpgLocCollections.containsKey(chr)){
-							cpgs = allCpgLocCollections.get(chr).overlappers(start, end);
-							if(cpgs == null){
-								continue;
-							}
-							//if(allCpgLocCollections.get(chr).minOverlapper(start, end)==null){
-							//	continue;
-							//}else{
-							//	
-							//}
-							
-						}else{
-							continue;
-						}
-						
-						if(failFlagFilter(r)){
-							continue;
-						}else{
-							TreeMap<Integer, Integer> cpgSummary = BisulfiteHicUtils.readsMethySummaryAtEachLoc(r, minMapQ, minBaseQ, turnOffBisulfiteFilter);
-							while(cpgs.hasNext()){
-								IntervalTree.Node<String> cpg = cpgs.next();
-								int pos = cpg.getStart() - start;
-								if(cpgSummary.containsKey(pos)){
-									IntervalTree<HashMap<String,Integer>> tmpInterval = null;
-									if(cpgMethyMatrix.containsKey(chr)){
-										tmpInterval = cpgMethyMatrix.get(chr);
-										HashMap<String,Integer> tmpRead = tmpInterval.find(cpg.getStart(), cpg.getEnd()).getValue();
-										if(tmpRead == null){
-											tmpRead = new HashMap<String,Integer>();
-											tmpRead.put(readName, cpgSummary.get(pos));
+									
+									
+									HashMap<String, ArrayList<QueryInterval>> queryIntervalMap = new HashMap<String, ArrayList<QueryInterval>>();
+									//ArrayList<QueryInterval> queryIntervalList = new ArrayList<QueryInterval>();
+									
+									//int z = 0;
+									for(Entry<String,IntervalTree<String>> entry: allCpgLocCollections.entrySet()){
+										String chr = entry.getKey();
+										ArrayList<QueryInterval> queryIntervalList =  null;
+										if(queryIntervalMap.containsKey(chr)){
+											queryIntervalList = queryIntervalMap.get(chr);
 										}else{
-											if(tmpRead.containsKey(readName)){
-												// two ends overlapped and have not be trimmed?
-											}else{
-												tmpRead.put(readName, cpgSummary.get(pos));
-											}
+											queryIntervalList = new ArrayList<QueryInterval>();
 										}
-										tmpInterval.put(cpg.getStart(), cpg.getEnd(), tmpRead);
-									}else{
-										tmpInterval = new IntervalTree<HashMap<String,Integer>>();
-										HashMap<String,Integer> tmpRead = new HashMap<String,Integer>();
-										tmpRead.put(readName, cpgSummary.get(pos));
-										tmpInterval.put(cpg.getStart(), cpg.getEnd(), tmpRead);
+										int refIndex = dict.getSequenceIndex(entry.getKey());
+										Iterator<Node<String>> it = entry.getValue().iterator();
+										//System.err.println(entry.getKey() + "\t" + refIndex);
+										while(it.hasNext()){
+											Node<String> n = it.next();
+											int start = n.getStart();
+											int end = n.getEnd();
+											//System.err.println(start + "\t" + end);
+											queryIntervalList.add(new QueryInterval(refIndex, start+1, end));
+										}
+										queryIntervalMap.put(chr, queryIntervalList);
+										//z++;
 									}
-									cpgMethyMatrix.put(chr, tmpInterval);
+									
+									//QueryInterval[] queryIntervals = queryIntervalList.toArray(new QueryInterval[queryIntervalList.size()]);
+									
+									//for(QueryInterval interval : queryIntervals){
+									//	System.err.println(interval);
+									//}
+									
+					log.info("Extracting reads within intervals that contains cpg sites ... ");
+					
+					
+					//System.err.println(cpgMethyMatrix.size() + "\t" + x + "\t" + y + "\t" + s + "\t" + a + "\t" + b + "\t" + c);
+					log.info("Processing each pair of CpGs' interactin frequency ... ");
+					writer.write("#chr\tstart1\tend1\tstart2\tend2\tname\tconcordCount\tdisconcordCount\tobserved_ratio\tpermutated_ratio\tcorrelation\tcorrelation_pvalue\t"
+							+ "cor_random\tpvalue_random\tentropy\tentropy_random\tentropy_permuation_p_value\n");
+					
+					for(String chr : queryIntervalMap.keySet()){
+						IntervalTree<HashMap<String,Integer>> cpgMethyMatrix = new IntervalTree<HashMap<String,Integer>>();
+						ArrayList<QueryInterval> queryIntervalList =  queryIntervalMap.get(chr);
+						QueryInterval[] queryIntervals = queryIntervalList.toArray(new QueryInterval[queryIntervalList.size()]);
+						SAMRecordIterator wgsIt = wgsReader.queryOverlapping(queryIntervals);
+						
+						while(wgsIt.hasNext()){
+							
+							SAMRecord r = wgsIt.next();
+							String readName = r.getReadName();
+							
+							int start = r.getAlignmentStart();
+							int end = r.getAlignmentEnd();
+							Iterator<IntervalTree.Node<String>> cpgs = null;
+							if(allCpgLocCollections.containsKey(chr)){
+								cpgs = allCpgLocCollections.get(chr).overlappers(start, end);
+								if(cpgs == null){
+								
+									continue;
+								}
+								if(allCpgLocCollections.get(chr).minOverlapper(start, end)==null){
+									
+									continue;
+								}else{
 									
 								}
+								
+							}else{
+								
+								continue;
 							}
-						
-						}
+							
+							if(failFlagFilter(r)){
+								
+								continue;
+							}else{
+								TreeMap<Integer, Integer> cpgSummary = BisulfiteHicUtils.readsMethySummaryAtEachLoc(r, minMapQ, minBaseQ, turnOffBisulfiteFilter);
+								//System.err.print(r.getReadName() + "\t" + chr + "\t" + start + "\t" + end);
+								//for(int key : cpgSummary.keySet()){
+									//System.err.print("\t" + key);
+								//}
+								//System.err.println();
+								while(cpgs.hasNext()){
+									IntervalTree.Node<String> cpg = cpgs.next();
+									int pos = cpg.getStart() - start;
+									//System.err.println(cpg.getStart() + "\t" + pos);
+									if(cpgSummary.containsKey(pos)){
+										
+										
+											Node<HashMap<String,Integer>> tmpReadNode = cpgMethyMatrix.find(cpg.getStart(), cpg.getEnd());
+											HashMap<String,Integer> tmpRead = null;
+											if(tmpReadNode == null){
+												tmpRead = new HashMap<String,Integer>();
+												tmpRead.put(readName, cpgSummary.get(pos));
+											}else{
+												tmpRead = tmpReadNode.getValue();
+												if(tmpRead.containsKey(readName)){
+													// two ends overlapped and have not be trimmed?
+												}else{
+													tmpRead.put(readName, cpgSummary.get(pos));
+												}
+											}
+											cpgMethyMatrix.put(cpg.getStart(), cpg.getEnd(), tmpRead);
+										
+										
+										
+									}
+								}
+							
+							}
 
-					}
-					wgsIt.close();
-					wgsReader.close();
-					
-					log.info("Processing each pair of CpGs' interactin frequency ... ");
-					for(String chr : cpgMethyMatrix.keySet()){
-						IntervalTree<HashMap<String,Integer>> cpgs = cpgMethyMatrix.get(chr);
-						List<Node<HashMap<String, Integer>>> cpgList  = IteratorUtils.toList(cpgs.iterator());  
+						}
+						wgsIt.close();
+						
+						//IntervalTree<HashMap<String,Integer>> cpgs = cpgMethyMatrix.get(chr);
+						List<Node<HashMap<String, Integer>>> cpgList  = IteratorUtils.toList(cpgMethyMatrix.iterator());  
+						//System.err.println(cpgList.size());
 						for(int i = 0; i < cpgList.size()-1; i++){
 							Node<HashMap<String, Integer>> cpgi = cpgList.get(i);
+							if(cpgi.getValue().size() < minReadsInWindow){
+								
+								continue;
+							}
+							IntervalList list = null;
+							Interval interval1 = null;
+							if(!intervalCollections.isEmpty()){
+								if(intervalCollections.containsKey(chr)){
+									IntervalTree<IntervalList> candidate = intervalCollections.get(chr);
+									if(candidate.overlappers(cpgi.getStart(), cpgi.getEnd()) != null){
+										list = new IntervalList(samFileHeader);
+										Iterator<Node<IntervalList>> listIt= candidate.overlappers(cpgi.getStart(), cpgi.getEnd());
+										while(listIt.hasNext()){
+											Node<IntervalList> tmp = listIt.next();
+											if(interval1 == null){
+												interval1 = new Interval(chr,tmp.getStart(), tmp.getEnd());
+											}
+											list.addall(tmp.getValue().getIntervals());
+										}
+										
+									}else{
+										continue;
+									}
+								}else{
+									continue;
+								}
+							}
+							
+							
 							for(int j = i+1; j < cpgList.size(); j++){
 								Node<HashMap<String, Integer>> cpgj = cpgList.get(j);
 								if(Math.abs(cpgi.getEnd() - cpgj.getEnd()) > maxDistEnds || Math.abs(cpgi.getEnd() - cpgj.getEnd()) < minDistEnds){
+									
+									continue;
+								}
+								Interval interval2 = null;
+								if(list != null){
+									Interval intervalj = new Interval(chr, cpgj.getStart(), cpgj.getEnd());
+									//System.err.println(intervalj);
+									boolean intersected = false;
+									for(Interval intervalTmp : list.getIntervals()){
+										
+										//if(cpgj.getStart()>intervalTmp.getStart() && cpgj.getStart()<intervalTmp.getEnd()){
+											//System.err.println(intervalj + "\t" + intervalTmp + "\t" + intervalTmp.abuts(intervalj) + "\t" + intervalj.abuts(intervalTmp) + "\t" + intervalTmp.intersects(intervalj));
+										//}
+										if(intervalTmp.intersects(intervalj)){
+											intersected = true;
+											interval2 = intervalTmp.clone();
+											break;
+										}
+									}
+									//System.err.println();
+									if(!intersected){
+										
+										continue;
+									}
+									
+								}
+								if(cpgj.getValue().size() < minReadsInWindow){
 									continue;
 								}
 
 								ArrayList<Double> ratios = cpgContactFreq(cpgi.getValue(), cpgj.getValue());
 								queryNum++;
-								if(!ratios.get(0).isNaN()){
+								if(!ratios.get(2).isNaN()){
 									//writer.write(chr + "\t" + cpgi.getStart() + "_" + cpgi.getEnd() + "\t" + cpgj.getStart() + "_" + cpgj.getEnd() + "\t" + ratios.getFirst() + "\t" + ratios.getSecond());
 									String name = chr + ":" + cpgi.getStart() + ":" + cpgi.getEnd() + ":" + cpgj.getStart() + ":" + cpgj.getEnd();
+									if(interval2 != null && interval1 != null){
+										name = chr + ":" + interval1.getStart() + ":" + interval1.getEnd() + ":" + interval2.getStart() + ":" + interval2.getEnd(); //use bedpe's interval as row names...
+									}
 									writer.write(chr + "\t" + cpgi.getStart() + "\t" + cpgi.getEnd() + "\t" + cpgj.getStart() + "\t" + cpgj.getEnd() + "\t" + name);
 									for(Double ratio : ratios){
 										writer.write("\t" + ratio);
 									}
 									writer.write("\n");
+								}else{
+									//System.err.println(ratios.get(0));
+									
 								}
 								if(queryNum % 1000000 == 0){
-									log.info("Processing CpG ... " + queryNum);
+									log.info("Processing CpG pairs ... " + queryNum);
 									writer.flush();
 								}
 							}
 						}
 						
 					}
-					
-					
+					wgsReader.close();
+					//System.err.println(x + "\t" + y + "\t" + s + "\t" + a + "\t" + b + "\t" + c + "\t" + queryNum);
 					finish();
 			}
-			
-	//observed_ratio, permutated_ratio, correlation, p value, number of points, cor_random, pvalue_random, numOfPoints_random
+	
+	//concordCount, disconcordCount, observed_ratio, permutated_ratio, correlation, p value, number of points, cor_random, pvalue_random, entropy, entropy_random, entropy_permuation_p_value
 			private ArrayList<Double> cpgContactFreq(HashMap<String, Integer> x, HashMap<String, Integer> y){
 				int concordCount = 0;
 				int disconcordCount = 0;
@@ -304,7 +513,13 @@ public class SingleBaseResHicMatrix {
 				
 				ArrayList<Double> xList = new ArrayList<Double>();
 				ArrayList<Double> yList = new ArrayList<Double>();
-				
+				//for(String readName : x.keySet()){
+					//System.err.println(readName);
+				//}
+				//for(String readName : y.keySet()){
+				//	//System.err.println(readName);
+				//}
+				HashMap<String, Integer> entropyPattern = new HashMap<String, Integer>();
 				for(String readName : x.keySet()){
 					if(y.containsKey(readName)){
 						if(x.get(readName) == y.get(readName)){
@@ -314,25 +529,37 @@ public class SingleBaseResHicMatrix {
 						}
 						xList.add((double)x.get(readName));
 						yList.add((double)y.get(readName));
+						String pattern = x.get(readName) + "" + y.get(readName);
+						if(entropyPattern.containsKey(pattern)){
+							entropyPattern.put(pattern, entropyPattern.get(pattern) + 1);
+						}else{
+							entropyPattern.put(pattern, 1);
+						}
 					}
 				}
-				
-				if(concordCount + disconcordCount == 0){
+				int totalCount = concordCount + disconcordCount;
+				if(totalCount == 0 || xList.size() < minReadsInWindow){
+					results.add(0.);
+					results.add(0.);
+					
 					results.add(Double.NaN);
 					results.add(Double.NaN);
 					
 					results.add(Double.NaN);
 					results.add(Double.NaN);
-					results.add(0.);
+					//results.add(0.);
 					
 					results.add(Double.NaN);
 					results.add(Double.NaN);
-					results.add(0.);
+					
+					results.add(Double.NaN);
+					results.add(Double.NaN);
+					results.add(Double.NaN);
 					
 					return results;
 				}
-				double observedRatio = Math.log10(concordCount==0 ? concordCount + 0.0001 : concordCount) - Math.log10(disconcordCount==0 ? disconcordCount + 0.0001 : disconcordCount);
-				
+				double observedRatio = Math.log10(concordCount + 0.0001) - Math.log10(disconcordCount + 0.0001 );
+				//System.err.println(observedRatio);
 				double[] xArray = ArrayUtils.toPrimitive(xList.toArray(new Double[xList.size()]));
 				double[] yArray = ArrayUtils.toPrimitive(yList.toArray(new Double[yList.size()]));
 				double[][] d = new double[xArray.length][2];
@@ -347,74 +574,133 @@ public class SingleBaseResHicMatrix {
 					pvalue = corObserved.getCorrelationPValues().getEntry(0, 1);
 				}
 				
-				
+				double entropyObserved = entropyNormalized(entropyPattern, totalCount);
 				
 				
 				//permutation for the expectations:
-				ArrayList<Double> xListRandom = new ArrayList<Double>();
-				ArrayList<Double> yListRandom = new ArrayList<Double>();
+
+				ArrayList<Double> corEffRandomList = new ArrayList<Double>();
+				ArrayList<Double> pvalueRandomList = new ArrayList<Double>();
 				
-				double expectRatio = 0.;
+				ArrayList<Double> expectRatioList = new ArrayList<Double>();
 				List<String> keysY  = new ArrayList<String>(y.keySet());
+				List<String> keysX  = new ArrayList<String>(x.keySet());
+				//ArrayList<Double> entropyRandomList = new ArrayList<Double>();
+				ArrayList<Double> entropyRandomMeanList = new ArrayList<Double>();
+
 				for(int i = 0; i < permutations; i++){
 					int concordCountRandom = 0;
 					int disconcordCountRandom = 0;
 					
-					for(String readName : x.keySet()){
+					ArrayList<Double> xListRandom = new ArrayList<Double>();
+					ArrayList<Double> yListRandom = new ArrayList<Double>();
+					
+					HashMap<String, Integer> entropyPatternRandom = new HashMap<String, Integer>();
+					
+					for(int j = 0; j < totalCount; j++){
 						String randomKey = keysY.get( generator.nextInt(keysY.size()));
-						if(x.get(readName) == y.get(randomKey)){
+						String randomKeyX = keysX.get( generator.nextInt(keysX.size()));
+						
+						if(x.get(randomKeyX) == y.get(randomKey)){
 							concordCountRandom++;
 						}else{
 							disconcordCountRandom++;
 						}
-						xListRandom.add((double)x.get(readName));
+						xListRandom.add((double)x.get(randomKeyX));
 						yListRandom.add((double)y.get(randomKey));
+						String pattern = x.get(randomKeyX) + "" + y.get(randomKey);
+						if(entropyPatternRandom.containsKey(pattern)){
+							entropyPatternRandom.put(pattern, entropyPatternRandom.get(pattern) + 1);
+						}else{
+							entropyPatternRandom.put(pattern, 1);
+						}
 					}
 					
 					if(concordCountRandom + disconcordCountRandom == 0){
 						continue;
 					}
-					expectRatio += Math.log10(concordCountRandom==0 ? concordCountRandom + 0.0001 : concordCountRandom) - Math.log10(disconcordCountRandom==0 ? disconcordCountRandom + 0.0001 : disconcordCountRandom);
-				}
-				
-				expectRatio /= permutations;
-				
-				double[] xArrayRandom = ArrayUtils.toPrimitive(xListRandom.toArray(new Double[xList.size()]));
-				double[] yArrayRandom = ArrayUtils.toPrimitive(yListRandom.toArray(new Double[yList.size()]));
-				double[][] dRandom = new double[xArrayRandom.length][2];
-				for(int j = 0; j < xArrayRandom.length; j++){
-					dRandom[j][0] = xArrayRandom[j];
-					dRandom[j][1] = yArrayRandom[j];
-				}
-				PearsonsCorrelation corObservedRandom = new PearsonsCorrelation(dRandom);
-				Double corEffRandom = corObservedRandom.correlation(xArrayRandom, yArrayRandom);
-				Double pvalueRandom = Double.NaN;
-				if(!Double.isNaN(corEffRandom)){
-					pvalueRandom = corObservedRandom.getCorrelationPValues().getEntry(0, 1);
-				}
+					double entropyTmp = entropyNormalized(entropyPatternRandom, concordCountRandom + disconcordCountRandom);
+					entropyRandomMeanList.add(entropyTmp);
+					expectRatioList.add(Math.log10(concordCountRandom + 0.0001) - Math.log10(disconcordCountRandom + 0.0001));
 
+					double[] xArrayRandom = ArrayUtils.toPrimitive(xListRandom.toArray(new Double[xList.size()]));
+					double[] yArrayRandom = ArrayUtils.toPrimitive(yListRandom.toArray(new Double[yList.size()]));
+					double[][] dRandom = new double[xArrayRandom.length][2];
+					for(int j = 0; j < xArrayRandom.length; j++){
+						dRandom[j][0] = xArrayRandom[j];
+						dRandom[j][1] = yArrayRandom[j];
+					}
+					PearsonsCorrelation corObservedRandom = new PearsonsCorrelation(dRandom);
+					
+					Double corEffRandomTmp = corObservedRandom.correlation(xArrayRandom, yArrayRandom);
+					corEffRandomList.add(corEffRandomTmp);
+					if(!Double.isNaN(corEffRandomTmp)){
+						pvalueRandomList.add(corObservedRandom.getCorrelationPValues().getEntry(0, 1));
+					}
+					
+				}
+				
+				double expectRatio = getMeanFromList(expectRatioList);
+				double entropyRandomMean = getMeanFromList(entropyRandomMeanList);
+				
+				Collections.sort(entropyRandomMeanList);
+				int pos = BisulfiteHicUtils.findPosition(entropyRandomMeanList, entropyObserved, 0, entropyRandomMeanList.size()-1);
+				double entropyPermutatedPvalue = (double)(pos)/(double)entropyRandomMeanList.size();
+				
+				
+				Double corEffRandom = getMeanFromList(corEffRandomList);
+				Double pvalueRandom = getMeanFromList(pvalueRandomList);
+				
+
+				results.add((double)concordCount);
+				results.add((double)disconcordCount);
+				
 				results.add(observedRatio);
 				results.add(expectRatio);
 				
 				results.add(corEff);
 				results.add(pvalue);
-				results.add((double)xArray.length);
+				//results.add((double)xArray.length);
 				
 				results.add(corEffRandom);
 				results.add(pvalueRandom);
-				results.add((double)xArrayRandom.length);
 				
+				results.add(entropyObserved);
+				results.add(entropyRandomMean);
+				results.add(entropyPermutatedPvalue);
 				
 				return results;
 			}
 	
+			public double entropyNormalized(HashMap<String, Integer> counts, int total) {
+				double entropy = 0;
+				for (int count: counts.values()) {
+					double prob = (double) count / total;
+					entropy -= prob * Math.log(prob) / Math.log(2);
+				}
+				return entropy/(Math.log(total) / Math.log(2));
+			}
 			
 			private boolean failFlagFilter(SAMRecord r){
 				return r.getReadUnmappedFlag() || r.getNotPrimaryAlignmentFlag() || r.getMappingQuality() < minMapQ
 						|| r.getReadFailsVendorQualityCheckFlag() || r.getDuplicateReadFlag() || !r.getReadPairedFlag() || !r.getProperPairFlag() ;
 			}
 
-			
+			public double getMeanFromList(ArrayList<Double> list){
+				Double sum = 0.;
+				int count=0;
+				for(Double a : list){
+					if(!Double.isNaN(a)){
+						count++;
+						sum += a;
+					}
+				}
+				if(count>0){
+					return sum/count;
+				}else{
+					return Double.NaN;
+				}
+			}
 			
 			
 			private void initiate(String outputPrefix) throws Exception{

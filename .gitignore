@@ -46,3 +46,5 @@ lib/commons-collections4-4.1.jar
 target/bisulfitehic-0.07-jar-with-dependencies.jar
 target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/EnhanceHicMatrix.class
 target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/SingleBaseResHicMatrix.class
+SingleBaseResHicMatrixV2.class
+bisulfitehic-0.08-jar-with-dependencies.jar

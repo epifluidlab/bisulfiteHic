@@ -65,21 +65,24 @@ public class BisulfiteHicUtils {
 		return b;
 	}
 	
-	
+	//TODO: check the CIGAR string problem in original bwa... CIGAR should not start with I...
 	static public byte[] modifyRefSeqByCigar(byte[] seqByte, String cigarString){ //mainly for "I" and "D" CIGAR string
 		char[] cigarList = CigarUtil.cigarArrayFromString(cigarString);
 
 		ArrayList<Byte> seqsNew = new ArrayList<Byte>();
 		//System.err.println(new String(seqByte) + "\t" + seqByte.length + "\t" + cigarString);
 		int offSet = 0;
+		boolean startWithInsertion = true;
 		for(char cigar : cigarList){
-			if(cigar == 'M' || cigar == 'I'){
+			
+			if(cigar == 'M' || (cigar == 'I' && !startWithInsertion)){
 				seqsNew.add(seqByte[offSet]);
 				offSet++;
+				startWithInsertion = false;
 			}else if(cigar == 'D'){
 				//seqsNew.add(SequenceUtil.N);
 				
-			}else if(cigar == 'S'){
+			}else if(cigar == 'S' || (cigar == 'I' && startWithInsertion)){
 				offSet++;
 			}
 		}
@@ -135,6 +138,10 @@ public class BisulfiteHicUtils {
 		byte[] readBasesQ = getClippedReadsBaseQuality(read);
 		byte[] readBases = CcInferenceUtils.toUpperCase(getClippedReadsBase(read));
 		
+		if(refBases.length != readBases.length || refBases.length != readBasesQ.length){
+			throw new IllegalArgumentException("read base is different from reference base length:" + read.getReadName() + "\t" + read.getCigarString() + "\t" + read.getContig() + "\t" + read.getAlignmentStart()
+					+ "\n" + new String(refBases) + "\n" + new String(readBases) + "\n" + new String(readBasesQ));
+		}
 		
 		TreeMap<Integer, Integer> ctSummary = new TreeMap<Integer, Integer>();
 		int pos = 0;
@@ -316,6 +323,23 @@ public class BisulfiteHicUtils {
 			}
 
 		}
+	}
+	
+	static public int findPosition(ArrayList<Double> permutatedProbList, double observedProb, int lower, int upper){
+		if(lower == 0 && observedProb <= permutatedProbList.get(0)){
+			return lower;
+		}else if(upper == permutatedProbList.size()-1 && observedProb > permutatedProbList.get(permutatedProbList.size()-1)){
+			return upper;
+		}else if((upper-lower)==1 && (observedProb>=permutatedProbList.get(lower) && observedProb<=permutatedProbList.get(upper))){
+			return upper;
+		}else if(observedProb>=permutatedProbList.get(lower) && observedProb<=permutatedProbList.get(upper)){
+			return findPosition(permutatedProbList, observedProb, lower+(upper-lower)/2, upper);
+		}else if(observedProb < permutatedProbList.get(lower)){
+			return findPosition(permutatedProbList, observedProb, Math.max(lower-(upper-lower),0), lower);
+		}else{
+			return findPosition(permutatedProbList, observedProb, upper, Math.max(upper+(upper-lower),permutatedProbList.size()-1));
+		}
+		
 	}
 	
 }
