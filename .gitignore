@@ -48,3 +48,7 @@ target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/EnhanceHicMatrix.cla
 target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/SingleBaseResHicMatrix.class
 SingleBaseResHicMatrixV2.class
 bisulfitehic-0.08-jar-with-dependencies.jar
+target/bisulfitehic-0.09-jar-with-dependencies.jar
+target/bisulfitehic-0.10-jar-with-dependencies.jar
+target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/GenotypeList.class
+target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/LongRangeAsm.class

@@ -88,6 +88,9 @@ public class SingleBaseResHicMatrix {
 	//@Option(name="-minCgNum",usage="For ASM mode, specify the minimum  number of CpG to call ASM. Default: 1")
 	//public int minCgNum = 1;
 	
+	@Option(name="-bgBam",usage="provide background bam file to check the permutation p value, rather than use input.bam file. Default: null")
+	public String bgBam = null;
+	
 	@Option(name="-permutations",usage="number of permutations to generate expectated p value within the same segments, default: 100")
 	public int permutations = 100;
 	
@@ -152,6 +155,10 @@ public class SingleBaseResHicMatrix {
 							SamReader wgsReader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(new File(bamFile));
 							SAMFileHeader samFileHeader = wgsReader.getFileHeader();
 							SAMSequenceDictionary dict = samFileHeader.getSequenceDictionary();
+							SamReader wgsBgBamReader = null;
+							if(bgBam != null){
+								wgsBgBamReader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(new File(bgBam));
+							}
 							
 							HashMap<String,IntervalTree<IntervalList>> intervalCollections = new HashMap<String,IntervalTree<IntervalList>>();
 							if(bedpe != null){
@@ -409,7 +416,53 @@ public class SingleBaseResHicMatrix {
 						wgsIt.close();
 						
 						//IntervalTree<HashMap<String,Integer>> cpgs = cpgMethyMatrix.get(chr);
-						List<Node<HashMap<String, Integer>>> cpgList  = IteratorUtils.toList(cpgMethyMatrix.iterator());  
+						List<Node<HashMap<String, Integer>>> cpgListTmp  = IteratorUtils.toList(cpgMethyMatrix.iterator()); 
+						List<Node<HashMap<String, Integer>>> cpgList = new ArrayList<Node<HashMap<String, Integer>>>();
+						for(int i = 0; i < cpgListTmp.size()-1; i++){
+							Node<HashMap<String, Integer>> cpgi = cpgListTmp.get(i);
+							if(cpgi.getValue().size() < minReadsInWindow){
+								
+								continue;
+							}else{
+								cpgList.add(cpgi);
+							}
+						}
+						cpgListTmp.clear();
+						
+						IntervalTree<HashMap<String,Integer>> bgReadIntTree = new IntervalTree<HashMap<String,Integer>>();
+						if(wgsBgBamReader != null){
+							log.info("Extracting reads from background bam file within intervals that contains cpg sites ... ");
+							for(int i = 0; i < cpgListTmp.size()-1; i++){
+								Node<HashMap<String, Integer>> cpgi = cpgListTmp.get(i);
+								HashMap<String,Integer> bgRead = new HashMap<String,Integer>();
+								SAMRecordIterator wgsItBg = wgsReader.queryOverlapping(chr, cpgi.getStart(), cpgi.getEnd());
+								while(wgsItBg.hasNext()){
+									
+									SAMRecord r = wgsItBg.next();
+									String readName = r.getReadName();
+									
+									int start = r.getAlignmentStart();
+									
+									if(failFlagFilter(r)){
+										
+										continue;
+									}else{
+										TreeMap<Integer, Integer> cpgSummary = BisulfiteHicUtils.readsMethySummaryAtEachLoc(r, minMapQ, minBaseQ, turnOffBisulfiteFilter);
+										int pos = cpgi.getStart() - start;
+										bgRead.put(readName, cpgSummary.get(pos));
+											
+									}
+									
+								}
+									wgsItBg.close();
+									
+									bgReadIntTree.put(cpgi.getStart(), cpgi.getEnd(), bgRead);
+							}
+							
+						}
+								
+						
+						
 						//System.err.println(cpgList.size());
 						for(int i = 0; i < cpgList.size()-1; i++){
 							Node<HashMap<String, Integer>> cpgi = cpgList.get(i);
@@ -440,7 +493,7 @@ public class SingleBaseResHicMatrix {
 									continue;
 								}
 							}
-							
+							Node<HashMap<String, Integer>> cpgi_bg = bgReadIntTree.find(cpgi.getStart(), cpgi.getEnd());
 							
 							for(int j = i+1; j < cpgList.size(); j++){
 								Node<HashMap<String, Integer>> cpgj = cpgList.get(j);
@@ -474,8 +527,16 @@ public class SingleBaseResHicMatrix {
 								if(cpgj.getValue().size() < minReadsInWindow){
 									continue;
 								}
-
-								ArrayList<Double> ratios = cpgContactFreq(cpgi.getValue(), cpgj.getValue());
+								Node<HashMap<String, Integer>> cpgj_bg = bgReadIntTree.find(cpgj.getStart(), cpgj.getEnd());
+								ArrayList<Double> ratios = null;
+								
+								if(bgReadIntTree.size()>0){
+									
+									ratios = cpgContactFreqWithBgBam(cpgi.getValue(), cpgj.getValue(), cpgi_bg == null ? null : cpgi_bg.getValue(), cpgj_bg == null ? null : cpgj_bg.getValue());
+								}else{
+									ratios = cpgContactFreq(cpgi.getValue(), cpgj.getValue());
+								}
+									
 								queryNum++;
 								if(!ratios.get(2).isNaN()){
 									//writer.write(chr + "\t" + cpgi.getStart() + "_" + cpgi.getEnd() + "\t" + cpgj.getStart() + "_" + cpgj.getEnd() + "\t" + ratios.getFirst() + "\t" + ratios.getSecond());
@@ -501,6 +562,9 @@ public class SingleBaseResHicMatrix {
 						
 					}
 					wgsReader.close();
+					if(bgBam != null){
+						wgsBgBamReader.close();
+					}
 					//System.err.println(x + "\t" + y + "\t" + s + "\t" + a + "\t" + b + "\t" + c + "\t" + queryNum);
 					finish();
 			}
@@ -672,6 +736,194 @@ public class SingleBaseResHicMatrix {
 				return results;
 			}
 	
+			//concordCount, disconcordCount, observed_ratio, permutated_ratio, correlation, p value, number of points, cor_random, pvalue_random, entropy, entropy_random, entropy_permuation_p_value
+			private ArrayList<Double> cpgContactFreqWithBgBam(HashMap<String, Integer> x, HashMap<String, Integer> y, HashMap<String, Integer> xb, HashMap<String, Integer> yb){
+				int concordCount = 0;
+				int disconcordCount = 0;
+				ArrayList<Double> results = new ArrayList<Double>();
+				
+				ArrayList<Double> xList = new ArrayList<Double>();
+				ArrayList<Double> yList = new ArrayList<Double>();
+				//for(String readName : x.keySet()){
+					//System.err.println(readName);
+				//}
+				//for(String readName : y.keySet()){
+				//	//System.err.println(readName);
+				//}
+				HashMap<String, Integer> entropyPattern = new HashMap<String, Integer>();
+				for(String readName : x.keySet()){
+					if(y.containsKey(readName)){
+						if(x.get(readName) == y.get(readName)){
+							concordCount++;
+						}else{
+							disconcordCount++;
+						}
+						xList.add((double)x.get(readName));
+						yList.add((double)y.get(readName));
+						String pattern = x.get(readName) + "" + y.get(readName);
+						if(entropyPattern.containsKey(pattern)){
+							entropyPattern.put(pattern, entropyPattern.get(pattern) + 1);
+						}else{
+							entropyPattern.put(pattern, 1);
+						}
+					}
+				}
+				int totalCount = concordCount + disconcordCount;
+				if(totalCount == 0 || xList.size() < minReadsInWindow){
+					results.add(0.);
+					results.add(0.);
+					
+					results.add(Double.NaN);
+					results.add(Double.NaN);
+					
+					results.add(Double.NaN);
+					results.add(Double.NaN);
+					//results.add(0.);
+					
+					results.add(Double.NaN);
+					results.add(Double.NaN);
+					
+					results.add(Double.NaN);
+					results.add(Double.NaN);
+					results.add(Double.NaN);
+					
+					return results;
+				}
+				double observedRatio = Math.log10(concordCount + 0.0001) - Math.log10(disconcordCount + 0.0001 );
+				//System.err.println(observedRatio);
+				double[] xArray = ArrayUtils.toPrimitive(xList.toArray(new Double[xList.size()]));
+				double[] yArray = ArrayUtils.toPrimitive(yList.toArray(new Double[yList.size()]));
+				double[][] d = new double[xArray.length][2];
+				for(int i = 0; i < xArray.length; i++){
+					d[i][0] = xArray[i];
+					d[i][1] = yArray[i];
+				}
+				PearsonsCorrelation corObserved = new PearsonsCorrelation(d);
+				Double corEff = corObserved.correlation(xArray, yArray);
+				Double pvalue = Double.NaN;
+				if(!Double.isNaN(corEff)){
+					pvalue = corObserved.getCorrelationPValues().getEntry(0, 1);
+				}
+				
+				double entropyObserved = entropyNormalized(entropyPattern, totalCount);
+				
+				
+				if(xb==null || yb==null || xb.size() < minReadsInWindow || yb.size() < minReadsInWindow){
+					results.add((double)concordCount);
+					results.add((double)disconcordCount);
+					
+					results.add(observedRatio);
+					results.add(Double.NaN);
+					
+					results.add(corEff);
+					results.add(pvalue);
+					//results.add(0.);
+					
+					results.add(Double.NaN);
+					results.add(Double.NaN);
+					
+					results.add(entropyObserved);
+					results.add(Double.NaN);
+					results.add(Double.NaN);
+					
+					return results;
+				}
+				
+				//permutation for the expectations:
+
+				ArrayList<Double> corEffRandomList = new ArrayList<Double>();
+				ArrayList<Double> pvalueRandomList = new ArrayList<Double>();
+				
+				ArrayList<Double> expectRatioList = new ArrayList<Double>();
+				List<String> keysY  = new ArrayList<String>(y.keySet());
+				List<String> keysX  = new ArrayList<String>(x.keySet());
+				//ArrayList<Double> entropyRandomList = new ArrayList<Double>();
+				ArrayList<Double> entropyRandomMeanList = new ArrayList<Double>();
+
+				for(int i = 0; i < permutations; i++){
+					int concordCountRandom = 0;
+					int disconcordCountRandom = 0;
+					
+					ArrayList<Double> xListRandom = new ArrayList<Double>();
+					ArrayList<Double> yListRandom = new ArrayList<Double>();
+					
+					HashMap<String, Integer> entropyPatternRandom = new HashMap<String, Integer>();
+					
+					for(int j = 0; j < totalCount; j++){
+						String randomKey = keysY.get( generator.nextInt(yb.size()));
+						String randomKeyX = keysX.get( generator.nextInt(xb.size()));
+						
+						if(xb.get(randomKeyX) == yb.get(randomKey)){
+							concordCountRandom++;
+						}else{
+							disconcordCountRandom++;
+						}
+						xListRandom.add((double)xb.get(randomKeyX));
+						yListRandom.add((double)yb.get(randomKey));
+						String pattern = xb.get(randomKeyX) + "" + yb.get(randomKey);
+						if(entropyPatternRandom.containsKey(pattern)){
+							entropyPatternRandom.put(pattern, entropyPatternRandom.get(pattern) + 1);
+						}else{
+							entropyPatternRandom.put(pattern, 1);
+						}
+					}
+					
+					if(concordCountRandom + disconcordCountRandom == 0){
+						continue;
+					}
+					double entropyTmp = entropyNormalized(entropyPatternRandom, concordCountRandom + disconcordCountRandom);
+					entropyRandomMeanList.add(entropyTmp);
+					expectRatioList.add(Math.log10(concordCountRandom + 0.0001) - Math.log10(disconcordCountRandom + 0.0001));
+
+					double[] xArrayRandom = ArrayUtils.toPrimitive(xListRandom.toArray(new Double[xListRandom.size()]));
+					double[] yArrayRandom = ArrayUtils.toPrimitive(yListRandom.toArray(new Double[yListRandom.size()]));
+					double[][] dRandom = new double[xArrayRandom.length][2];
+					for(int j = 0; j < xArrayRandom.length; j++){
+						dRandom[j][0] = xArrayRandom[j];
+						dRandom[j][1] = yArrayRandom[j];
+					}
+					PearsonsCorrelation corObservedRandom = new PearsonsCorrelation(dRandom);
+					
+					Double corEffRandomTmp = corObservedRandom.correlation(xArrayRandom, yArrayRandom);
+					corEffRandomList.add(corEffRandomTmp);
+					if(!Double.isNaN(corEffRandomTmp)){
+						pvalueRandomList.add(corObservedRandom.getCorrelationPValues().getEntry(0, 1));
+					}
+					
+				}
+				
+				double expectRatio = getMeanFromList(expectRatioList);
+				double entropyRandomMean = getMeanFromList(entropyRandomMeanList);
+				
+				Collections.sort(entropyRandomMeanList);
+				int pos = BisulfiteHicUtils.findPosition(entropyRandomMeanList, entropyObserved, 0, entropyRandomMeanList.size()-1);
+				double entropyPermutatedPvalue = (double)(pos)/(double)entropyRandomMeanList.size();
+				
+				
+				Double corEffRandom = getMeanFromList(corEffRandomList);
+				Double pvalueRandom = getMeanFromList(pvalueRandomList);
+				
+
+				results.add((double)concordCount);
+				results.add((double)disconcordCount);
+				
+				results.add(observedRatio);
+				results.add(expectRatio);
+				
+				results.add(corEff);
+				results.add(pvalue);
+				//results.add((double)xArray.length);
+				
+				results.add(corEffRandom);
+				results.add(pvalueRandom);
+				
+				results.add(entropyObserved);
+				results.add(entropyRandomMean);
+				results.add(entropyPermutatedPvalue);
+				
+				return results;
+			}
+			
 			public double entropyNormalized(HashMap<String, Integer> counts, int total) {
 				double entropy = 0;
 				for (int count: counts.values()) {

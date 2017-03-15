@@ -82,6 +82,10 @@ public class SingleBaseResHicMatrixV2 {
 
 	@Option(name="-bedpe",usage="bedpe file to limit the analysis only in these regions. Otherwise, it will use all of the cpg provided. Default: null")
 	public String bedpe = null;
+
+	@Option(name="-bgBam",usage="provide background bam file to check the permutation p value. Default: null")
+	public String bgBam = null;
+
 	
 	@Option(name="-minReadsInWindow",usage="minimum number of reads required to calculate pearson correlation within the window at both ends Default: 3")
 	public int minReadsInWindow   = 3;
