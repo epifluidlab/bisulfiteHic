@@ -76,8 +76,8 @@ public class SingleBaseResHicMatrix {
 	@Option(name="-minDistEnds",usage="minimum distance between two end to be output. Default: 1000")
 	public int minDistEnds = 1000;
 
-	@Option(name="-maxDistEnds",usage="maximum distance between two end to be output. Default: 2000000000")
-	public int maxDistEnds = 2000000000;
+	@Option(name="-maxDistEnds",usage="maximum distance between two end to be output. Default: 10000000")
+	public int maxDistEnds = 10000000;
 
 	@Option(name="-bedpe",usage="bedpe file to limit the analysis only in these regions. Otherwise, it will use all of the cpg provided. Default: null")
 	public String bedpe = null;
@@ -96,6 +96,9 @@ public class SingleBaseResHicMatrix {
 	
 	@Option(name="-skipProcessFirstRow",usage="don't process first row, default: not enabled")
 	public boolean skipProcessFirstRow = false;
+	
+	@Option(name="-regions",usage="only one side is overlapped with -regions is fine,bed format, default: null")
+	public String regions = null;
 
 	@Option(name="-h",usage="show option information")
 	public boolean help = false;
@@ -158,6 +161,51 @@ public class SingleBaseResHicMatrix {
 							SamReader wgsBgBamReader = null;
 							if(bgBam != null){
 								wgsBgBamReader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(new File(bgBam));
+							}
+							
+							HashMap<String,IntervalTree<String>> regionsOverlapped = new HashMap<String,IntervalTree<String>>();
+							if(regions != null){
+								log.info("Parsing input -regions bed file ...");
+								
+								GZIPInputStream gzipInputStream1 = null;
+								BufferedReader br;
+								if(regions.endsWith(".gz")){
+									gzipInputStream1 = new GZIPInputStream(new FileInputStream(regions));
+									br = new BufferedReader(new InputStreamReader(gzipInputStream1));
+									
+								}else{
+									br = new BufferedReader(new FileReader(regions));
+								}
+									
+									String line;
+									long i = 0;
+									while( (line = br.readLine()) != null){
+										if(line.startsWith("#") || (skipProcessFirstRow && i == 0))
+											continue;
+										String[] splitin = line.split("\t");
+										String chr = splitin[0];
+										int start = Integer.parseInt(splitin[1]);
+										int end = Integer.parseInt(splitin[2]);
+										
+									
+										IntervalTree<String> tree;
+										
+										if(regionsOverlapped.containsKey(chr)){
+											tree = regionsOverlapped.get(chr);
+										}else{
+											tree = new IntervalTree<String>();
+										}
+										
+										tree.put(start, end, "1");
+										
+										
+										i++;
+										
+									}
+									if(regions.endsWith(".gz")){
+										gzipInputStream1.close();
+									}
+									br.close();
 							}
 							
 							HashMap<String,IntervalTree<IntervalList>> intervalCollections = new HashMap<String,IntervalTree<IntervalList>>();
@@ -273,6 +321,19 @@ public class SingleBaseResHicMatrix {
 												continue;
 											}
 										}
+										
+										if(!regionsOverlapped.isEmpty()){
+											if(regionsOverlapped.containsKey(chr)){
+												if(regionsOverlapped.get(chr).overlappers(start-maxDistEnds > 0 ? start-maxDistEnds : 0, end+maxDistEnds) == null){
+													continue;
+												}
+											}else{
+												continue;
+											}
+													
+							
+										}
+										
 										
 										IntervalTree<String> tree;
 										
@@ -501,6 +562,16 @@ public class SingleBaseResHicMatrix {
 									
 									continue;
 								}
+								if(!regionsOverlapped.isEmpty()){
+									if(regionsOverlapped.containsKey(chr)){
+										if(regionsOverlapped.get(chr).overlappers(cpgi.getStart(), cpgi.getEnd()) == null && regionsOverlapped.get(chr).overlappers(cpgj.getStart(), cpgj.getEnd()) == null){
+											continue;
+										}
+									}else{
+										continue;
+									}
+								}
+								
 								Interval interval2 = null;
 								if(list != null){
 									Interval intervalj = new Interval(chr, cpgj.getStart(), cpgj.getEnd());

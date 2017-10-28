@@ -65,6 +65,15 @@ public class BisulfiteHicUtils {
 		return b;
 	}
 	
+	static public String complementArray(String as){
+		byte[] a = as.getBytes();
+		byte[] b = new byte[a.length];
+		for(int i = 0; i < a.length; i++){
+			b[i]=SequenceUtil.complement(a[i]);
+		}
+		return new String(b);
+	}
+	
 	//TODO: check the CIGAR string problem in original bwa... CIGAR should not start with I...
 	static public byte[] modifyRefSeqByCigar(byte[] seqByte, String cigarString){ //mainly for "I" and "D" CIGAR string
 		char[] cigarList = CigarUtil.cigarArrayFromString(cigarString);
