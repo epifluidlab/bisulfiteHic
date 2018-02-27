@@ -22,7 +22,7 @@
   <modelVersion>4.0.0</modelVersion>
   <name>bisulfitehic</name>
   <packaging>jar</packaging>
-  <version>0.15</version>
+  <version>0.21</version>
 
  <dependencies>
   	<dependency>
@@ -30,11 +30,11 @@
       <artifactId>args4j</artifactId>
       <version>2.0.31</version>
     </dependency>
-	<dependency>
-		<groupId>com.github.samtools</groupId>
-		<artifactId>htsjdk</artifactId>
-		<version>1.141</version>
-	</dependency>
+<dependency>
+    <groupId>com.github.samtools</groupId>
+    <artifactId>htsjdk</artifactId>
+    <version>2.13.1</version>
+</dependency>
 	<dependency>
 		<groupId>org.apache.commons</groupId>
 		<artifactId>commons-math3</artifactId>
@@ -66,12 +66,20 @@
 		<artifactId>jbwa</artifactId>
 		<version>1.0.0</version>
 	</dependency>
+	
 	<dependency>
 		<groupId>com.github.lindenb</groupId>
 		<artifactId>jbwa</artifactId>
 		<version>1.0.0</version>
 		<scope>system</scope>
 		<systemPath>${basedir}/jbwa/jbwa-1.0.0/jbwa.jar</systemPath>
+	</dependency>
+	<dependency>
+		<groupId>edu.unc.genomics</groupId>
+		<artifactId>java-genomics-io</artifactId>
+		<version>1.0</version>
+		<scope>system</scope>
+		<systemPath>${basedir}/lib/java-genomics-io.jar</systemPath>
 	</dependency>
 	<dependency>
 		<groupId>main.java.edu.mit.compbio</groupId>

@@ -72,6 +72,9 @@ public class MethyCorAcrossHiccups {
 	@Option(name="-turnOffBisulfiteFilter",usage="turn off bisulfite conversion reads filter. Default: false")
 	public boolean turnOffBisulfiteFilter = false;
 	
+	@Option(name="-useBadMate",usage="use not proper paired reads. Default: false")
+	public boolean useBadMate = false;
+	
 	@Option(name="-minMapQ",usage="minimum mapping quality score required to check. Default: 30")
 	public int minMapQ = -1;
 
@@ -107,6 +110,9 @@ public class MethyCorAcrossHiccups {
 
 	@Option(name="-useGeneralBedPe",usage="use general bedpe file rather than HiCUUPS link file, default: not enabled")
 	public boolean useGeneralBedPe = false;
+
+	@Option(name="-outputCount",usage="output the raw read count frequency between two end when not in ASM mode, default: not enabled")
+	public boolean outputCount = false;
 	
 	@Option(name="-h",usage="show option information")
 	public boolean help = false;
@@ -129,6 +135,7 @@ public class MethyCorAcrossHiccups {
 	private static long startTime = -1;
 	private static long lineNum=0;
 	private static long queryNum=0;
+	private static long totalReadPairNum=0;
 	/**
 	 * @param args
 	 */
@@ -501,6 +508,20 @@ public class MethyCorAcrossHiccups {
 		
 		private void methyCorrelation(String chr, int start1, int end1, int start2, int end2, SamReader wgsReader, double ob, double exp, double fdr, String bamFile) throws Exception{
 			
+			if(outputCount) {
+				SAMRecordIterator wgsIt = wgsReader.iterator();
+				while(wgsIt.hasNext()){
+					SAMRecord r = wgsIt.next();
+					if(failFlagFilter(r)){
+						continue;
+					}else{
+						totalReadPairNum++;
+					}
+				}
+				wgsIt.close();
+				totalReadPairNum/=2;
+			}
+			
 			String regionName = chr + ":" + start1 + ":" + end1 + ":" + start2 + ":" + end2;
 			
 			SAMRecordIterator wgsIt = wgsReader.queryOverlapping(chr,start1,end1);
@@ -610,7 +631,7 @@ public class MethyCorAcrossHiccups {
 				reopenFlag=false;
 			}
 			//System.err.println(countedReadsEnd1.size() + "\t" + countedReadsEnd2.size());
-			int readNum = 0;
+			int readNum = 1;
 			for(String readName : countedReadsEnd1.keySet()){
 				if(countedReadsEnd2.containsKey(readName)){
 					
@@ -626,16 +647,25 @@ public class MethyCorAcrossHiccups {
 					int numT2 = ctSummary2.getMiddle();
 					int numCg2 = ctSummary2.getRight();
 					//System.err.println((numC1 + numT1) + "\t" + (numC2 + numT2) + "\t" + numCg1 + "\t" + numCg2);
-					if((numC1 + numT1) == 0 || numCg1 < minCgNum || (numC2 + numT2) == 0 || numCg2 < minCgNum)
-						continue;
-					
-					
-					//chr1,read.start1,read.end1,chr2,read.start2,read.end2,region_name, id, hiccups_ob, hiccups_exp, hiccups_fdr, methy_end1, cpg_num_end1, methy_end2, cpg_num_end2
-					
-					methyCorWriter.write(chr + "\t" + start1 + "\t" + end1 + "\t" + chr + "\t" + start2 + "\t" + end2 + "\t" + 
-								regionName + "\t" + readNum + "\t" + ob+ "\t" + exp+ "\t" + fdr + "\t" + (double)numC1/(double)(numC1 + numT1) + "\t" + (numC1 + numT1)
-								 + "\t" + (double)numC2/(double)(numC2 + numT2) + "\t" + (numC2 + numT2) + "\n");
+					if(outputCount) {
+						
+						methyCorWriter.write(chr + "\t" + start1 + "\t" + end1 + "\t" + chr + "\t" + start2 + "\t" + end2 + "\t" + 
+								regionName + "\t" + readNum + "\t" + ob+ "\t" + exp+ "\t" + fdr + "\t" + ((numC1 + numT1) == 0 ? Double.NaN : (double)numC1/(double)(numC1 + numT1)) + "\t" + (numC1 + numT1)
+								 + "\t" + ((numC2 + numT2) == 0 ? Double.NaN : (double)numC2/(double)(numC2 + numT2)) + "\t" + (numC2 + numT2) + "\t" + totalReadPairNum + "\n");
 								readNum++;
+					}else {
+						if((numC1 + numT1) == 0 || numCg1 < minCgNum || (numC2 + numT2) == 0 || numCg2 < minCgNum)
+							continue;
+						
+						
+						//chr1,read.start1,read.end1,chr2,read.start2,read.end2,region_name, id, hiccups_ob, hiccups_exp, hiccups_fdr, methy_end1, cpg_num_end1, methy_end2, cpg_num_end2
+						
+						methyCorWriter.write(chr + "\t" + start1 + "\t" + end1 + "\t" + chr + "\t" + start2 + "\t" + end2 + "\t" + 
+									regionName + "\t" + readNum + "\t" + ob+ "\t" + exp+ "\t" + fdr + "\t" + (double)numC1/(double)(numC1 + numT1) + "\t" + (numC1 + numT1)
+									 + "\t" + (double)numC2/(double)(numC2 + numT2) + "\t" + (numC2 + numT2) + "\n");
+									readNum++;
+					}
+					
 					
 					
 				}
@@ -792,8 +822,8 @@ public class MethyCorAcrossHiccups {
 					SAMRecord r2 = countedReadsEnd2.get(readName);
 					
 					
-					Triple<Integer,Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummary(r1, minMapQ, minBaseQ, turnOffBisulfiteFilter);
-					Triple<Integer,Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummary(r2, minMapQ, minBaseQ, turnOffBisulfiteFilter);
+					Triple<Integer,Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummary(r1, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+					Triple<Integer,Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummary(r2, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
 					int numC1 = ctSummary1.getLeft();
 					int numT1 = ctSummary1.getMiddle();
 					int numCg1 = ctSummary1.getRight();
@@ -824,7 +854,7 @@ public class MethyCorAcrossHiccups {
 		
 		private boolean failFlagFilter(SAMRecord r){
 			return r.getReadUnmappedFlag() || r.getNotPrimaryAlignmentFlag() || r.getMappingQuality() < minMapQ
-					|| r.getReadFailsVendorQualityCheckFlag() || r.getDuplicateReadFlag() || !r.getReadPairedFlag() || !r.getProperPairFlag();
+					|| r.getReadFailsVendorQualityCheckFlag() || r.getDuplicateReadFlag() || !r.getReadPairedFlag() || (useBadMate ? false : !r.getProperPairFlag());
 		}
 
 		

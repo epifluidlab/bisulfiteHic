@@ -74,6 +74,9 @@ public class EnhanceHicMatrix {
 	@Option(name="-window",usage="the smaller window size to look into the resolution. Default: 500")
 	public int window = 500;
 
+	@Option(name="-slidingWindow",usage="use 10% of window length to slide the window rather than non-overlapped one, default: not enabled")
+	public boolean slidingWindow = false;
+	
 	@Option(name="-minReadsInWindow",usage="minimum number of reads required to calculate pearson correlation within the window at both ends Default: 3")
 	public int minReadsInWindow   = 3;
 
@@ -318,7 +321,7 @@ public class EnhanceHicMatrix {
 						//System.err.println(cpgMethyMatrix1.size());
 						//System.err.println(cpgMethyMatrix2.size());
 						//use window size to scan all within the interval. calculate distance/correlation score within each window, for each window, also permuatte to calculate permutated distance & correlation score
-						for(int startW1 = interval1.getStart(); startW1 < interval1.getEnd()-window; startW1+=window){
+						for(int startW1 = interval1.getStart(); startW1 < interval1.getEnd()-window; startW1+=(slidingWindow ? window/10 : window)){
 							int endW1 = startW1 + window;
 							HashMap<String, Double> reads1 = new HashMap<String, Double>();
 							Iterator<Node<HashMap<String, Double>>> readsIt1 = cpgMethyMatrix1.overlappers(startW1, endW1);
@@ -333,7 +336,7 @@ public class EnhanceHicMatrix {
 							if(reads1.size() < minReadsInWindow){
 								continue;
 							}
-							for(int startW2 = interval2.getStart(); startW2 < interval2.getEnd()-window; startW2+=window){
+							for(int startW2 = interval2.getStart(); startW2 < interval2.getEnd()-window; startW2+=(slidingWindow ? window/10 : window)){
 								int endW2 = startW2 + window;
 								HashMap<String, Double> reads2 = new HashMap<String, Double>();
 								Iterator<Node<HashMap<String, Double>>> readsIt2 = cpgMethyMatrix2.overlappers(startW2, endW2);

@@ -132,12 +132,46 @@ public class BisulfiteHicUtils {
 		return ctSummary; //first is C, second is T
 	}
 	
-	static public TreeMap<Integer, Integer> readsMethySummaryAtEachLoc(SAMRecord read, int minMapQ, int minBaseQ, boolean turnOffBisulfiteFilter) throws Exception{
+	static public Triple<Integer,Integer, Integer> readsMethySummary(SAMRecord read, int minMapQ, int minBaseQ, boolean turnOffBisulfiteFilter, boolean useBadMate) throws Exception{
 		boolean negStrand = read.getReadNegativeStrandFlag();
 		boolean secondPair = read.getReadPairedFlag() && read.getSecondOfPairFlag();
 		//filter if it is bad reads
 		if(read.getReadUnmappedFlag() || read.getNotPrimaryAlignmentFlag() || read.getDuplicateReadFlag() 
-				|| read.getReadFailsVendorQualityCheckFlag() || (read.getReadPairedFlag() && !read.getProperPairFlag()) 
+				|| read.getReadFailsVendorQualityCheckFlag() || !read.getReadPairedFlag() || (useBadMate ? false : !read.getProperPairFlag()) 
+				|| read.getMappingQuality() < minMapQ){
+			return Triple.of(0,0,0);
+		}
+		
+		byte[] refBases = CcInferenceUtils.toUpperCase(modifyRefSeqByCigar(SequenceUtil.makeReferenceFromAlignment(read, false), read.getCigarString()));
+		
+		byte[] readBasesQ = getClippedReadsBaseQuality(read);
+		byte[] readBases = CcInferenceUtils.toUpperCase(getClippedReadsBase(read));
+		//if(negStrand){
+			//System.err.println(new String(refBases) + "\n" + new String(readBases) + "\t" +read.getCigarString() + "\t" + secondPair);
+			//readBases = complementArray(readBases);
+		//}
+		
+		Triple<Integer,Integer, Integer> ctSummary = Triple.of(0,0,0);
+		int pos = 0;
+		if(!turnOffBisulfiteFilter){
+			//System.err.println(new String(refBases) + "\t" + refBases.length + "\n" + new String(readBases) + "\t" + readBases.length + "\n" + new String(SequenceUtil.makeReferenceFromAlignment(read, false)) + "\t" + read.getCigarString());
+			pos = CcInferenceUtils.bisulfiteIncompleteReads(readBases, refBases, negStrand, secondPair, false, true, true, 0.1, 0.4, 0, "CH", 1);
+			if(pos<0){
+				return ctSummary;
+			}
+		}
+		
+		ctSummary = readsMethySummaryWithFivePrimeFilter(refBases, readBases, readBasesQ, negStrand, secondPair, minBaseQ, pos);
+
+		return ctSummary; //first is C, second is T
+	}
+	
+	static public TreeMap<Integer, Integer> readsMethySummaryAtEachLoc(SAMRecord read, int minMapQ, int minBaseQ, boolean turnOffBisulfiteFilter, boolean useBadMate) throws Exception{
+		boolean negStrand = read.getReadNegativeStrandFlag();
+		boolean secondPair = read.getReadPairedFlag() && read.getSecondOfPairFlag();
+		//filter if it is bad reads
+		if(read.getReadUnmappedFlag() || read.getNotPrimaryAlignmentFlag() || read.getDuplicateReadFlag() 
+				|| read.getReadFailsVendorQualityCheckFlag() || !read.getReadPairedFlag() || (useBadMate ? false : !read.getProperPairFlag()) 
 				|| read.getMappingQuality() < minMapQ){
 			return null;
 		}
@@ -166,6 +200,42 @@ public class BisulfiteHicUtils {
 		
 		return ctSummary; //first is location, second is methylation status: 0 unmethy, 1 methy.
 	}
+	
+	static public TreeMap<Integer, Integer> readsMethySummaryAtEachLoc(SAMRecord read, int minMapQ, int minBaseQ, boolean turnOffBisulfiteFilter) throws Exception{
+		boolean negStrand = read.getReadNegativeStrandFlag();
+		boolean secondPair = read.getReadPairedFlag() && read.getSecondOfPairFlag();
+		//filter if it is bad reads
+		if(read.getReadUnmappedFlag() || read.getNotPrimaryAlignmentFlag() || read.getDuplicateReadFlag() 
+				|| read.getReadFailsVendorQualityCheckFlag() || !read.getReadPairedFlag() || !read.getProperPairFlag() 
+				|| read.getMappingQuality() < minMapQ){
+			return null;
+		}
+		
+		byte[] refBases = CcInferenceUtils.toUpperCase(modifyRefSeqByCigar(SequenceUtil.makeReferenceFromAlignment(read, false), read.getCigarString()));
+		
+		byte[] readBasesQ = getClippedReadsBaseQuality(read);
+		byte[] readBases = CcInferenceUtils.toUpperCase(getClippedReadsBase(read));
+		
+		if(refBases.length != readBases.length || refBases.length != readBasesQ.length){
+			throw new IllegalArgumentException("read base is different from reference base length:" + read.getReadName() + "\t" + read.getCigarString() + "\t" + read.getContig() + "\t" + read.getAlignmentStart()
+					+ "\n" + new String(refBases) + "\n" + new String(readBases) + "\n" + new String(readBasesQ));
+		}
+		
+		TreeMap<Integer, Integer> ctSummary = new TreeMap<Integer, Integer>();
+		int pos = 0;
+		if(!turnOffBisulfiteFilter){
+			
+			pos = CcInferenceUtils.bisulfiteIncompleteReads(readBases, refBases, negStrand, secondPair, false, true, true, 0.1, 0.4, 0, "CH", 1);
+			if(pos<0){
+				return ctSummary;
+			}
+		}
+		
+		ctSummary = readsMethyAndLocWithFivePrimeFilter(refBases, readBases, readBasesQ, negStrand, secondPair, minBaseQ, pos);
+		
+		return ctSummary; //first is location, second is methylation status: 0 unmethy, 1 methy.
+	}
+
 	
 	static public Triple<Integer,Integer, Integer> readsMethySummary(SAMRecord read, int minMapQ, int minBaseQ){
 		boolean negStrand = read.getReadNegativeStrandFlag();

@@ -10,8 +10,11 @@ maven
 unzip dnaase-bisulfitehic-5dbb6ce7bc3c.zip
 cd dnaase-bisulfitehic-5dbb6ce7bc3c
 source ./install.sh
+conda create -n bisulfitehic python=3.6
+source activate bisulfitehic
+pip install numpy
 
-
+export JAVA_HOME=/usr/libexec/java_home
 
 #####################backup msg:
 sudo mvn package
