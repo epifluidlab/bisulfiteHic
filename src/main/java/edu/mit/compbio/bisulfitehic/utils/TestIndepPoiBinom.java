@@ -10,11 +10,13 @@ import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.math3.random.MersenneTwister;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
 import org.apache.log4j.BasicConfigurator;
@@ -35,7 +37,10 @@ public class TestIndepPoiBinom {
 	public int maxDistance = -1;	
 	
 	@Option(name="-aveWindow",usage="the window size to average the test statistics. default value do not use window to average. Default: 1")
-	public int aveWindow = 1;	
+	public int aveWindow = 1;
+
+	@Option(name="-permutation",usage="permutation time to get p value. Default: 0")
+	public int permutation = 0;
 
 	@Option(name="-h",usage="show option information")
 	public boolean help = false;
@@ -52,6 +57,7 @@ public class TestIndepPoiBinom {
 	
 	private static long startTime = -1;
 
+	private MersenneTwister randomGenerator = null;
 	
 	/**
 	 * @param args
@@ -223,7 +229,10 @@ public class TestIndepPoiBinom {
 								double cpgStd_j = cpg_j_d.getStandardDeviation();
 								
 								ArrayList<Double> cpg_i_j_list = new  ArrayList<Double>();
+								ArrayList<Double> cpg_i_j_random_sd_list = new  ArrayList<Double>();
 								if(aveWindow>1) {
+									ArrayList<DescriptiveStatistics> statsByAllele_nonan_i = new ArrayList<DescriptiveStatistics>();
+									ArrayList<DescriptiveStatistics> statsByAllele_nonan_j = new ArrayList<DescriptiveStatistics>();
 									for(int z = 0; z < statsByAlleles.get(j).size(); z++) {
 										//System.err.println(statsByAlleles.get(i).size() + "\t" + statsByAlleles.get(j).size());
 										double cpg_i_mean = statsByAlleles.get(i).get(z).getMean();
@@ -231,12 +240,57 @@ public class TestIndepPoiBinom {
 										if((!Double.isNaN(cpg_i_mean)) && (!Double.isNaN(cpg_j_mean))) {
 												cpg_i_j_list.add((cpg_i_mean + cpg_j_mean)/2.0);	
 										}
+										if(permutation>0){
+											if(!Double.isNaN(cpg_i_mean)){
+												statsByAllele_nonan_i.add(statsByAlleles.get(i).get(z));
+											}
+											if(!Double.isNaN(cpg_j_mean)){
+												statsByAllele_nonan_j.add(statsByAlleles.get(j).get(z));
+											}
+										}
 									}
+									int s = 0;
+									int size = Math.min(statsByAllele_nonan_i.size(),statsByAllele_nonan_j.size());
+									while(s<permutation){
+										Collections.shuffle(statsByAllele_nonan_i);
+										Collections.shuffle(statsByAllele_nonan_j);
+										double[] sd_tmp = new double[size];
+										for(int z = 0; z < size; z++) {
+											sd_tmp[z] = (statsByAllele_nonan_i.get(z).getMean() + statsByAllele_nonan_j.get(z).getMean())/2.0;
+										}
+
+										cpg_i_j_random_sd_list.add(sd.evaluate(sd_tmp));
+										s++;
+									}
+
 								}else {
+									ArrayList<Double> statsByAllele_nonan_i = new ArrayList<Double>();
+									ArrayList<Double> statsByAllele_nonan_j = new ArrayList<Double>();
 									for(int z = 0; z < cpg_j.length; z++) {
 										if((!Double.isNaN(cpg_i[z])) && (!Double.isNaN(cpg_j[z]))) {
 												cpg_i_j_list.add((cpg_i[z] + cpg_j[z])/2.0);	
 										}
+										if(permutation>0){
+											if(!Double.isNaN(cpg_i[z])){
+												statsByAllele_nonan_i.add(cpg_i[z]);
+											}
+											if(!Double.isNaN(cpg_j[z])){
+												statsByAllele_nonan_j.add(cpg_j[z]);
+											}
+										}
+									}
+									int s = 0;
+									int size = Math.min(statsByAllele_nonan_i.size(),statsByAllele_nonan_j.size());
+									while(s<permutation){
+										Collections.shuffle(statsByAllele_nonan_i);
+										Collections.shuffle(statsByAllele_nonan_j);
+										double[] sd_tmp = new double[size];
+										for(int z = 0; z < size; z++) {
+											sd_tmp[z] = (statsByAllele_nonan_i.get(z) + statsByAllele_nonan_j.get(z))/2.0;
+										}
+
+										cpg_i_j_random_sd_list.add(sd.evaluate(sd_tmp));
+										s++;
 									}
 								}
 								
@@ -247,7 +301,15 @@ public class TestIndepPoiBinom {
 								effectivPairs++;
 								double obsStd = sd.evaluate(ArrayUtils.toPrimitive(cpg_i_j_list.toArray(new Double[cpg_i_j_list.size()])));
 								double expStd = cpgStd_i + cpgStd_j;
-								writer.write((obsStd/expStd) + "\t");
+								if(permutation>0){
+									Collections.sort(cpg_i_j_random_sd_list);
+									int st_pos = BisulfiteHicUtils.findPosition(cpg_i_j_random_sd_list, obsStd, 0, cpg_i_j_random_sd_list.size()-1);
+									double sdPermutatedPvalue = -Math.log10((double)(st_pos)/(double)cpg_i_j_random_sd_list.size());
+									writer.write(sdPermutatedPvalue + "\t");
+								}else{
+									writer.write((obsStd/expStd) + "\t");
+								}
+
 							}
 							writer.write("\n");
 							lineNum++;
@@ -265,6 +327,7 @@ public class TestIndepPoiBinom {
 		private void initiate(String outputPrefix) throws Exception{
 			startTime = System.currentTimeMillis();
 			writer = new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(outputPrefix + ".matrix.txt.gz")), "UTF-8");
+			randomGenerator = new MersenneTwister();
 		}
 		
 

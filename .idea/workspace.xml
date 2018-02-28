@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="83376207-f3df-40e7-a87d-f0ce9b78cbba" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.gitignore" afterPath="$PROJECT_DIR$/.gitignore" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/TestIndepPoiBinom.java" afterPath="$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/TestIndepPoiBinom.java" />
     </list>
     <ignored path="bisulfitehic.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -68,12 +68,16 @@
       <file leaf-file-name="TestIndepPoiBinom.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/TestIndepPoiBinom.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="420">
-              <caret line="30" column="30" lean-forward="false" selection-start-line="30" selection-start-column="13" selection-end-line="30" selection-end-column="30" />
+            <state relative-caret-position="491">
+              <caret line="321" column="24" lean-forward="true" selection-start-line="321" selection-start-column="24" selection-end-line="321" selection-end-column="24" />
               <folding>
                 <element signature="imports" expanded="true" />
-                <element signature="e#3709#3743#0" expanded="true" />
-                <element signature="e#3953#3976#0" expanded="true" />
+                <element signature="e#3955#3989#0" expanded="true" />
+                <element signature="e#4199#4222#0" expanded="true" />
+                <element signature="e#8579#8602#0" expanded="true" />
+                <element signature="e#8685#8708#0" expanded="true" />
+                <element signature="e#10091#10099#0" expanded="true" />
+                <element signature="e#10167#10175#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -94,9 +98,11 @@
       <file leaf-file-name="SingleBaseResHicMatrixV2.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/SingleBaseResHicMatrixV2.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="288">
-              <caret line="46" column="31" lean-forward="false" selection-start-line="46" selection-start-column="31" selection-end-line="46" selection-end-column="31" />
-              <folding />
+            <state relative-caret-position="166">
+              <caret line="600" column="100" lean-forward="true" selection-start-line="598" selection-start-column="16" selection-end-line="600" selection-end-column="100" />
+              <folding>
+                <element signature="imports" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -159,8 +165,8 @@
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="114" />
-    <option name="y" value="363" />
+    <option name="x" value="37" />
+    <option name="y" value="254" />
     <option name="width" value="1643" />
     <option name="height" value="1027" />
   </component>
@@ -247,7 +253,7 @@
       </extension>
       <option name="MAIN_CLASS_NAME" value="main.java.edu.mit.compbio.bisulfitehic.utils.TestIndepPoiBinom" />
       <option name="VM_PARAMETERS" value="-Xmx10G" />
-      <option name="PROGRAM_PARAMETERS" value="$PROJECT_DIR$/../../project/methylhic/sc_poibin/CG_motif.chr19.mm9.mapq30.add_value.naive_108_samples.bed.gz $PROJECT_DIR$/../../project/methylhic/sc_poibin/test -aveWindow 1000000" />
+      <option name="PROGRAM_PARAMETERS" value="$PROJECT_DIR$/../../project/methylhic/sc_poibin/CG_motif.chr19.mm9.mapq30.add_value.naive_108_samples.bed.gz $PROJECT_DIR$/../../project/methylhic/sc_poibin/test -aveWindow 1000000 -permutation 100" />
       <option name="WORKING_DIRECTORY" value="file://$PROJECT_DIR$" />
       <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
       <option name="ALTERNATIVE_JRE_PATH" />
@@ -738,7 +744,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="114" y="363" width="1643" height="1027" extended-state="0" />
+    <frame x="37" y="254" width="1643" height="1027" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -1052,20 +1058,26 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/SingleBaseResHicMatrixV2.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="288">
-          <caret line="46" column="31" lean-forward="false" selection-start-line="46" selection-start-column="31" selection-end-line="46" selection-end-column="31" />
-          <folding />
+        <state relative-caret-position="166">
+          <caret line="600" column="100" lean-forward="true" selection-start-line="598" selection-start-column="16" selection-end-line="600" selection-end-column="100" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/TestIndepPoiBinom.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="420">
-          <caret line="30" column="30" lean-forward="false" selection-start-line="30" selection-start-column="13" selection-end-line="30" selection-end-column="30" />
+        <state relative-caret-position="491">
+          <caret line="321" column="24" lean-forward="true" selection-start-line="321" selection-start-column="24" selection-end-line="321" selection-end-column="24" />
           <folding>
             <element signature="imports" expanded="true" />
-            <element signature="e#3709#3743#0" expanded="true" />
-            <element signature="e#3953#3976#0" expanded="true" />
+            <element signature="e#3955#3989#0" expanded="true" />
+            <element signature="e#4199#4222#0" expanded="true" />
+            <element signature="e#8579#8602#0" expanded="true" />
+            <element signature="e#8685#8708#0" expanded="true" />
+            <element signature="e#10091#10099#0" expanded="true" />
+            <element signature="e#10167#10175#0" expanded="true" />
           </folding>
         </state>
       </provider>
