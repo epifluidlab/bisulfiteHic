@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="83376207-f3df-40e7-a87d-f0ce9b78cbba" name="Default" comment="">
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/TestIndepPoiBinom.java" afterPath="$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/TestIndepPoiBinom.java" />
     </list>
     <ignored path="bisulfitehic.iws" />
@@ -25,12 +26,9 @@
       <file leaf-file-name="MethyCorAcrossHiccups.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/MethyCorAcrossHiccups.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="5145">
-              <caret line="388" column="43" lean-forward="false" selection-start-line="388" selection-start-column="43" selection-end-line="388" selection-end-column="43" />
-              <folding>
-                <marker date="1518360586000" expanded="true" signature="37771:37777" ph="{...}" />
-                <marker date="1518360586000" expanded="true" signature="37849:38677" ph="{...}" />
-              </folding>
+            <state relative-caret-position="825">
+              <caret line="100" column="0" lean-forward="false" selection-start-line="100" selection-start-column="0" selection-end-line="100" selection-end-column="0" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -38,18 +36,8 @@
       <file leaf-file-name="pom.xml" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/pom.xml">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="429">
+            <state relative-caret-position="1500">
               <caret line="100" column="26" lean-forward="false" selection-start-line="100" selection-start-column="20" selection-end-line="100" selection-end-column="26" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="bisulfitehicMap" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/bisulfitehicMap">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="540">
-              <caret line="36" column="11" lean-forward="false" selection-start-line="36" selection-start-column="11" selection-end-line="36" selection-end-column="11" />
               <folding />
             </state>
           </provider>
@@ -58,7 +46,7 @@
       <file leaf-file-name="EnhanceHicMatrix.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/EnhanceHicMatrix.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="510">
+            <state relative-caret-position="5520">
               <caret line="410" column="70" lean-forward="false" selection-start-line="410" selection-start-column="70" selection-end-line="410" selection-end-column="70" />
               <folding />
             </state>
@@ -68,12 +56,17 @@
       <file leaf-file-name="TestIndepPoiBinom.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/TestIndepPoiBinom.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="491">
-              <caret line="321" column="24" lean-forward="true" selection-start-line="321" selection-start-column="24" selection-end-line="321" selection-end-column="24" />
+            <state relative-caret-position="457">
+              <caret line="314" column="0" lean-forward="true" selection-start-line="314" selection-start-column="0" selection-end-line="314" selection-end-column="0" />
               <folding>
                 <element signature="imports" expanded="true" />
+                <element signature="e#1535#1543#0" expanded="true" />
+                <element signature="e#3385#3394#0" expanded="true" />
+                <element signature="e#3783#3806#0" expanded="true" />
                 <element signature="e#3955#3989#0" expanded="true" />
                 <element signature="e#4199#4222#0" expanded="true" />
+                <element signature="e#8385#8393#0" expanded="true" />
+                <element signature="e#8462#8470#0" expanded="true" />
                 <element signature="e#8579#8602#0" expanded="true" />
                 <element signature="e#8685#8708#0" expanded="true" />
                 <element signature="e#10091#10099#0" expanded="true" />
@@ -83,11 +76,21 @@
           </provider>
         </entry>
       </file>
+      <file leaf-file-name="BisulfiteHicUtils.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/BisulfiteHicUtils.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="567">
+              <caret line="406" column="22" lean-forward="false" selection-start-line="406" selection-start-column="22" selection-end-line="406" selection-end-column="22" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
       <file leaf-file-name="MethyCorAcrossHiccupsSC.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/MethyCorAcrossHiccupsSC.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="535">
-              <caret line="60" column="0" lean-forward="false" selection-start-line="60" selection-start-column="0" selection-end-line="60" selection-end-column="0" />
+            <state relative-caret-position="3870">
+              <caret line="293" column="21" lean-forward="false" selection-start-line="293" selection-start-column="21" selection-end-line="293" selection-end-column="21" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -98,8 +101,8 @@
       <file leaf-file-name="SingleBaseResHicMatrixV2.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/SingleBaseResHicMatrixV2.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="166">
-              <caret line="600" column="100" lean-forward="true" selection-start-line="598" selection-start-column="16" selection-end-line="600" selection-end-column="100" />
+            <state relative-caret-position="8280">
+              <caret line="600" column="100" lean-forward="false" selection-start-line="598" selection-start-column="16" selection-end-line="600" selection-end-column="100" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -110,12 +113,9 @@
       <file leaf-file-name="Bhmem.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/mapping/Bhmem.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="168">
+            <state relative-caret-position="525">
               <caret line="40" column="33" lean-forward="false" selection-start-line="40" selection-start-column="33" selection-end-line="42" selection-end-column="7" />
-              <folding>
-                <element signature="e#8124#8135#0" expanded="true" />
-                <element signature="e#8178#8189#0" expanded="true" />
-              </folding>
+              <folding />
             </state>
           </provider>
         </entry>
@@ -123,7 +123,7 @@
       <file leaf-file-name="BsmemMultRef.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/mapping/BsmemMultRef.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="205">
+            <state relative-caret-position="510">
               <caret line="39" column="17" lean-forward="false" selection-start-line="39" selection-start-column="17" selection-end-line="39" selection-end-column="17" />
               <folding />
             </state>
@@ -165,9 +165,9 @@
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="37" />
-    <option name="y" value="254" />
-    <option name="width" value="1643" />
+    <option name="x" value="24" />
+    <option name="y" value="23" />
+    <option name="width" value="1645" />
     <option name="height" value="1027" />
   </component>
   <component name="ProjectLevelVcsManager">
@@ -188,7 +188,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="AndroidView" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -218,9 +217,10 @@
           <select />
         </subPane>
       </pane>
-      <pane id="PackagesPane" />
       <pane id="Scope" />
+      <pane id="AndroidView" />
       <pane id="Scratches" />
+      <pane id="PackagesPane" />
       <pane id="NBKnowledgePane" />
     </panes>
   </component>
@@ -253,7 +253,7 @@
       </extension>
       <option name="MAIN_CLASS_NAME" value="main.java.edu.mit.compbio.bisulfitehic.utils.TestIndepPoiBinom" />
       <option name="VM_PARAMETERS" value="-Xmx10G" />
-      <option name="PROGRAM_PARAMETERS" value="$PROJECT_DIR$/../../project/methylhic/sc_poibin/CG_motif.chr19.mm9.mapq30.add_value.naive_108_samples.bed.gz $PROJECT_DIR$/../../project/methylhic/sc_poibin/test -aveWindow 1000000 -permutation 100" />
+      <option name="PROGRAM_PARAMETERS" value="$PROJECT_DIR$/../../project/methylhic/sc_poibin/CG_motif.chr19.mm9.mapq30.add_value.naive_108_samples.bed.gz $PROJECT_DIR$/../../project/methylhic/sc_poibin/CG_motif.chr19.mm9.mapq30.add_value.naive_108_samples.test_indep_poibin.window_100000.permutate_100.two_tail_p -aveWindow 100000 -permutation 100" />
       <option name="WORKING_DIRECTORY" value="file://$PROJECT_DIR$" />
       <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
       <option name="ALTERNATIVE_JRE_PATH" />
@@ -744,7 +744,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="37" y="254" width="1643" height="1027" extended-state="0" />
+    <frame x="24" y="23" width="1645" height="1027" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -760,16 +760,16 @@
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Capture Tool" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Designer" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.19354838" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
-      <window_info id="R Packages" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="R Graphics" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.19331308" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="R Packages" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="R Graphics" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="UI Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Theme Preview" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
+      <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -809,12 +809,106 @@
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/MethyCorAcrossHiccups.java">
       <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pom.xml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1500">
+          <caret line="100" column="26" lean-forward="false" selection-start-line="100" selection-start-column="20" selection-end-line="100" selection-end-column="26" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/bisulfitehicMap">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="540">
+          <caret line="36" column="11" lean-forward="false" selection-start-line="36" selection-start-column="11" selection-end-line="36" selection-end-column="11" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/EnhanceHicMatrix.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="6150">
+          <caret line="410" column="70" lean-forward="false" selection-start-line="410" selection-start-column="70" selection-end-line="410" selection-end-column="70" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/TestIndepPoiBinom.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="195">
+          <caret line="36" column="36" lean-forward="true" selection-start-line="36" selection-start-column="36" selection-end-line="36" selection-end-column="36" />
+          <folding>
+            <element signature="imports" expanded="true" />
+            <element signature="e#1535#1543#0" expanded="true" />
+            <element signature="e#3385#3394#0" expanded="true" />
+            <element signature="e#3783#3806#0" expanded="true" />
+            <element signature="e#3955#3989#0" expanded="true" />
+            <element signature="e#4199#4222#0" expanded="true" />
+            <element signature="e#8385#8393#0" expanded="true" />
+            <element signature="e#8462#8470#0" expanded="true" />
+            <element signature="e#8579#8602#0" expanded="true" />
+            <element signature="e#8685#8708#0" expanded="true" />
+            <element signature="e#10091#10099#0" expanded="true" />
+            <element signature="e#10167#10175#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/MethyCorAcrossHiccupsSC.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3870">
+          <caret line="293" column="21" lean-forward="false" selection-start-line="293" selection-start-column="21" selection-end-line="293" selection-end-column="21" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/SingleBaseResHicMatrixV2.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="8280">
+          <caret line="600" column="100" lean-forward="false" selection-start-line="598" selection-start-column="16" selection-end-line="600" selection-end-column="100" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/mapping/Bhmem.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="525">
+          <caret line="40" column="33" lean-forward="false" selection-start-line="40" selection-start-column="33" selection-end-line="42" selection-end-column="7" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/mapping/BsmemMultRef.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="510">
+          <caret line="39" column="17" lean-forward="false" selection-start-line="39" selection-start-column="17" selection-end-line="39" selection-end-column="17" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/SingleBaseResHicMatrix.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="4275">
+          <caret line="333" column="28" lean-forward="false" selection-start-line="333" selection-start-column="28" selection-end-line="333" selection-end-column="28" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/MethyCorAcrossHiccups.java">
+      <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="5040">
           <caret line="381" column="43" lean-forward="false" selection-start-line="381" selection-start-column="43" selection-end-line="381" selection-end-column="43" />
-          <folding>
-            <marker date="1518360586000" expanded="true" signature="37771:37777" ph="{...}" />
-            <marker date="1518360586000" expanded="true" signature="37849:38677" ph="{...}" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -822,7 +916,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="615">
           <caret line="41" column="34" lean-forward="false" selection-start-line="41" selection-start-column="34" selection-end-line="41" selection-end-column="34" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -846,7 +939,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -870,10 +962,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="5040">
           <caret line="381" column="43" lean-forward="false" selection-start-line="381" selection-start-column="43" selection-end-line="381" selection-end-column="43" />
-          <folding>
-            <marker date="1518360586000" expanded="true" signature="37771:37777" ph="{...}" />
-            <marker date="1518360586000" expanded="true" signature="37849:38677" ph="{...}" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -881,7 +970,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="540">
           <caret line="41" column="34" lean-forward="false" selection-start-line="41" selection-start-column="34" selection-end-line="41" selection-end-column="34" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -897,7 +985,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -929,10 +1016,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="66" column="13" lean-forward="false" selection-start-line="66" selection-start-column="13" selection-end-line="66" selection-end-column="13" />
-          <folding>
-            <marker date="1518360586000" expanded="true" signature="37771:37777" ph="{...}" />
-            <marker date="1518360586000" expanded="true" signature="37849:38677" ph="{...}" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -940,7 +1024,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="41" column="34" lean-forward="false" selection-start-line="41" selection-start-column="34" selection-end-line="41" selection-end-column="34" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -956,7 +1039,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -972,7 +1054,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="540">
           <caret line="41" column="34" lean-forward="false" selection-start-line="41" selection-start-column="34" selection-end-line="41" selection-end-column="34" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -980,13 +1061,12 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/bisulfitehicMap">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="540">
+        <state relative-caret-position="495">
           <caret line="36" column="11" lean-forward="false" selection-start-line="36" selection-start-column="11" selection-end-line="36" selection-end-column="11" />
           <folding />
         </state>
@@ -1000,20 +1080,9 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/MethyCorAcrossHiccups.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="5145">
-          <caret line="388" column="43" lean-forward="false" selection-start-line="388" selection-start-column="43" selection-end-line="388" selection-end-column="43" />
-          <folding>
-            <marker date="1518360586000" expanded="true" signature="37771:37777" ph="{...}" />
-            <marker date="1518360586000" expanded="true" signature="37849:38677" ph="{...}" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/EnhanceHicMatrix.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="510">
+        <state relative-caret-position="5520">
           <caret line="410" column="70" lean-forward="false" selection-start-line="410" selection-start-column="70" selection-end-line="410" selection-end-column="70" />
           <folding />
         </state>
@@ -1021,7 +1090,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/mapping/BsmemMultRef.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="205">
+        <state relative-caret-position="510">
           <caret line="39" column="17" lean-forward="false" selection-start-line="39" selection-start-column="17" selection-end-line="39" selection-end-column="17" />
           <folding />
         </state>
@@ -1029,51 +1098,69 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/mapping/Bhmem.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="168">
+        <state relative-caret-position="525">
           <caret line="40" column="33" lean-forward="false" selection-start-line="40" selection-start-column="33" selection-end-line="42" selection-end-column="7" />
-          <folding>
-            <element signature="e#8124#8135#0" expanded="true" />
-            <element signature="e#8178#8189#0" expanded="true" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/pom.xml">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="429">
+        <state relative-caret-position="1500">
           <caret line="100" column="26" lean-forward="false" selection-start-line="100" selection-start-column="20" selection-end-line="100" selection-end-column="26" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/MethyCorAcrossHiccupsSC.java">
+    <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/SingleBaseResHicMatrixV2.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="535">
-          <caret line="60" column="0" lean-forward="false" selection-start-line="60" selection-start-column="0" selection-end-line="60" selection-end-column="0" />
+        <state relative-caret-position="8280">
+          <caret line="600" column="100" lean-forward="false" selection-start-line="598" selection-start-column="16" selection-end-line="600" selection-end-column="100" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/SingleBaseResHicMatrixV2.java">
+    <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/MethyCorAcrossHiccupsSC.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="166">
-          <caret line="600" column="100" lean-forward="true" selection-start-line="598" selection-start-column="16" selection-end-line="600" selection-end-column="100" />
+        <state relative-caret-position="3870">
+          <caret line="293" column="21" lean-forward="false" selection-start-line="293" selection-start-column="21" selection-end-line="293" selection-end-column="21" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/MethyCorAcrossHiccups.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="825">
+          <caret line="100" column="0" lean-forward="false" selection-start-line="100" selection-start-column="0" selection-end-line="100" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/BisulfiteHicUtils.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="567">
+          <caret line="406" column="22" lean-forward="false" selection-start-line="406" selection-start-column="22" selection-end-line="406" selection-end-column="22" />
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/TestIndepPoiBinom.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="491">
-          <caret line="321" column="24" lean-forward="true" selection-start-line="321" selection-start-column="24" selection-end-line="321" selection-end-column="24" />
+        <state relative-caret-position="457">
+          <caret line="314" column="0" lean-forward="true" selection-start-line="314" selection-start-column="0" selection-end-line="314" selection-end-column="0" />
           <folding>
             <element signature="imports" expanded="true" />
+            <element signature="e#1535#1543#0" expanded="true" />
+            <element signature="e#3385#3394#0" expanded="true" />
+            <element signature="e#3783#3806#0" expanded="true" />
             <element signature="e#3955#3989#0" expanded="true" />
             <element signature="e#4199#4222#0" expanded="true" />
+            <element signature="e#8385#8393#0" expanded="true" />
+            <element signature="e#8462#8470#0" expanded="true" />
             <element signature="e#8579#8602#0" expanded="true" />
             <element signature="e#8685#8708#0" expanded="true" />
             <element signature="e#10091#10099#0" expanded="true" />

@@ -304,7 +304,10 @@ public class TestIndepPoiBinom {
 								if(permutation>0){
 									Collections.sort(cpg_i_j_random_sd_list);
 									int st_pos = BisulfiteHicUtils.findPosition(cpg_i_j_random_sd_list, obsStd, 0, cpg_i_j_random_sd_list.size()-1);
-									double sdPermutatedPvalue = -Math.log10((double)(st_pos)/(double)cpg_i_j_random_sd_list.size());
+									//if(cpg_i_j_random_sd_list.size()-st_pos < st_pos){ //for two tails p
+									//	st_pos = cpg_i_j_random_sd_list.size()-st_pos;
+									//}
+									double sdPermutatedPvalue = -Math.log10((double)(cpg_i_j_random_sd_list.size()-st_pos)/(double)cpg_i_j_random_sd_list.size());
 									writer.write(sdPermutatedPvalue + "\t");
 								}else{
 									writer.write((obsStd/expStd) + "\t");
