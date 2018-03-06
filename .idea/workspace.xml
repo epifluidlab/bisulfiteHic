@@ -2,9 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="83376207-f3df-40e7-a87d-f0ce9b78cbba" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/SepAlleleMethySC2.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/TestIndepPoiBinom.java" afterPath="$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/TestIndepPoiBinom.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/SepAlleleMethySC2.java" afterPath="$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/SepAlleleMethySC2.java" />
     </list>
     <ignored path="bisulfitehic.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -67,7 +65,7 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="SepAlleleMethySC.java" pinned="false" current-in-tab="true">
+      <file leaf-file-name="SepAlleleMethySC.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/SepAlleleMethySC.java">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="150">
@@ -77,13 +75,14 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="SepAlleleMethySC2.java" pinned="false" current-in-tab="false">
+      <file leaf-file-name="SepAlleleMethySC2.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/SepAlleleMethySC2.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="180">
-              <caret line="17" column="40" lean-forward="false" selection-start-line="17" selection-start-column="40" selection-end-line="17" selection-end-column="40" />
+            <state relative-caret-position="367">
+              <caret line="65" column="58" lean-forward="false" selection-start-line="65" selection-start-column="58" selection-end-line="65" selection-end-column="58" />
               <folding>
-                <element signature="e#4144#4183#0" expanded="true" />
+                <element signature="imports" expanded="true" />
+                <element signature="e#4145#4184#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -172,8 +171,8 @@
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="78" />
-    <option name="y" value="638" />
+    <option name="x" value="101" />
+    <option name="y" value="80" />
     <option name="width" value="1645" />
     <option name="height" value="1027" />
   </component>
@@ -801,7 +800,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="78" y="638" width="1645" height="1027" extended-state="0" />
+    <frame x="101" y="80" width="1645" height="1027" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -1230,21 +1229,22 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/SepAlleleMethySC2.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="180">
-          <caret line="17" column="40" lean-forward="false" selection-start-line="17" selection-start-column="40" selection-end-line="17" selection-end-column="40" />
-          <folding>
-            <element signature="e#4144#4183#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/SepAlleleMethySC.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="150">
           <caret line="57" column="29" lean-forward="false" selection-start-line="57" selection-start-column="13" selection-end-line="57" selection-end-column="29" />
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/SepAlleleMethySC2.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="367">
+          <caret line="65" column="58" lean-forward="false" selection-start-line="65" selection-start-column="58" selection-end-line="65" selection-end-column="58" />
+          <folding>
+            <element signature="imports" expanded="true" />
+            <element signature="e#4145#4184#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

@@ -63,7 +63,7 @@ public class SepAlleleMethySC2 {
 	@Argument
 	private List<String> arguments = new ArrayList<String>();
 
-	final private static String USAGE = "SepAlleleMethySC [opts] outputPrefix snp_vcf.gz input.sortByReadName.bam";
+	final private static String USAGE = "SepAlleleMethySC2 [opts] outputPrefix snp_vcf.gz input.sortByReadName.bam";
 	
 	private static Logger log = Logger.getLogger(SepAlleleMethySC2.class);
 
@@ -168,7 +168,7 @@ public class SepAlleleMethySC2 {
 										continue;
 									}
 									String chr1 = r1.getContig();
-									String chr2 = r1.getContig();
+									String chr2 = r2.getContig();
 									if(!chr1.equalsIgnoreCase(chr2)) {
 										continue;
 									}
@@ -179,6 +179,7 @@ public class SepAlleleMethySC2 {
 									Pair<Byte, Byte> alleles = null;
 									int snpStart=-1;
 									//int snpEnd;
+									boolean snpInRead2 = false;
 									if(genotypeMapList.containsKey(chr1)){
 										IntervalTree<Pair<Byte, Byte>> cg = genotypeMapList.get(chr1);
 
@@ -190,11 +191,13 @@ public class SepAlleleMethySC2 {
 												snpStart = node.getStart();
 												//snpEnd = node.getEnd();
 												alleles = node.getValue();
+												snpInRead2 = false;
 											}else if(cg.minOverlapper(start2, end2)!=null){
 												Node<Pair<Byte, Byte>> node = cg.minOverlapper(start2, end2);
 												snpStart = node.getStart();
 												//snpEnd = node.getEnd();
 												alleles = node.getValue();
+												snpInRead2 = true;
 											}
 
 										}
@@ -202,17 +205,19 @@ public class SepAlleleMethySC2 {
 										continue;
 									}
 
-									int readStart = r1.getAlignmentStart();
-									boolean negStrand = r1.getReadNegativeStrandFlag();
-									boolean secondPair = r1.getReadPairedFlag() && r1.getSecondOfPairFlag();
+									int read1Start = r1.getAlignmentStart();
+									int read2Start = r2.getAlignmentStart();
 
-									
-									byte[] readBases = r1.getReadBases();
-									byte[] readBasesQ = r1.getBaseQualities();
-									
-									
+									boolean negStrand = snpInRead2 ? r2.getReadNegativeStrandFlag() : r1.getReadNegativeStrandFlag();
+									boolean secondPair = snpInRead2 ? (r2.getReadPairedFlag() && r2.getSecondOfPairFlag()) : (r1.getReadPairedFlag() && r1.getSecondOfPairFlag());
+
+
+									byte[] readBases = snpInRead2 ? r2.getReadBases() : r1.getReadBases();
+									byte[] readBasesQ = snpInRead2 ? r2.getBaseQualities() : r1.getBaseQualities();
+
+
 									//define which allele the reads belonged to
-									
+
 									//in C/T or A/G SNP only consider bisulfite uncoverted strand
 									if((SequenceUtil.basesEqual(alleles.getFirst(), SequenceUtil.C) && SequenceUtil.basesEqual(alleles.getSecond(), SequenceUtil.T))
 											|| (SequenceUtil.basesEqual(alleles.getFirst(), SequenceUtil.T) && SequenceUtil.basesEqual(alleles.getSecond(), SequenceUtil.C))
@@ -226,12 +231,12 @@ public class SepAlleleMethySC2 {
 											continue;
 										}
 									}
-									
+
 									//int pos = loc.getStart() - d.getAlignmentStart();
-									int pos = r1.getReadPositionAtReferencePosition(snpStart)-1;
+									int pos = snpInRead2 ? (r2.getReadPositionAtReferencePosition(snpStart)-1) : (r1.getReadPositionAtReferencePosition(snpStart)-1);
 									if(pos < 0) //no such a postion in the clipped reads
 										continue;
-										
+
 									byte snpBase = CcInferenceUtils.toUpperCase(readBases[pos]);
 									//if(negStrand){
 										//snpBase = CcInferenceUtils.toUpperCase(SequenceUtil.complement(readBases[pos]));
@@ -239,34 +244,51 @@ public class SepAlleleMethySC2 {
 									if(readBasesQ[pos] < minBaseQ){
 										continue;
 									}
-									
-									TreeMap<Integer, Integer> ctSummary = BisulfiteHicUtils.readsMethySummaryAtEachLoc(r1, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
-						
-									if(ctSummary == null || ctSummary.isEmpty()) {
+
+									TreeMap<Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummaryAtEachLoc(r1, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+									TreeMap<Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummaryAtEachLoc(r2, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+
+									if((ctSummary1 == null || ctSummary1.isEmpty()) && (ctSummary2 == null || ctSummary2.isEmpty())) {
 										continue;
 									}
-									
+
 									if(BisulfiteHicUtils.baseMatchInBisulfiteSpace(alleles.getFirst(), snpBase, negStrand, secondPair)){
-										for(int cpgLoc : ctSummary.keySet()) {
+										for(int cpgLoc : ctSummary1.keySet()) {
 											if(pos == cpgLoc) {
 												continue;
 											}
-											int methy = ctSummary.get(cpgLoc);
-											int cpg_end = cpgLoc + readStart;
+											int methy = ctSummary1.get(cpgLoc);
+											int cpg_end = cpgLoc + read1Start;
 											int cpg_start = cpg_end - 1;
 											alleleAWriter.write(chr1 + "\t" + cpg_start + "\t" + cpg_end + "\t" + methy + "\n");
 										}
-										
-									}else if(BisulfiteHicUtils.baseMatchInBisulfiteSpace(alleles.getSecond(), snpBase, negStrand, secondPair)){
-										for(int cpgLoc : ctSummary.keySet()) {
+										for(int cpgLoc : ctSummary2.keySet()) {
 											if(pos == cpgLoc) {
 												continue;
 											}
-											int methy = ctSummary.get(cpgLoc);
-											int cpg_end = cpgLoc + readStart;
+											int methy = ctSummary2.get(cpgLoc);
+											int cpg_end = cpgLoc + read2Start;
+											int cpg_start = cpg_end - 1;
+											alleleAWriter.write(chr1 + "\t" + cpg_start + "\t" + cpg_end + "\t" + methy + "\n");
+										}
+									}else if(BisulfiteHicUtils.baseMatchInBisulfiteSpace(alleles.getSecond(), snpBase, negStrand, secondPair)){
+										for(int cpgLoc : ctSummary1.keySet()) {
+											if(pos == cpgLoc) {
+												continue;
+											}
+											int methy = ctSummary1.get(cpgLoc);
+											int cpg_end = cpgLoc + read1Start;
 											int cpg_start = cpg_end - 1;
 											alleleBWriter.write(chr1 + "\t" + cpg_start + "\t" + cpg_end + "\t" + methy + "\n");
-											
+										}
+										for(int cpgLoc : ctSummary2.keySet()) {
+											if(pos == cpgLoc) {
+												continue;
+											}
+											int methy = ctSummary2.get(cpgLoc);
+											int cpg_end = cpgLoc + read2Start;
+											int cpg_start = cpg_end - 1;
+											alleleBWriter.write(chr1 + "\t" + cpg_start + "\t" + cpg_end + "\t" + methy + "\n");
 										}
 									}
 									
@@ -312,7 +334,7 @@ public class SepAlleleMethySC2 {
 			double totalTimeMins = totalTime/60;
 			double totalTimeHours = totalTime/3600;
 			
-			log.info("SepAlleleMethySC's running time is: " + String.format("%.2f",totalTime) + " secs, " + String.format("%.2f",totalTimeMins) +  " mins, " + String.format("%.2f",totalTimeHours) +  " hours");
+			log.info("SepAlleleMethySC2's running time is: " + String.format("%.2f",totalTime) + " secs, " + String.format("%.2f",totalTimeMins) +  " mins, " + String.format("%.2f",totalTimeHours) +  " hours");
 		}
 		
 
