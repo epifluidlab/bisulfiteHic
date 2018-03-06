@@ -19,6 +19,7 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.math3.random.MersenneTwister;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
+import org.apache.commons.math3.stat.descriptive.moment.Variance;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
 import org.kohsuke.args4j.Argument;
@@ -113,7 +114,7 @@ public class TestIndepPoiBinom {
 						//ArrayList<double[]> dataMat = new ArrayList<double[]>();
 						ArrayList<Integer> cpgPos = new ArrayList<Integer>();
 						//ArrayList<Double> cpgStd = new ArrayList<Double>();
-						StandardDeviation sd = new StandardDeviation() ;
+						Variance sd = new Variance() ;
 						int pos = 0;
 						boolean restartFlag = true;
 						//ArrayList<Integer> cpgPosTmp = new ArrayList<Integer>();
