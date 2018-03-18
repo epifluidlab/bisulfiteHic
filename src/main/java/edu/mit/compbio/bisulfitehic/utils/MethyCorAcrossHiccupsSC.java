@@ -304,7 +304,7 @@ public class MethyCorAcrossHiccupsSC {
 				cpgEachCellTemp.add(0);
 			}
 			//go over each bam, determin the cpg pairs candidate
-						for(int i = 0; i < bams.size(); i++) {
+			for(int i = 0; i < bams.size(); i++) {
 				String bamFile = bams.get(i);
 				
 				BigWigFileReader covReader = covWigFileReaders.get(i);

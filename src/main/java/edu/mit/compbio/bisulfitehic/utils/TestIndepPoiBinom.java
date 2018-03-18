@@ -301,7 +301,7 @@ public class TestIndepPoiBinom {
 								}
 								effectivPairs++;
 								double obsStd = sd.evaluate(ArrayUtils.toPrimitive(cpg_i_j_list.toArray(new Double[cpg_i_j_list.size()])));
-								double expStd = cpgStd_i + cpgStd_j;
+								double expStd = (cpgStd_i + cpgStd_j)/2.0;
 								if(permutation>0){
 									Collections.sort(cpg_i_j_random_sd_list);
 									int st_pos = BisulfiteHicUtils.findPosition(cpg_i_j_random_sd_list, obsStd, 0, cpg_i_j_random_sd_list.size()-1);

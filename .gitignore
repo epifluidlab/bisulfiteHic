@@ -81,3 +81,6 @@ target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/MethyCorSepAlleleSC.
 target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/PoissonBinomial2.class
 target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/SepAlleleMethySC.class
 target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/TestIndepPoiBinom.class
+target/bisulfitehic-0.22-jar-with-dependencies.jar
+target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/SepAlleleMethySC2.class
+target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/TestIndepPoiBinomOnBam.class
