@@ -53,6 +53,9 @@ public class TestIndepPoiBinomOnBam {
 	@Option(name="-minCellNum",usage="minimum number of cells. Default: 2")
 	public int minCellNum = 2;
 
+	@Option(name="-na",usage="String for NA. Default: NA")
+	public String NA = "NA";
+
 	@Option(name="-useBadMate",usage="use not proper paired reads. Default: false")
 	public boolean useBadMate = false;
 
@@ -153,9 +156,12 @@ public class TestIndepPoiBinomOnBam {
 
 							if(!gt.isFiltered() && gt.isHet()){ //only phased Het SNP is considered
 								IntervalTree<Pair<Byte, Byte>> tree;
-								String chr = vc.getContig();
-								if(genotypeMapList.containsKey(chr)){
-									tree = genotypeMapList.get(chr);
+								String chr_t = vc.getContig();
+								//if(!chr_t.equalsIgnoreCase(chr)){
+								//	continue;
+								//}
+								if(genotypeMapList.containsKey(chr_t)){
+									tree = genotypeMapList.get(chr_t);
 								}else{
 									tree = new IntervalTree<Pair<Byte, Byte>>();
 								}
@@ -164,7 +170,7 @@ public class TestIndepPoiBinomOnBam {
 								Byte alleleB = gt.getAllele(1).getBases()[0];
 								Pair<Byte, Byte> tmp = new Pair<Byte, Byte>(alleleA, alleleB);
 								tree.put(vc.getStart(), vc.getEnd(), tmp);
-								genotypeMapList.put(chr, tree);
+								genotypeMapList.put(chr_t, tree);
 							}
 
 
@@ -185,6 +191,9 @@ public class TestIndepPoiBinomOnBam {
 
 						 */
 						ArrayList<ArrayList<HashMap<String,ArrayList<Integer>>>> methyStatus = new ArrayList<ArrayList<HashMap<String,ArrayList<Integer>>>>();
+						long numCg = 0;
+						long numCg_A = 0;
+						long numCg_B = 0;
 						for(int i = 0; i < bams.size(); i++) {
 							String bamFile = bams.get(i);
 							SamReader wgsReader = factory.open(new File(bamFile));
@@ -202,9 +211,9 @@ public class TestIndepPoiBinomOnBam {
 								if (!chr1.equalsIgnoreCase(chr2)) {
 									continue;
 								}
-								if(!chr1.equalsIgnoreCase(chr)){
-									continue;
-								}
+								//if(!chr1.equalsIgnoreCase(chr)){
+								//	continue;
+								//}
 
 								String readname1 = r1.getReadName();
 								String readname2 = r2.getReadName();
@@ -340,7 +349,8 @@ public class TestIndepPoiBinomOnBam {
 								ArrayList<Integer> read2CgList = new ArrayList<Integer>();
 								read2CgList.addAll(ctSummary2.values());
 								read2CgInfo.put(readname2, read2CgList);
-
+								numCg+=ctSummary1.size();
+								numCg+=ctSummary2.size();
 								if (BisulfiteHicUtils.baseMatchInBisulfiteSpace(alleles.getFirst(), snpBase, negStrand, secondPair)) {
 									int allelePos = i + 0;
 
@@ -354,6 +364,8 @@ public class TestIndepPoiBinomOnBam {
 									readStatus2.putAll(read2CgInfo);
 									alleleStatusInRead2.set(allelePos, readStatus2);
 									methyStatus.set(r2pos, alleleStatusInRead2);
+									numCg_A+=ctSummary1.size();
+									numCg_A+=ctSummary2.size();
 
 								} else if (BisulfiteHicUtils.baseMatchInBisulfiteSpace(alleles.getSecond(), snpBase, negStrand, secondPair)) {
 									int allelePos = i + 1;
@@ -368,12 +380,18 @@ public class TestIndepPoiBinomOnBam {
 									readStatus2.putAll(read2CgInfo);
 									alleleStatusInRead2.set(allelePos, readStatus2);
 									methyStatus.set(r2pos, alleleStatusInRead2);
+									numCg_B+=ctSummary1.size();
+									numCg_B+=ctSummary2.size();
 								}
 
 							}
 							samIt.close();
 							wgsReader.close();
 						}
+
+			log.info("count cpg: " + numCg);
+			log.info("count cpg_A: " + numCg_A);
+			log.info("count cpg_B: " + numCg_B);
 
 						log.info(methyStatus.size() + "\t" + methyStatus.get(0).size());
 						log.info("Processing cpg pairs ...");
@@ -400,30 +418,38 @@ public class TestIndepPoiBinomOnBam {
 
 									if ((!readStatus_i.isEmpty()) && (!readStatus_j.isEmpty())) {
 										//here: need to consider to put only paired reads in each of window or not?
-										int sum = 0;
-										int count = 0;
+										int sum_i = 0;
+										int count_i = 0;
+										int sum_j = 0;
+										int count_j = 0;
 										for (String readname : readStatus_i.keySet()) {
 											ArrayList<Integer> read_i = readStatus_i.get(readname);
 											if (readStatus_j.containsKey(readname)) {
 												ArrayList<Integer> read_j = readStatus_j.get(readname);
 
 												for (Integer t : read_i) {
-													sum += t;
-													count++;
+													sum_i += t;
+													count_i++;
 												}
 												for (Integer t : read_j) {
-													sum += t;
-													count++;
+													sum_j += t;
+													count_j++;
 												}
 
 											}
 										}
-										if (count > 0) {
-
-											cpg_i_j_d.add((double)sum/(double)count);
+										if (count_i + count_j > 0) {
+											cpg_i_j_d.add((double)(sum_i + sum_j)/(double)(count_i + count_j));
+										}
+										if (count_i > 0) {
+											cpg_i_d.add(new Pair<Integer,Integer>(sum_i, count_i));
+										}
+										if (count_j > 0) {
+											cpg_j_d.add(new Pair<Integer,Integer>(sum_j, count_j));
 										}
 
 									}
+									/*
 									if (!readStatus_i.isEmpty()) {
 										int sum = 0;
 										int count = 0;
@@ -452,11 +478,12 @@ public class TestIndepPoiBinomOnBam {
 											cpg_j_d.add(new Pair<Integer,Integer>(sum, count));
 										}
 									}
+									*/
 
 								}
 
 								if (cpg_i_j_d.size() <= minCellNum) {
-									writer.write("\t" + "NA");
+									writer.write("\t" + NA);
 									continue;
 								}
 								int s = 0;
@@ -495,9 +522,18 @@ public class TestIndepPoiBinomOnBam {
 									//	st_pos = cpg_i_j_random_sd_list.size()-st_pos;
 									//}
 									double sdPermutatedPvalue = -Math.log10((double)(cpg_i_j_random_sd_list.size()-st_pos)/(double)cpg_i_j_random_sd_list.size());
-									writer.write("\t" + sdPermutatedPvalue );
+									if(Double.isNaN(sdPermutatedPvalue)){
+										writer.write("\t" + NA );
+									}else{
+										writer.write("\t" + sdPermutatedPvalue );
+									}
+
 								}else{
-									writer.write("\t" + (obsStd/expStd));
+									if(Double.isNaN((obsStd/expStd))){
+										writer.write("\t" + NA );
+									}else{
+										writer.write("\t" + (obsStd/expStd) );
+									}
 								}
 
 

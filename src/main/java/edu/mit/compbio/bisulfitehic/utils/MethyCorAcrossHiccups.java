@@ -74,6 +74,12 @@ public class MethyCorAcrossHiccups {
 	
 	@Option(name="-useBadMate",usage="use not proper paired reads. Default: false")
 	public boolean useBadMate = false;
+
+	@Option(name="-useUnpaired",usage="reads are mapped in single end mode, have not joined into pairs yet. Default: false")
+	public boolean useUnpaired = false;
+
+	@Option(name="-removeReadnameSuffix",usage="remove the last two characters in read name, such as /1, /2 .... Default: false")
+	public boolean removeReadnameSuffix = false;
 	
 	@Option(name="-minMapQ",usage="minimum mapping quality score required to check. Default: 30")
 	public int minMapQ = -1;
@@ -565,10 +571,14 @@ public class MethyCorAcrossHiccups {
 					//	System.err.println(new String(r.getReadBases()));
 					//	System.err.println(r.getReadName() + "\t" + countedReadsEnd1.containsKey(r.getReadName()) + "\t" + r + "\t" + pos);
 					//}
-					if(countedReadsEnd1.containsKey(r.getReadName())){
-						countedReadsEnd1.remove(r.getReadName()); //if two ends are within the same half end of hiccup links
+					String name = r.getReadName();
+					if(removeReadnameSuffix){
+						name = name.substring(0, name.length() - 2);
+					}
+					if(countedReadsEnd1.containsKey(name)){
+						countedReadsEnd1.remove(name); //if two ends are within the same half end of hiccup links
 					}else{
-						countedReadsEnd1.put(r.getReadName(), r);
+						countedReadsEnd1.put(name, r);
 					}
 				}
 				
@@ -615,10 +625,14 @@ public class MethyCorAcrossHiccups {
 					//if(r.getReadName().equalsIgnoreCase("K00168:28:H3NKLBBXX:7:1214:10064:40385")){
 					//	System.err.println(r.getReadName() + "\t" + countedReadsEnd2.containsKey(r.getReadName()) + "\t" + r);
 					//}
-					if(countedReadsEnd2.containsKey(r.getReadName())){
-						countedReadsEnd2.remove(r.getReadName()); //if two ends are within the same half end of hiccup links
+					String name = r.getReadName();
+					if(removeReadnameSuffix){
+						name = name.substring(0, name.length() - 2);
+					}
+					if(countedReadsEnd2.containsKey(name)){
+						countedReadsEnd2.remove(name); //if two ends are within the same half end of hiccup links
 					}else{
-						countedReadsEnd2.put(r.getReadName(), r);
+						countedReadsEnd2.put(name, r);
 					}
 				}
 			}
@@ -692,11 +706,14 @@ public class MethyCorAcrossHiccups {
 				if(failFlagFilter(r)){
 					continue;
 				}else{
-					
-					if(countedReadsEnd1.containsKey(r.getReadName())){
-						countedReadsEnd1.remove(r.getReadName()); //if two ends are within the same half end of hiccup links
+					String name = r.getReadName();
+					if(removeReadnameSuffix){
+						name = name.substring(0, name.length() - 2);
+					}
+					if(countedReadsEnd1.containsKey(name)){
+						countedReadsEnd1.remove(name); //if two ends are within the same half end of hiccup links
 					}else{
-						countedReadsEnd1.put(r.getReadName(), r);
+						countedReadsEnd1.put(name, r);
 					}
 				}
 				
@@ -715,11 +732,14 @@ public class MethyCorAcrossHiccups {
 				if(failFlagFilter(r)){
 					continue;
 				}else{
-					
-					if(countedReadsEnd2.containsKey(r.getReadName())){
-						countedReadsEnd2.remove(r.getReadName()); //if two ends are within the same half end of hiccup links
+					String name = r.getReadName();
+					if(removeReadnameSuffix){
+						name = name.substring(0, name.length() - 2);
+					}
+					if(countedReadsEnd2.containsKey(name)){
+						countedReadsEnd2.remove(name); //if two ends are within the same half end of hiccup links
 					}else{
-						countedReadsEnd2.put(r.getReadName(), r);
+						countedReadsEnd2.put(name, r);
 					}
 				}
 			}
@@ -787,11 +807,14 @@ public class MethyCorAcrossHiccups {
 				if(failFlagFilter(r) || Math.abs(r.getInferredInsertSize())>onlyShort){
 					continue;
 				}else{
-					
-					if(countedReadsEnd1.containsKey(r.getReadName())){
-						countedReadsEnd2.put(r.getReadName(), r); //if two ends are within the same half end of hiccup links
+					String name = r.getReadName();
+					if(removeReadnameSuffix){
+						name = name.substring(0, name.length() - 2);
+					}
+					if(countedReadsEnd1.containsKey(name)){
+						countedReadsEnd2.put(name, r); //if two ends are within the same half end of hiccup links
 					}else{
-						countedReadsEnd1.put(r.getReadName(), r);
+						countedReadsEnd1.put(name, r);
 					}
 				}
 				
@@ -804,10 +827,14 @@ public class MethyCorAcrossHiccups {
 				if(failFlagFilter(r) || Math.abs(r.getInferredInsertSize())>onlyShort){
 					continue;
 				}else{
-					if(countedReadsEnd1.containsKey(r.getReadName())){
-						countedReadsEnd2.put(r.getReadName(), r); //if two ends are within the same half end of hiccup links
+					String name = r.getReadName();
+					if(removeReadnameSuffix){
+						name = name.substring(0, name.length() - 2);
+					}
+					if(countedReadsEnd1.containsKey(name)){
+						countedReadsEnd2.put(name, r); //if two ends are within the same half end of hiccup links
 					}else{
-						countedReadsEnd1.put(r.getReadName(), r);
+						countedReadsEnd1.put(name, r);
 					}
 				}
 			}
@@ -854,7 +881,7 @@ public class MethyCorAcrossHiccups {
 		
 		private boolean failFlagFilter(SAMRecord r){
 			return r.getReadUnmappedFlag() || r.getNotPrimaryAlignmentFlag() || r.getMappingQuality() < minMapQ
-					|| r.getReadFailsVendorQualityCheckFlag() || r.getDuplicateReadFlag() || !r.getReadPairedFlag() || (useBadMate ? false : !r.getProperPairFlag());
+					|| r.getReadFailsVendorQualityCheckFlag() || r.getDuplicateReadFlag() || (useUnpaired ? false : !r.getReadPairedFlag()) || (useBadMate ? false : !r.getProperPairFlag());
 		}
 
 		

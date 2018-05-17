@@ -114,7 +114,8 @@ public class TestIndepPoiBinom {
 						//ArrayList<double[]> dataMat = new ArrayList<double[]>();
 						ArrayList<Integer> cpgPos = new ArrayList<Integer>();
 						//ArrayList<Double> cpgStd = new ArrayList<Double>();
-						Variance sd = new Variance() ;
+						//Variance sd = new Variance() ;
+						StandardDeviation sd = new StandardDeviation() ;
 						int pos = 0;
 						boolean restartFlag = true;
 						//ArrayList<Integer> cpgPosTmp = new ArrayList<Integer>();

@@ -22,7 +22,7 @@
   <modelVersion>4.0.0</modelVersion>
   <name>bisulfitehic</name>
   <packaging>jar</packaging>
-  <version>0.22</version>
+  <version>0.24</version>
 
  <dependencies>
   	<dependency>
@@ -95,6 +95,13 @@
 		<scope>system</scope>
 		<systemPath>${basedir}/lib/gatk-package-distribution-3.3.jar</systemPath>
 	</dependency>
+	 <dependency>
+		 <groupId>JavaMI</groupId>
+		 <artifactId>JavaMI</artifactId>
+		 <version>1.0</version>
+		 <scope>system</scope>
+		 <systemPath>${basedir}/lib/JavaMI.jar</systemPath>
+	 </dependency>
 	<!-- https://mvnrepository.com/artifact/com.github.broadinstitute/picard -->
 	<dependency>
 		<groupId>com.github.broadinstitute</groupId>
