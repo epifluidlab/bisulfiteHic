@@ -163,7 +163,10 @@ public class TestIndepPoiBinom {
 								
 								for(int i = 6, j = 0; i < splitin.length; i++, j++) {
 									if(splitin[i].equalsIgnoreCase("NA")) {
-										//statInEachCpgBlock.addValue(Double.NaN);
+										if(aveWindow == 1){
+											statInEachCpgBlock.addValue(Double.NaN);
+										}
+
 										if(statsByAllelesInEachCpgBlock.isEmpty() || statsByAllelesInEachCpgBlock.size() < (splitin.length-6)) {
 											DescriptiveStatistics statInEachAllele = new DescriptiveStatistics();
 											//statInEachAllele.addValue(Double.NaN);
