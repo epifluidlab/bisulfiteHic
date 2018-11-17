@@ -70,9 +70,13 @@ public class SingleBaseResHicMatrixV2 {
 	
 	@Option(name="-turnOffBisulfiteFilter",usage="turn off bisulfite conversion reads filter. Default: false")
 	public boolean turnOffBisulfiteFilter = false;
+
+
+	@Option(name="-useBadMate",usage="useBadMate. Default: false")
+	public boolean useBadMate = false;
 	
 	@Option(name="-minMapQ",usage="minimum mapping quality score required to check. Default: 30")
-	public int minMapQ = -1;
+	public int minMapQ = 30;
 
 	@Option(name="-minDistEnds",usage="minimum distance between two end to be output. Default: 1000")
 	public int minDistEnds = 1000;
@@ -438,7 +442,7 @@ public class SingleBaseResHicMatrixV2 {
 			if(failFlagFilter(r)){
 				continue;
 			}else{
-				TreeMap<Integer, Integer> cpgSummary = BisulfiteHicUtils.readsMethySummaryAtEachLoc(r, minMapQ, minBaseQ, turnOffBisulfiteFilter);
+				TreeMap<Integer, Integer> cpgSummary = BisulfiteHicUtils.readsMethySummaryAtEachLoc(r, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
 				int pos = cpg.getStart() - start;					
 				if(cpgSummary.containsKey(pos)){
 						if(cpgMethyMatrix.containsKey(readName)){

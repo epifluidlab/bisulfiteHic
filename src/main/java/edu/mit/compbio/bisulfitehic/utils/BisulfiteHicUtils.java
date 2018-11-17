@@ -206,7 +206,7 @@ public class BisulfiteHicUtils {
 		boolean secondPair = read.getReadPairedFlag() && read.getSecondOfPairFlag();
 		//filter if it is bad reads
 		if(read.getReadUnmappedFlag() || read.getNotPrimaryAlignmentFlag() || read.getDuplicateReadFlag() 
-				|| read.getReadFailsVendorQualityCheckFlag() || !read.getReadPairedFlag() || !read.getProperPairFlag() 
+				|| read.getReadFailsVendorQualityCheckFlag() || !read.getReadPairedFlag()
 				|| read.getMappingQuality() < minMapQ){
 			return null;
 		}

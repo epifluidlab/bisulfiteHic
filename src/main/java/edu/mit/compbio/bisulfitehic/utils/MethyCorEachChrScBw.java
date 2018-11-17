@@ -7,6 +7,7 @@
 package main.java.edu.mit.compbio.bisulfitehic.utils;
 
 import edu.unc.genomics.io.BigWigFileReader;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.math3.random.MersenneTwister;
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.log4j.BasicConfigurator;
@@ -18,7 +19,9 @@ import org.kohsuke.args4j.Option;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -40,12 +43,20 @@ public class MethyCorEachChrScBw {
 	@Option(name="-bws",usage="input big wig files for each single cell for the methylation level or the methy count if -bwCounts is provided Default: null")
 	public ArrayList<String> bws = null;
 
-	@Option(name="-bwCounts",usage="input big wig files for each single cell for the total C+T reads covered. Default: null")
-	public ArrayList<String> bwCounts = null;
+	//@Option(name="-bwCounts",usage="input big wig files for each single cell for the total C+T reads covered. Default: null")
+	//public ArrayList<String> bwCounts = null;
 
 	@Option(name="-aveWindow",usage="the window size to average the test statistics. default value do not use window to average. Default: 1000000")
 	public int aveWindow = 1000000;
 
+	@Option(name="-random",usage="number of times to shuffle the value. Default: 0")
+	public int random = 0;
+
+	@Option(name="-seed",usage="seed used for the randomness, default not use the seed. Default: -1")
+	public int seed = -1;
+
+	@Option(name="-shuffleWithinCell",usage="shuffle the value within the cell, between allele, the order of -bws should be AlleleA.bw, AlleleB.bw. Default: false")
+	public boolean shuffleWithinCell = false;
 
 	@Option(name="-h",usage="show option information")
 	public boolean help = false;
@@ -59,13 +70,13 @@ public class MethyCorEachChrScBw {
 	private static Logger log = Logger.getLogger(MethyCorEachChrScBw.class);
 
 	private OutputStreamWriter methyCorWriter = null; 
-	private MersenneTwister generator = null;
+	private Random generator = null;
 	
 	private static long startTime = -1;
 	private static long lineNum=0;
 	
 	private List<BigWigFileReader> methyWigFileReaders = null;
-	private List<BigWigFileReader> covWigFileReaders = null;
+	//private List<BigWigFileReader> covWigFileReaders = null;
 	
 	/**
 	 * @param args
@@ -98,7 +109,8 @@ public class MethyCorEachChrScBw {
 							System.err.println();
 							return;
 						}
-						if( bws==null || bws.isEmpty() || (bwCounts != null && !bwCounts.isEmpty() && bwCounts.size() != bws.size()))
+						//if( bws==null || bws.isEmpty() || (bwCounts != null && !bwCounts.isEmpty() && bwCounts.size() != bws.size()))
+						if( bws==null || bws.isEmpty() )
 							throw new CmdLineException(parser, USAGE, new Throwable());
 
 						String outputPrefix = arguments.get(0);
@@ -118,7 +130,9 @@ public class MethyCorEachChrScBw {
 									int end1 = start1 + aveWindow;
 									for(int start2 = 0; start2 < size-aveWindow; start2 += aveWindow){
 										int end2 = start2 + aveWindow;
-										double cor = methyCorrelation(chr, start1, end1, start2, end2, pearson);
+
+										double cor = (random > 0 || shuffleWithinCell)? methyCorrelationRandom(chr, start1, end1, start2, end2, pearson)
+												: methyCorrelation(chr, start1, end1, start2, end2, pearson);
 										methyCorWriter.write(cor + "\t");
 									}
 									methyCorWriter.write("\n");
@@ -150,7 +164,7 @@ public class MethyCorEachChrScBw {
 
 			double[] region1 = new double[bws.size()];
 			double[] region2 = new double[bws.size()];
-			if(covWigFileReaders.isEmpty()){
+			//if(covWigFileReaders.isEmpty()){
 
 				for(int i = 0; i < bws.size(); i++){
 					BigWigFileReader methyReader = methyWigFileReaders.get(i);
@@ -159,7 +173,9 @@ public class MethyCorEachChrScBw {
 					region1[i] = methy1;
 					region2[i] = methy2;
 				}
-			}else{
+
+		/*
+		}else{
 				for(int i = 0; i < bws.size(); i++){
 					BigWigFileReader methCountReader = methyWigFileReaders.get(i);
 					BigWigFileReader covReader = covWigFileReaders.get(i);
@@ -171,9 +187,53 @@ public class MethyCorEachChrScBw {
 					region2[i] = methCount2/cov2;
 				}
 			}
+		*/
 			return pearson.correlation(region1,region2);
 			
 		}
+
+	private double methyCorrelationRandom(String chr, int start1, int end1, int start2, int end2,  PearsonsCorrelation pearson) throws Exception{
+
+		ArrayList<Double> region1 = new ArrayList<Double>();
+		ArrayList<Double> region2 = new ArrayList<Double>();
+
+		for(int i = 0; i < bws.size(); i++){
+			BigWigFileReader methyReader = methyWigFileReaders.get(i);
+			double methy1 = methyReader.queryStats(chr, start1, end1).getMean();
+			double methy2 = methyReader.queryStats(chr, start2, end2).getMean();
+			region1.add(methy1);
+			region2.add(methy2);
+		}
+
+
+		double[] r1 = ArrayUtils.toPrimitive(region1.toArray(new Double[region1.size()]));
+		if(shuffleWithinCell) {//should i randomly or always  shuffle between alleles??
+			for(int i = 0; i < region2.size(); i+=2){
+				Double tmp = region2.get(i);
+				region2.set(i,region2.get(i+1));
+				region2.set(i+1,tmp);
+			}
+			double[] r2 = ArrayUtils.toPrimitive(region2.toArray(new Double[region2.size()]));
+			return pearson.correlation(r1,r2);
+
+		}else {
+
+			double cor = 0;
+			int j = 0;
+			while(j < random){
+
+				Collections.shuffle(region2, generator);
+				double[] r2 = ArrayUtils.toPrimitive(region2.toArray(new Double[region2.size()]));
+				cor += pearson.correlation(r1,r2);
+				j++;
+			}
+
+
+			return cor/random;
+		}
+
+
+	}
 
 
 		
@@ -181,11 +241,15 @@ public class MethyCorEachChrScBw {
 			startTime = System.currentTimeMillis();
 				methyCorWriter = new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(outputPrefix + ".methyCor.txt.gz")), "UTF-8");
 			
-			
-			generator = new MersenneTwister();
+			if(seed != -1){
+				generator = new Random(seed);
+			}else{
+				generator = new Random();
+			}
+
 			
 			methyWigFileReaders = new ArrayList<BigWigFileReader>();
-			covWigFileReaders = new ArrayList<BigWigFileReader>();
+			//covWigFileReaders = new ArrayList<BigWigFileReader>();
 			if(bws != null){
 				for(int i = 0; i < bws.size(); i++){
 					BigWigFileReader bbreader = new BigWigFileReader((new File(bws.get(i))).toPath());
@@ -194,7 +258,7 @@ public class MethyCorEachChrScBw {
 				}
 			}
 
-
+/*
 			if(bwCounts != null){
 				for(int i = 0; i < bwCounts.size(); i++){
 
@@ -202,6 +266,7 @@ public class MethyCorEachChrScBw {
 					covWigFileReaders.add(bbreader2);
 				}
 			}
+			*/
 		}
 		
 
@@ -212,11 +277,13 @@ public class MethyCorEachChrScBw {
 					methyWigFileReaders.get(i).close();
 				}
 			}
+			/*
 			if(covWigFileReaders != null){
 				for(int i = 0; i < covWigFileReaders.size(); i++){
 					covWigFileReaders.get(i).close();
 				}
 			}
+			*/
 			
 				methyCorWriter.close();
 			

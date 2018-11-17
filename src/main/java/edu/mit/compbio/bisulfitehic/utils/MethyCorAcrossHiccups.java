@@ -82,7 +82,7 @@ public class MethyCorAcrossHiccups {
 	public boolean removeReadnameSuffix = false;
 	
 	@Option(name="-minMapQ",usage="minimum mapping quality score required to check. Default: 30")
-	public int minMapQ = -1;
+	public int minMapQ = 30;
 
 	@Option(name="-minDistEnds",usage="minimum distance between two end to be considered as HiC links. Default: 20000")
 	public int minDistEnds = 20000;

@@ -69,15 +69,19 @@ public class SingleBaseResHicMatrix {
 	
 	@Option(name="-turnOffBisulfiteFilter",usage="turn off bisulfite conversion reads filter. Default: false")
 	public boolean turnOffBisulfiteFilter = false;
+
+	@Option(name="-useBadMate",usage="useBadMate. Default: false")
+	public boolean useBadMate = false;
+
 	
 	@Option(name="-minMapQ",usage="minimum mapping quality score required to check. Default: 30")
-	public int minMapQ = -1;
+	public int minMapQ = 30;
 
 	@Option(name="-minDistEnds",usage="minimum distance between two end to be output. Default: 1000")
 	public int minDistEnds = 1000;
 
-	@Option(name="-maxDistEnds",usage="maximum distance between two end to be output. Default: 10000000")
-	public int maxDistEnds = 10000000;
+	@Option(name="-maxDistEnds",usage="maximum distance between two end to be output. Default: 200000000")
+	public int maxDistEnds = 200000000;
 
 	@Option(name="-bedpe",usage="bedpe file to limit the analysis only in these regions. Otherwise, it will use all of the cpg provided. Default: null")
 	public String bedpe = null;
@@ -438,7 +442,7 @@ public class SingleBaseResHicMatrix {
 								
 								continue;
 							}else{
-								TreeMap<Integer, Integer> cpgSummary = BisulfiteHicUtils.readsMethySummaryAtEachLoc(r, minMapQ, minBaseQ, turnOffBisulfiteFilter);
+								TreeMap<Integer, Integer> cpgSummary = BisulfiteHicUtils.readsMethySummaryAtEachLoc(r, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
 								//System.err.print(r.getReadName() + "\t" + chr + "\t" + start + "\t" + end);
 								//for(int key : cpgSummary.keySet()){
 									//System.err.print("\t" + key);
@@ -508,7 +512,7 @@ public class SingleBaseResHicMatrix {
 										
 										continue;
 									}else{
-										TreeMap<Integer, Integer> cpgSummary = BisulfiteHicUtils.readsMethySummaryAtEachLoc(r, minMapQ, minBaseQ, turnOffBisulfiteFilter);
+										TreeMap<Integer, Integer> cpgSummary = BisulfiteHicUtils.readsMethySummaryAtEachLoc(r, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
 										int pos = cpgi.getStart() - start;
 										bgRead.put(readName, cpgSummary.get(pos));
 											
