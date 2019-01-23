@@ -78,7 +78,10 @@ public class Bhmem {
 	public boolean outputMateDiffChr = false;
 	
 	@Option(name="-enzymeList",usage="bed file about the location of restriction enzyme.it will be used to assist mapping also. Strongly recommmend to use it for scMethylHiC default: null")
-	public String enzymeList = null;	
+	public String enzymeList = null;
+
+	@Option(name="-readNameSuffix",usage="when read name in end1 and end2 are different, e.g. there is /1, /2 in the end of read name default: null")
+	public String readNameSuffix = null;
 	
 	@Option(name="-pbat",usage="apply PBAT, which is for Joe Ecker's scWGBS protocol. default: false")
 	public boolean pbat = false;
@@ -605,7 +608,11 @@ public class Bhmem {
 			SAMRecord record = new SAMRecord(samFileHeader);
 			//System.err.println(line);
 			String[] splitin = line.split("\\t");
-			record.setReadName(splitin[0]);
+			String readname = splitin[0];
+			if(readNameSuffix != null){
+				readname = readname.replaceAll(readNameSuffix, ""); // _\d$ or _R\d$
+			}
+			record.setReadName(readname);
 			record.setFlags(Integer.parseInt(splitin[1]));
 			splitin[2]= splitin[2].replace("_CT_converted", "");
 			splitin[2]= splitin[2].replace("_GA_converted", "");
