@@ -610,7 +610,7 @@ public class Bhmem {
 			String[] splitin = line.split("\\t");
 			String readname = splitin[0];
 			if(readNameSuffix != null){
-				readname = readname.replaceAll(readNameSuffix, ""); // _\d$ or _R\d$
+				readname = readname.replaceAll(readNameSuffix, ""); // _\\d$ or _R\\d$ for _1 or _R1 in read suffix
 			}
 			record.setReadName(readname);
 			record.setFlags(Integer.parseInt(splitin[1]));
