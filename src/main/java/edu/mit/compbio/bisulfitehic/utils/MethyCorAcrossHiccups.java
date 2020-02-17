@@ -27,9 +27,7 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -110,9 +108,15 @@ public class MethyCorAcrossHiccups {
 
 	@Option(name="-randomSampleReads",usage="only use part of the reads in each interval. good for -randomHiccupsInput mode or -onlyShort mode, default: -1. not enabled")
 	public int randomSampleReads = -1;
+
+	@Option(name="-minRandonReads",usage="minimum pairs of reads to random sampling, only for -randomHiccupsInput mode. default: 0")
+	public int minRandonReads = 0;
 	
 	@Option(name="-skipProcessFirstRow",usage="don't process first row, default: not enabled")
 	public boolean skipProcessFirstRow = false;
+
+	@Option(name="-diffChr",usage="don't skip the region from two different chromosomes, default: not enabled")
+	public boolean diffChr = false;
 
 	@Option(name="-useGeneralBedPe",usage="use general bedpe file rather than HiCUUPS link file, default: not enabled")
 	public boolean useGeneralBedPe = false;
@@ -207,7 +211,7 @@ public class MethyCorAcrossHiccups {
 								String chr2 = splitin[3];
 								int start2 = Integer.parseInt(splitin[4]);
 								int end2 = Integer.parseInt(splitin[5]);
-								if((!chr1.equalsIgnoreCase(chr2)) || (onlyShort<0 && Math.abs(start1-start2)<minDistEnds) || (onlyShort<0 && Math.abs(end1-end2)<minDistEnds)){
+								if((!diffChr && !chr1.equalsIgnoreCase(chr2)) || (onlyShort<0 && Math.abs(start1-start2)<minDistEnds) || (onlyShort<0 && Math.abs(end1-end2)<minDistEnds)){
 									continue;
 								}
 								double ob = Double.NaN;
@@ -224,13 +228,13 @@ public class MethyCorAcrossHiccups {
 								}else{
 									if(randomHiccupsInput){
 										//log.info("randomHiccupsInput mode: ");
-										methyCorrelationRandom(chr1, start1, end1, start2, end2, wgsReader, ob, exp, fdr, bamFile);
+										methyCorrelationRandom(chr1, start1, end1, chr2, start2, end2, wgsReader, ob, exp, fdr, bamFile);
 									}else{
 										if(onlyShort>0){
 											//log.info("only use paired end reads within short distance: ");
 											methyCorrelationShort(chr1, start1, end1, start2, end2, wgsReader, ob, exp, fdr, bamFile);
 										}else{
-											methyCorrelation(chr1, start1, end1, start2, end2, wgsReader, ob, exp, fdr, bamFile);
+											methyCorrelation(chr1, start1, end1, chr2, start2, end2, wgsReader, ob, exp, fdr, bamFile);
 										}
 										
 									}
@@ -512,7 +516,7 @@ public class MethyCorAcrossHiccups {
 			return new Pair<Double, Double>(methyDiff, pvalue);
 		}
 		
-		private void methyCorrelation(String chr, int start1, int end1, int start2, int end2, SamReader wgsReader, double ob, double exp, double fdr, String bamFile) throws Exception{
+		private void methyCorrelation(String chr, int start1, int end1,String chr2, int start2, int end2, SamReader wgsReader, double ob, double exp, double fdr, String bamFile) throws Exception{
 			
 			if(outputCount) {
 				SAMRecordIterator wgsIt = wgsReader.iterator();
@@ -528,7 +532,7 @@ public class MethyCorAcrossHiccups {
 				totalReadPairNum/=2;
 			}
 			
-			String regionName = chr + ":" + start1 + ":" + end1 + ":" + start2 + ":" + end2;
+			String regionName = chr + ":" + start1 + ":" + end1 + ":" + chr2 + ":" + start2 + ":" + end2;
 			
 			SAMRecordIterator wgsIt = wgsReader.queryOverlapping(chr,start1,end1);
 			HashMap<String, SAMRecord> countedReadsEnd1 = new HashMap<String, SAMRecord>();	
@@ -590,7 +594,7 @@ public class MethyCorAcrossHiccups {
 				reopenFlag=false;
 			}
 			HashMap<String, SAMRecord> countedReadsEnd2 = new HashMap<String, SAMRecord>();
-			wgsIt = wgsReader.queryOverlapping(chr,start2,end2);
+			wgsIt = wgsReader.queryOverlapping(chr2,start2,end2);
 			while(wgsIt.hasNext()){
 				SAMRecord r = wgsIt.next();
 				queryNum++;
@@ -652,8 +656,8 @@ public class MethyCorAcrossHiccups {
 					SAMRecord r1 = countedReadsEnd1.get(readName);
 					SAMRecord r2 = countedReadsEnd2.get(readName);
 					
-					Triple<Integer,Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummary(r1, minMapQ, minBaseQ, turnOffBisulfiteFilter);
-					Triple<Integer,Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummary(r2, minMapQ, minBaseQ, turnOffBisulfiteFilter);
+					Triple<Integer,Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummary(r1, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+					Triple<Integer,Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummary(r2, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
 					int numC1 = ctSummary1.getLeft();
 					int numT1 = ctSummary1.getMiddle();
 					int numCg1 = ctSummary1.getRight();
@@ -663,7 +667,7 @@ public class MethyCorAcrossHiccups {
 					//System.err.println((numC1 + numT1) + "\t" + (numC2 + numT2) + "\t" + numCg1 + "\t" + numCg2);
 					if(outputCount) {
 						
-						methyCorWriter.write(chr + "\t" + start1 + "\t" + end1 + "\t" + chr + "\t" + start2 + "\t" + end2 + "\t" + 
+						methyCorWriter.write(chr + "\t" + start1 + "\t" + end1 + "\t" + chr2 + "\t" + start2 + "\t" + end2 + "\t" +
 								regionName + "\t" + readNum + "\t" + ob+ "\t" + exp+ "\t" + fdr + "\t" + ((numC1 + numT1) == 0 ? Double.NaN : (double)numC1/(double)(numC1 + numT1)) + "\t" + (numC1 + numT1)
 								 + "\t" + ((numC2 + numT2) == 0 ? Double.NaN : (double)numC2/(double)(numC2 + numT2)) + "\t" + (numC2 + numT2) + "\t" + totalReadPairNum + "\n");
 								readNum++;
@@ -674,7 +678,7 @@ public class MethyCorAcrossHiccups {
 						
 						//chr1,read.start1,read.end1,chr2,read.start2,read.end2,region_name, id, hiccups_ob, hiccups_exp, hiccups_fdr, methy_end1, cpg_num_end1, methy_end2, cpg_num_end2
 						
-						methyCorWriter.write(chr + "\t" + start1 + "\t" + end1 + "\t" + chr + "\t" + start2 + "\t" + end2 + "\t" + 
+						methyCorWriter.write(chr + "\t" + start1 + "\t" + end1 + "\t" + chr2 + "\t" + start2 + "\t" + end2 + "\t" +
 									regionName + "\t" + readNum + "\t" + ob+ "\t" + exp+ "\t" + fdr + "\t" + (double)numC1/(double)(numC1 + numT1) + "\t" + (numC1 + numT1)
 									 + "\t" + (double)numC2/(double)(numC2 + numT2) + "\t" + (numC2 + numT2) + "\n");
 									readNum++;
@@ -689,9 +693,9 @@ public class MethyCorAcrossHiccups {
 			//System.err.println(readNum);
 		}
 		
-		private void methyCorrelationRandom(String chr, int start1, int end1, int start2, int end2, SamReader wgsReader, double ob, double exp, double fdr, String bamFile) throws Exception{
+		private void methyCorrelationRandom(String chr, int start1, int end1, String chr2, int start2, int end2, SamReader wgsReader, double ob, double exp, double fdr, String bamFile) throws Exception{
 			
-			String regionName = chr + ":" + start1 + ":" + end1 + ":" + start2 + ":" + end2;
+			String regionName = chr + ":" + start1 + ":" + end1 + ":" + chr2 + ":" + start2 + ":" + end2;
 			
 			SAMRecordIterator wgsIt = wgsReader.queryOverlapping(chr,start1,end1);
 			HashMap<String, SAMRecord> countedReadsEnd1 = new HashMap<String, SAMRecord>();	
@@ -721,7 +725,7 @@ public class MethyCorAcrossHiccups {
 			wgsIt.close();
 			
 			HashMap<String, SAMRecord> countedReadsEnd2 = new HashMap<String, SAMRecord>();
-			wgsIt = wgsReader.queryOverlapping(chr,start2,end2);
+			wgsIt = wgsReader.queryOverlapping(chr2,start2,end2);
 			while(wgsIt.hasNext()){
 				SAMRecord r = wgsIt.next();
 				queryNum++;
@@ -747,44 +751,50 @@ public class MethyCorAcrossHiccups {
 			
 			//System.err.println(countedReadsEnd1.size() + "\t" + countedReadsEnd2.size());
 			int readNum = 0;
-			String[] readNames1 = countedReadsEnd1.keySet().toArray(new String[countedReadsEnd1.keySet().size()]);
-			String[] readNames2 = countedReadsEnd2.keySet().toArray(new String[countedReadsEnd2.keySet().size()]);
-			if(readNames1.length>10 && readNames2.length>10){
-				for(String readName : readNames1){
-					SAMRecord r1 = countedReadsEnd1.get(readName);
-					int randomItem = generator.nextInt(readNames2.length);
-					while(readNames2[randomItem].equalsIgnoreCase(readName)){
-						randomItem = generator.nextInt(readNames2.length);
+			ArrayList<String> sharedReadNames = new ArrayList<String>();
+			for(String readName : countedReadsEnd1.keySet()) {
+				if (countedReadsEnd2.containsKey(readName)) {
+					sharedReadNames.add(readName);
+				}
+			}
+
+			String[] readNames = sharedReadNames.toArray(new String[sharedReadNames.size()]);
+			//if(readNames1.length>10 && readNames2.length>10){
+			if(readNames.length > minRandonReads) {
+				for (int i = 0; i < randomSampleReads; i++) {
+					Collections.shuffle(sharedReadNames);
+					for (int j = 0; j < readNames.length; j++) {
+						String readName1 = readNames[j];
+						String readName2 = sharedReadNames.get(j);
+						SAMRecord r1 = countedReadsEnd1.get(readName1);
+
+						SAMRecord r2 = countedReadsEnd2.get(readName2);
+
+
+						Triple<Integer, Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummary(r1, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+						Triple<Integer, Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummary(r2, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+						int numC1 = ctSummary1.getLeft();
+						int numT1 = ctSummary1.getMiddle();
+						int numCg1 = ctSummary1.getRight();
+						int numC2 = ctSummary2.getLeft();
+						int numT2 = ctSummary2.getMiddle();
+						int numCg2 = ctSummary2.getRight();
+						if ((numC1 + numT1) == 0 || numCg1 < minCgNum || (numC2 + numT2) == 0 || numCg2 < minCgNum)
+							continue;
+
+
+						//chr1,read.start1,read.end1,chr2,read.start2,read.end2,region_name, id, hiccups_ob, hiccups_exp, hiccups_fdr, methy_end1, cpg_num_end1, methy_end2, cpg_num_end2
+
+						methyCorWriter.write(chr + "\t" + start1 + "\t" + end1 + "\t" + chr2 + "\t" + start2 + "\t" + end2 + "\t" +
+								regionName + "\t" + readNum + "\t" + ob + "\t" + exp + "\t" + fdr + "\t" + (double) numC1 / (double) (numC1 + numT1) + "\t" + (numC1 + numT1)
+								+ "\t" + (double) numC2 / (double) (numC2 + numT2) + "\t" + (numC2 + numT2) + "\n");
+
+
+						readNum++;
+
+
+
 					}
-					SAMRecord r2=countedReadsEnd2.get(readNames2[randomItem]);
-					
-					
-					Triple<Integer,Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummary(r1, minMapQ, minBaseQ, turnOffBisulfiteFilter);
-					Triple<Integer,Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummary(r2, minMapQ, minBaseQ, turnOffBisulfiteFilter);
-					int numC1 = ctSummary1.getLeft();
-					int numT1 = ctSummary1.getMiddle();
-					int numCg1 = ctSummary1.getRight();
-					int numC2 = ctSummary2.getLeft();
-					int numT2 = ctSummary2.getMiddle();
-					int numCg2 = ctSummary2.getRight();
-					if((numC1 + numT1) == 0 || numCg1 < minCgNum || (numC2 + numT2) == 0 || numCg2 < minCgNum)
-						continue;
-					
-					
-					//chr1,read.start1,read.end1,chr2,read.start2,read.end2,region_name, id, hiccups_ob, hiccups_exp, hiccups_fdr, methy_end1, cpg_num_end1, methy_end2, cpg_num_end2
-					
-					methyCorWriter.write(chr + "\t" + start1 + "\t" + end1 + "\t" + chr + "\t" + start2 + "\t" + end2 + "\t" + 
-								regionName + "\t" + readNum + "\t" + ob+ "\t" + exp+ "\t" + fdr + "\t" + (double)numC1/(double)(numC1 + numT1) + "\t" + (numC1 + numT1)
-								 + "\t" + (double)numC2/(double)(numC2 + numT2) + "\t" + (numC2 + numT2) + "\n");
-					
-					
-					readNum++;
-					
-					if(randomSampleReads>0 && readNum > randomSampleReads){
-						break;
-					}
-					
-					
 				}
 			}
 			

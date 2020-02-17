@@ -762,25 +762,29 @@ public class Bhmem {
 	}
 	
 	private Pair<SAMRecord, SAMRecord> comparingSamRecord(Pair<SAMRecord, SAMRecord> r1, Pair<SAMRecord, SAMRecord> r2){
-		if((r2.getFirst().getMappingQuality()+r2.getSecond().getMappingQuality()) > (r1.getFirst().getMappingQuality()+r1.getSecond().getMappingQuality())){
+		if(r2.getFirst().getMappingQuality() * r2.getSecond().getMappingQuality() != 0 && r1.getFirst().getMappingQuality() * r1.getSecond().getMappingQuality() == 0){ // exclude some reads that is biased, only one is 30, the other is 0...
 			return r2;
-		}else if((r2.getFirst().getMappingQuality()+r2.getSecond().getMappingQuality()) == (r1.getFirst().getMappingQuality()+r1.getSecond().getMappingQuality())){
-			int cigarMLenP1 = getCigarMLen(r1.getFirst().getCigarString()) + getCigarMLen(r1.getSecond().getCigarString());
-			int cigarMLenP2 = getCigarMLen(r2.getFirst().getCigarString()) + getCigarMLen(r2.getSecond().getCigarString());
-			if(cigarMLenP2 > cigarMLenP1){
+		}else if(r2.getFirst().getMappingQuality() * r2.getSecond().getMappingQuality() == 0 && r1.getFirst().getMappingQuality() * r1.getSecond().getMappingQuality() == 0) {
+			if ((r2.getFirst().getMappingQuality() + r2.getSecond().getMappingQuality()) > (r1.getFirst().getMappingQuality() + r1.getSecond().getMappingQuality())) {
 				return r2;
-			}else if(cigarMLenP2 == cigarMLenP1){
-				if(((Integer)r2.getFirst().getAttribute(ALIGNMENT_SCORE) + (Integer)r2.getSecond().getAttribute(ALIGNMENT_SCORE)) > ((Integer)r1.getFirst().getAttribute(ALIGNMENT_SCORE) + (Integer)r1.getSecond().getAttribute(ALIGNMENT_SCORE))){
+			} else if ((r2.getFirst().getMappingQuality() + r2.getSecond().getMappingQuality()) == (r1.getFirst().getMappingQuality() + r1.getSecond().getMappingQuality())) {
+				int cigarMLenP1 = getCigarMLen(r1.getFirst().getCigarString()) + getCigarMLen(r1.getSecond().getCigarString());
+				int cigarMLenP2 = getCigarMLen(r2.getFirst().getCigarString()) + getCigarMLen(r2.getSecond().getCigarString());
+				if (cigarMLenP2 > cigarMLenP1) {
 					return r2;
-				}else if(((Integer)r2.getFirst().getAttribute(ALIGNMENT_SCORE) + (Integer)r2.getSecond().getAttribute(ALIGNMENT_SCORE)) == ((Integer)r1.getFirst().getAttribute(ALIGNMENT_SCORE) + (Integer)r1.getSecond().getAttribute(ALIGNMENT_SCORE))){
-					if(((Integer)r2.getFirst().getAttribute(MISMATCHES) + (Integer)r2.getSecond().getAttribute(MISMATCHES)) < ((Integer)r1.getFirst().getAttribute(MISMATCHES) + (Integer)r1.getSecond().getAttribute(MISMATCHES))){ // can not use mismatches for comparison here, it might be the reason for under-estimation of methylation level...
+				} else if (cigarMLenP2 == cigarMLenP1) {
+					if (((Integer) r2.getFirst().getAttribute(ALIGNMENT_SCORE) + (Integer) r2.getSecond().getAttribute(ALIGNMENT_SCORE)) > ((Integer) r1.getFirst().getAttribute(ALIGNMENT_SCORE) + (Integer) r1.getSecond().getAttribute(ALIGNMENT_SCORE))) {
 						return r2;
+					} else if (((Integer) r2.getFirst().getAttribute(ALIGNMENT_SCORE) + (Integer) r2.getSecond().getAttribute(ALIGNMENT_SCORE)) == ((Integer) r1.getFirst().getAttribute(ALIGNMENT_SCORE) + (Integer) r1.getSecond().getAttribute(ALIGNMENT_SCORE))) {
+						if (((Integer) r2.getFirst().getAttribute(MISMATCHES) + (Integer) r2.getSecond().getAttribute(MISMATCHES)) < ((Integer) r1.getFirst().getAttribute(MISMATCHES) + (Integer) r1.getSecond().getAttribute(MISMATCHES))) { // can not use mismatches for comparison here, it might be the reason for under-estimation of methylation level...
+							return r2;
+						}
 					}
 				}
+
+
 			}
-			
-			
-			
+
 		}
 		return r1;
 	}
