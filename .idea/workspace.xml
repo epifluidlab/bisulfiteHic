@@ -2,16 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="83376207-f3df-40e7-a87d-f0ce9b78cbba" name="Default" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/codeStyles/codeStyleConfig.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/dbnavigator.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README" beforeDir="false" afterPath="$PROJECT_DIR$/README" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/mapping/Bhmem.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/mapping/Bhmem.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/MethyCorAcrossHiccups.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/MethyCorAcrossHiccups.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/python/.idea/python.iml" beforeDir="false" afterPath="$PROJECT_DIR$/src/python/.idea/python.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/python/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/src/python/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -79,7 +71,7 @@
     <property name="project.structure.last.edited" value="Modules" />
     <property name="project.structure.proportion" value="0.15" />
     <property name="project.structure.side.proportion" value="0.2" />
-    <property name="settings.editor.selected.configurable" value="copyright.filetypes.JAVA" />
+    <property name="settings.editor.selected.configurable" value="preferences.pluginManager" />
   </component>
   <component name="RecentsManager">
     <key name="CopyClassDialog.RECENTS_KEY">
@@ -400,7 +392,7 @@
       <updated>1478611948629</updated>
       <workItem from="1575484583250" duration="1481000" />
       <workItem from="1577933456457" duration="560000" />
-      <workItem from="1581976794268" duration="362000" />
+      <workItem from="1581976794268" duration="1333000" />
     </task>
     <servers />
   </component>
