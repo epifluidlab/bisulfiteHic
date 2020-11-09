@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="83376207-f3df-40e7-a87d-f0ce9b78cbba" name="Default" comment="">
+      <change afterPath="$PROJECT_DIR$/src/python/mh_reads_summary.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -24,34 +24,9 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Class" />
+        <option value="Python Script" />
       </list>
     </option>
-  </component>
-  <component name="FindInProjectRecents">
-    <findStrings>
-      <find>err</find>
-      <find>chr</find>
-      <find>regionsOverlapped</find>
-      <find>-useUnpaired</find>
-      <find>cor</find>
-      <find>fdr</find>
-      <find>minReadsInWindow</find>
-      <find>queryIntervalList</find>
-      <find>getProperPairFlag</find>
-      <find>turnOffBisulfiteFilter</find>
-      <find>readsMethySummaryAtEachLoc</find>
-      <find>skipProcessFirstRow</find>
-      <find>methyCorrelation</find>
-      <find>randomHiccupsInput</find>
-      <find>setReadName</find>
-      <find>outputCount</find>
-      <find>enzymeList</find>
-      <find>regionsEnzyme</find>
-      <find>randomSampleReads</find>
-    </findStrings>
-    <replaceStrings>
-      <replace />
-    </replaceStrings>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -393,6 +368,8 @@
       <workItem from="1575484583250" duration="1481000" />
       <workItem from="1577933456457" duration="560000" />
       <workItem from="1581976794268" duration="1333000" />
+      <workItem from="1589732685766" duration="18364000" />
+      <workItem from="1604095493562" duration="1760000" />
     </task>
     <servers />
   </component>
