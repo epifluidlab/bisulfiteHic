@@ -30,11 +30,11 @@ def mh_reads_summary(in_cram, out_summary):
                     uniq_mapped = uniq_mapped + 1
                     if read.reference_name == "lambda":
                         uniq_reads_to_lambda = uniq_reads_to_lambda + 1
-                        if read.is_paired and read.next_reference_name == "lambda":
+                        if read.is_paired and (not read.mate_is_unmapped) and read.next_reference_name == "lambda":
                             uniq_pairs_to_lambda = uniq_pairs_to_lambda + 1
                     else:
                         uniq_mapped_to_target_species = uniq_mapped_to_target_species + 1
-                        if read.is_paired:
+                        if read.is_paired and (not read.mate_is_unmapped):
                             uniq_paired_to_target_species = uniq_paired_to_target_species + 1
                             if not read.is_duplicate:
                                 uniq_mapped_nopcr = uniq_mapped_nopcr + 1
@@ -44,9 +44,9 @@ def mh_reads_summary(in_cram, out_summary):
                                         uniq_mapped_nopcr_mapq1_trans = uniq_mapped_nopcr_mapq1_trans + 1
                                     else:
                                         uniq_mapped_nopcr_mapq1_cis = uniq_mapped_nopcr_mapq1_cis + 1
-                                        if read.template_length >= 1000:
+                                        if abs(read.template_length) >= 1000:
                                             uniq_mapped_nopcr_mapq1_cis_1kb = uniq_mapped_nopcr_mapq1_cis_1kb + 1
-                                            if read.template_length >= 20000:
+                                            if abs(read.template_length) >= 20000:
                                                 uniq_mapped_nopcr_mapq1_cis_20kb = uniq_mapped_nopcr_mapq1_cis_20kb + 1
                                     if read.mapping_quality >= 30:
                                         uniq_mapped_nopcr_mapq30 = uniq_mapped_nopcr_mapq30 + 1
@@ -54,9 +54,9 @@ def mh_reads_summary(in_cram, out_summary):
                                             uniq_mapped_nopcr_mapq30_trans = uniq_mapped_nopcr_mapq30_trans + 1
                                         else:
                                             uniq_mapped_nopcr_mapq30_cis = uniq_mapped_nopcr_mapq30_cis + 1
-                                            if read.template_length >= 1000:
+                                            if abs(read.template_length) >= 1000:
                                                 uniq_mapped_nopcr_mapq30_cis_1kb = uniq_mapped_nopcr_mapq30_cis_1kb + 1
-                                                if read.template_length >= 20000:
+                                                if abs(read.template_length) >= 20000:
                                                     uniq_mapped_nopcr_mapq30_cis_20kb = uniq_mapped_nopcr_mapq30_cis_20kb + 1
 
     with open(out_summary, 'w') as out:
