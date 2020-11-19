@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="83376207-f3df-40e7-a87d-f0ce9b78cbba" name="Default" comment="">
-      <change afterPath="$PROJECT_DIR$/src/python/mh_reads_summary.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="83376207-f3df-40e7-a87d-f0ce9b78cbba" name="Default" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -370,6 +367,7 @@
       <workItem from="1581976794268" duration="1333000" />
       <workItem from="1589732685766" duration="18364000" />
       <workItem from="1604095493562" duration="1760000" />
+      <workItem from="1605439608375" duration="502000" />
     </task>
     <servers />
   </component>
