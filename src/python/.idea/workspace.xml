@@ -2,9 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="3ba44c6a-f061-4ee1-8dc6-ecb6e90b0572" name="Default" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/dictionaries/yaping.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../../.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eigen_adjust_direction.py" beforeDir="false" afterPath="$PROJECT_DIR$/eigen_adjust_direction.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -62,7 +61,7 @@
       <option name="presentableId" value="Default" />
       <updated>1518378330327</updated>
       <workItem from="1604920801022" duration="5281000" />
-      <workItem from="1605804515811" duration="2687000" />
+      <workItem from="1605804515811" duration="5329000" />
     </task>
     <servers />
   </component>
