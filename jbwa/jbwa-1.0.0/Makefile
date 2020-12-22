@@ -45,7 +45,9 @@ native.extension=so
 endif
 
 #bwa version (apache2)
-BWA.version?=8e2da1e407972170d1a660286f07a3a3a71ee6fb
+#BWA.version?=8e2da1e407972170d1a660286f07a3a3a71ee6fb
+#update bwa-0.7.17
+BWA.version?=9f26bfcc7780753129b60717ecab0ebba6f04b7c
 
 #path to a Reference genome (testing)
 REF?=human_g1k_v37.fasta

@@ -2,8 +2,15 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="3ba44c6a-f061-4ee1-8dc6-ecb6e90b0572" name="Default" comment="">
+      <change afterPath="$PROJECT_DIR$/binom_test_mgch.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/interact_density_around_regions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../../.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../jbwa/jbwa-1.0.0/Makefile" beforeDir="false" afterPath="$PROJECT_DIR$/../../jbwa/jbwa-1.0.0/Makefile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../../pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../main/java/edu/mit/compbio/bisulfitehic/mapping/Bhmem.java" beforeDir="false" afterPath="$PROJECT_DIR$/../main/java/edu/mit/compbio/bisulfitehic/mapping/Bhmem.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/eigen_adjust_direction.py" beforeDir="false" afterPath="$PROJECT_DIR$/eigen_adjust_direction.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../target/bisulfitehic-0.27-jar-with-dependencies.jar" beforeDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -22,7 +29,9 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
   </component>
   <component name="ProjectId" id="1k3EJ6uGx0yXO235V1p6QCq2IHm" />
-  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="PropertiesComponent">
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
@@ -61,7 +70,10 @@
       <option name="presentableId" value="Default" />
       <updated>1518378330327</updated>
       <workItem from="1604920801022" duration="5281000" />
-      <workItem from="1605804515811" duration="7088000" />
+      <workItem from="1605804515811" duration="7345000" />
+      <workItem from="1606309685810" duration="605000" />
+      <workItem from="1606341491165" duration="385000" />
+      <workItem from="1608291401218" duration="15283000" />
     </task>
     <servers />
   </component>

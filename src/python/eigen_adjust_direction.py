@@ -17,6 +17,7 @@ def get_1D_meta_data_from_file(file = '/home/dnaase/startup/data/genomes/hg19/hu
     meta_track.close()
     return meta_row
 
+
 def get_gene_density(file = '/home/dnaase/startup/data/annotations/gene/gencode.v30.b37.gene_density.bedgraph',
                             chrom_len_dict = None, chrom=None,
                             w_len=2500000):

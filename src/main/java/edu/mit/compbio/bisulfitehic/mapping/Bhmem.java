@@ -678,6 +678,9 @@ public class Bhmem {
 			record.setAttribute("RG", rgId);
 			//record.setHeader(samFileHeader);
 			records.add(record);
+			//if(readname.equalsIgnoreCase("E00440:592:HCHF7CCX2:2:1101:10500:1327")){
+			//	System.err.println(line + "\t" + record.getNotPrimaryAlignmentFlag() + "\t" + record.toString());
+			//}
 		}
 		
 		return records;

@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="83376207-f3df-40e7-a87d-f0ce9b78cbba" name="Default" comment="" />
+    <list default="true" id="83376207-f3df-40e7-a87d-f0ce9b78cbba" name="Default" comment="">
+      <change afterPath="$PROJECT_DIR$/src/python/interact_density_around_regions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/jbwa/jbwa-1.0.0/Makefile" beforeDir="false" afterPath="$PROJECT_DIR$/jbwa/jbwa-1.0.0/Makefile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/mapping/Bhmem.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/mapping/Bhmem.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/python/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/src/python/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/python/eigen_adjust_direction.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/python/eigen_adjust_direction.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/bisulfitehic-0.27-jar-with-dependencies.jar" beforeDir="false" />
+    </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -47,6 +56,7 @@
   </component>
   <component name="RecentsManager">
     <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="main.java.edu.mit.compbio.bisulfitehic.mapping" />
       <recent name="main.java.edu.mit.compbio.bisulfitehic.utils" />
     </key>
   </component>
@@ -62,7 +72,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Application.SingleCellTest">
+  <component name="RunManager" selected="Application.Bhmem">
     <configuration default="true" type="AndroidRunConfigurationType" factoryName="Android Application">
       <module name="" />
       <option name="ACTIVITY_CLASS" value="" />
@@ -196,6 +206,20 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="Bhmem" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="main.java.edu.mit.compbio.bisulfitehic.mapping.Bhmem" />
+      <module name="bisulfitehic" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="main.java.edu.mit.compbio.bisulfitehic.mapping.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="SepAlleleMethySC" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="main.java.edu.mit.compbio.bisulfitehic.utils.SepAlleleMethySC" />
       <module name="bisulfitehic" />
@@ -228,22 +252,6 @@
       <option name="MAIN_CLASS_NAME" value="main.java.edu.mit.compbio.bisulfitehic.utils.SingleCellTest" />
       <module name="bisulfitehic" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="main.java.edu.mit.compbio.bisulfitehic.utils.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="TestIndepPoiBinom" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
-      <option name="MAIN_CLASS_NAME" value="main.java.edu.mit.compbio.bisulfitehic.utils.TestIndepPoiBinom" />
-      <module name="bisulfitehic" />
-      <option name="PROGRAM_PARAMETERS" value="$PROJECT_DIR$/../../project/methylhic/sc_poibin/CG_motif.chr19.mm9.mapq30.add_value.naive_108_samples.bed.gz $PROJECT_DIR$/../../project/methylhic/sc_poibin/CG_motif.chr19.mm9.mapq30.add_value.naive_108_samples.test_indep_poibin.window_100000.permutate_100.right_tail_p.variance -aveWindow 100000 -permutation 100" />
-      <option name="VM_PARAMETERS" value="-Xmx10G" />
-      <option name="WORKING_DIRECTORY" value="file://$PROJECT_DIR$" />
       <extension name="coverage">
         <pattern>
           <option name="PATTERN" value="main.java.edu.mit.compbio.bisulfitehic.utils.*" />
@@ -336,19 +344,19 @@
       </method>
     </configuration>
     <list>
-      <item itemvalue="Application.TestIndepPoiBinom" />
       <item itemvalue="Application.SepAlleleMethySC2" />
       <item itemvalue="Application.SepAlleleMethySC" />
       <item itemvalue="Application.TestIndepPoiBinomOnBam" />
       <item itemvalue="Application.SingleCellTest" />
+      <item itemvalue="Application.Bhmem" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Application.Bhmem" />
         <item itemvalue="Application.SingleCellTest" />
         <item itemvalue="Application.TestIndepPoiBinomOnBam" />
         <item itemvalue="Application.SepAlleleMethySC" />
         <item itemvalue="Application.SepAlleleMethySC2" />
-        <item itemvalue="Application.TestIndepPoiBinom" />
       </list>
     </recent_temporary>
   </component>
@@ -368,6 +376,7 @@
       <workItem from="1589732685766" duration="18364000" />
       <workItem from="1604095493562" duration="1760000" />
       <workItem from="1605439608375" duration="502000" />
+      <workItem from="1607601636446" duration="10925000" />
     </task>
     <servers />
   </component>
