@@ -2,15 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="3ba44c6a-f061-4ee1-8dc6-ecb6e90b0572" name="Default" comment="">
-      <change afterPath="$PROJECT_DIR$/binom_test_mgch.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/interact_density_around_regions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../../.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../jbwa/jbwa-1.0.0/Makefile" beforeDir="false" afterPath="$PROJECT_DIR$/../../jbwa/jbwa-1.0.0/Makefile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../../pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../main/java/edu/mit/compbio/bisulfitehic/mapping/Bhmem.java" beforeDir="false" afterPath="$PROJECT_DIR$/../main/java/edu/mit/compbio/bisulfitehic/mapping/Bhmem.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eigen_adjust_direction.py" beforeDir="false" afterPath="$PROJECT_DIR$/eigen_adjust_direction.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../target/bisulfitehic-0.27-jar-with-dependencies.jar" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/binom_test_mgch.py" beforeDir="false" afterPath="$PROJECT_DIR$/binom_test_mgch.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -73,7 +66,7 @@
       <workItem from="1605804515811" duration="7345000" />
       <workItem from="1606309685810" duration="605000" />
       <workItem from="1606341491165" duration="385000" />
-      <workItem from="1608291401218" duration="15283000" />
+      <workItem from="1608291401218" duration="15526000" />
     </task>
     <servers />
   </component>

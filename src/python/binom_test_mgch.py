@@ -10,7 +10,7 @@ def binom_test_mgch(in_bed, out_bed, min_gch, min_point, window, max_window, glo
         for line in f:
             line = line.rstrip('\n')
             if line.startswith('track') or line.startswith('#'):
-                pass
+                continue
             chrom, start, end, _, score, strand, m, c = line.split("\t")
             interv_tmp = Interval(int(start), int(end), chrom=chrom, strand=strand,
                                   value={'score': int(score), 'methylation': float(m), 'coverage': int(c)})
@@ -28,7 +28,7 @@ def binom_test_mgch(in_bed, out_bed, min_gch, min_point, window, max_window, glo
             for line in f:
                 line = line.rstrip('\n')
                 if line.startswith('track') or line.startswith('#'):
-                    pass
+                    continue
                 chrom, start, end, _, score, strand, m, c = line.split("\t")
                 methy_count = int(float(m) * int(c) / 100.0)
                 intersecter = gch_intervals_dict.get(chrom)
