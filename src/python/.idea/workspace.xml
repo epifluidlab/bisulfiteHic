@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="3ba44c6a-f061-4ee1-8dc6-ecb6e90b0572" name="Default" comment="">
+      <change afterPath="$PROJECT_DIR$/betabinom_test_mgch.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binom_test_mgch.py" beforeDir="false" afterPath="$PROJECT_DIR$/binom_test_mgch.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -32,11 +32,12 @@
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RecentsManager">
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/methy_sc_concordance" />
-    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/methy_sc_concordance/poibin" />
+      <recent name="$PROJECT_DIR$/methy_sc_concordance" />
+    </key>
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/methy_sc_concordance" />
     </key>
   </component>
@@ -66,7 +67,7 @@
       <workItem from="1605804515811" duration="7345000" />
       <workItem from="1606309685810" duration="605000" />
       <workItem from="1606341491165" duration="385000" />
-      <workItem from="1608291401218" duration="15526000" />
+      <workItem from="1608291401218" duration="30142000" />
     </task>
     <servers />
   </component>
