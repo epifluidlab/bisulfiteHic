@@ -15,7 +15,7 @@ def get_alpha_beta(mu, var):
     return (alpha, beta)
 
 
-def betabinom_test_mgch_per_chrom(tbx, out_bed, chrom, size, min_gch, min_point, window1, window2):
+def betabinom_test_mgch_per_chrom(tbx, out, chrom, size, min_gch, min_point, window1, window2):
     intersecter = Intersecter()
     num = 0
     c_global = 0
@@ -43,16 +43,11 @@ def betabinom_test_mgch_per_chrom(tbx, out_bed, chrom, size, min_gch, min_point,
 
     del global_methy
 
-    if out_bed.endswith('.gz'):
-        out = gzip.open(out_bed, 'at')
-    else:
-        out = open(out_bed, 'a')
     for line in tbx.fetch(chrom, 0, size):
         chrom, start, end, _, score, strand, m, c = line.split("\t")
         methy_count = int(float(m) * int(c) / 100.0)
         total_count = int(c)
         methy = float(m) / 100
-
         num_gch_1 = 0
         c_window_1 = 0
         m_window_1 = 0
@@ -138,7 +133,6 @@ def betabinom_test_mgch_per_chrom(tbx, out_bed, chrom, size, min_gch, min_point,
             binomial_p_final) + '\t' + str(round(beta_binom_p_w1, 4)) + '\t' + str(
             round(beta_binom_p_w2, 4)) + '\t' + str(round(beta_binom_p_global, 4)) + '\t' + str(
             beta_binom_p_final) + '\n')
-    out.close()
 
 
 def betabinom_test_mgch(in_bed, out_bed, chrom_size, min_gch, min_point, window1, window2):
@@ -151,11 +145,16 @@ def betabinom_test_mgch(in_bed, out_bed, chrom_size, min_gch, min_point, window1
             size = int(splitline[1])
             chrom_dict[chrom] = size
     tbx = pysam.TabixFile(in_bed)
+    if out_bed.endswith('.gz'):
+        out = gzip.open(out_bed, 'wt')
+    else:
+        out = open(out_bed, 'w')
     for chrom in chrom_dict.keys():
         if chrom in tbx.contigs:
             print('chrom:' + chrom)
             size = chrom_dict[chrom]
-            betabinom_test_mgch_per_chrom(tbx, out_bed, chrom, size, min_gch, min_point, window1, window2)
+            betabinom_test_mgch_per_chrom(tbx, out, chrom, size, min_gch, min_point, window1, window2)
+    out.close()
 
 
 if __name__ == '__main__':
