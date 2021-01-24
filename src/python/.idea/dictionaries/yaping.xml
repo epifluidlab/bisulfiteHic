@@ -6331,25 +6331,38 @@
       <w>db_sql_render</w>
       <w>db_table_temporary</w>
       <w>db_write_table</w>
+      <w>dbbinom</w>
       <w>dbbmi</w>
       <w>dbconn</w>
+      <w>dbern</w>
       <w>dbeta</w>
+      <w>dbetapr</w>
       <w>dbfile</w>
+      <w>dbhatt</w>
       <w>dbhh</w>
       <w>dbinom</w>
       <w>dblclickOpts</w>
       <w>dbmeta</w>
+      <w>dbnbinom</w>
       <w>dbplyr</w>
       <w>dbplyr_edition</w>
       <w>dbschema</w>
+      <w>dbvnorm</w>
+      <w>dbvpois</w>
       <w>dcast</w>
       <w>dcast.data.table</w>
+      <w>dcat</w>
       <w>dcauchy</w>
       <w>dchisq</w>
       <w>ddfind</w>
+      <w>ddgamma</w>
       <w>ddirichlet</w>
+      <w>ddirmnom</w>
+      <w>ddlaplace</w>
       <w>ddmmmyy</w>
       <w>ddnorm</w>
+      <w>ddunif</w>
+      <w>ddweibull</w>
       <w>de</w>
       <w>de.ncols</w>
       <w>de.restore</w>
@@ -6547,14 +6560,25 @@
       <w>df_cast</w>
       <w>df_list</w>
       <w>df_ptype2</w>
+      <w>dfatigue</w>
       <w>dfbeta</w>
       <w>dfbetas</w>
       <w>dffits</w>
+      <w>dfrechet</w>
       <w>dfs</w>
       <w>dgamma</w>
       <w>dgeom</w>
       <w>dget</w>
+      <w>dgev</w>
+      <w>dgompertz</w>
+      <w>dgpd</w>
+      <w>dgpois</w>
+      <w>dgumbel</w>
+      <w>dhcauchy</w>
       <w>dhistboxp</w>
+      <w>dhnorm</w>
+      <w>dht</w>
+      <w>dhuber</w>
       <w>dhyper</w>
       <w>diab</w>
       <w>diabetic</w>
@@ -6630,6 +6654,8 @@
       <w>dims</w>
       <w>dinucleotideFrequency</w>
       <w>dinucleotideFrequencyTest</w>
+      <w>dinvchisq</w>
+      <w>dinvgamma</w>
       <w>dinvgauss</w>
       <w>dir</w>
       <w>dir.create</w>
@@ -6685,16 +6711,27 @@
       <w>divergingx_palettes</w>
       <w>divide_by</w>
       <w>divide_by_int</w>
+      <w>dkumar</w>
+      <w>dlaplace</w>
+      <w>dlgser</w>
       <w>dlnorm</w>
       <w>dlogis</w>
+      <w>dlomax</w>
+      <w>dlst</w>
       <w>dmaket</w>
+      <w>dmixnorm</w>
+      <w>dmixpois</w>
+      <w>dmnom</w>
       <w>dmultinom</w>
+      <w>dmvhyper</w>
       <w>dmvn</w>
       <w>dmvnorm</w>
       <w>dmvt</w>
       <w>dnbinom</w>
+      <w>dnhyper</w>
       <w>dnorm</w>
       <w>dnorm_n</w>
+      <w>dnsbeta</w>
       <w>do</w>
       <w>do.breaks</w>
       <w>do.call</w>
@@ -6738,6 +6775,7 @@
       <w>download_ssl_cert</w>
       <w>downs.bc</w>
       <w>downsample</w>
+      <w>dpareto</w>
       <w>dpih</w>
       <w>dpik</w>
       <w>dpill</w>
@@ -6746,6 +6784,8 @@
       <w>dplyr_reconstruct</w>
       <w>dplyr_row_slice</w>
       <w>dpois</w>
+      <w>dpower</w>
+      <w>dprop</w>
       <w>dput</w>
       <w>drape.color</w>
       <w>drape.plot</w>
@@ -6771,6 +6811,7 @@
       <w>draw_key_timeseries</w>
       <w>draw_key_vline</w>
       <w>draw_key_vpath</w>
+      <w>drayleigh</w>
       <w>drivers</w>
       <w>drop</w>
       <w>drop.levels</w>
@@ -6794,15 +6835,22 @@
       <w>dropterm</w>
       <w>dsa_keygen</w>
       <w>dscale</w>
+      <w>dsgomp</w>
       <w>dsignrank</w>
+      <w>dskellam</w>
+      <w>dslash</w>
       <w>dsurvreg</w>
       <w>dt</w>
+      <w>dtbinom</w>
       <w>dtdElement</w>
       <w>dtdElementValidEntry</w>
       <w>dtdEntity</w>
       <w>dtdIsAttribute</w>
       <w>dtdValidElement</w>
+      <w>dtnorm</w>
       <w>dtop</w>
+      <w>dtpois</w>
+      <w>dtriang</w>
       <w>dual</w>
       <w>ducks</w>
       <w>dummy.coef</w>
@@ -6834,6 +6882,7 @@
       <w>dvi</w>
       <w>dvigv</w>
       <w>dvips</w>
+      <w>dwald</w>
       <w>dweibull</w>
       <w>dwilcox</w>
       <w>dyadic.2check</w>
@@ -6843,6 +6892,9 @@
       <w>dynCurlReader</w>
       <w>dynGet</w>
       <w>dynamicClusterApply</w>
+      <w>dzib</w>
+      <w>dzinb</w>
+      <w>dzip</w>
       <w>eBayes</w>
       <w>eSetFilter</w>
       <w>eWV</w>
@@ -7171,6 +7223,7 @@
       <w>extended.figures</w>
       <w>extended_breaks</w>
       <w>extendrange</w>
+      <w>extraDistr</w>
       <w>extra_cols</w>
       <w>extract</w>
       <w>extract.lme.cov</w>
@@ -11066,14 +11119,19 @@
       <w>pava.blocks</w>
       <w>pb</w>
       <w>pb.control</w>
+      <w>pbbinom</w>
       <w>pbc</w>
       <w>pbc.control</w>
+      <w>pbern</w>
       <w>pbeta</w>
+      <w>pbetapr</w>
       <w>pbgyr</w>
+      <w>pbhatt</w>
       <w>pbinom</w>
       <w>pbirthday</w>
       <w>pbm</w>
       <w>pbm.control</w>
+      <w>pbnbinom</w>
       <w>pbo</w>
       <w>pbo.control</w>
       <w>pbp</w>
@@ -11108,6 +11166,11 @@
       <w>pdf.options</w>
       <w>pdf.plot</w>
       <w>pdfFonts</w>
+      <w>pdgamma</w>
+      <w>pdlaplace</w>
+      <w>pdnorm</w>
+      <w>pdunif</w>
+      <w>pdweibull</w>
       <w>peek_data</w>
       <w>peek_vars</w>
       <w>pen.edf</w>
@@ -11129,15 +11192,26 @@
       <w>pexGAUS</w>
       <w>pexp</w>
       <w>pf</w>
+      <w>pfatigue</w>
+      <w>pfrechet</w>
       <w>pgamma</w>
       <w>pgap</w>
       <w>pgeom</w>
+      <w>pgev</w>
+      <w>pgompertz</w>
+      <w>pgpd</w>
+      <w>pgpois</w>
+      <w>pgumbel</w>
+      <w>phcauchy</w>
       <w>phenoData</w>
       <w>phenoModel</w>
       <w>phiX174Phage</w>
       <w>phicoef</w>
+      <w>phnorm</w>
       <w>phones</w>
       <w>phred2ASCIIOffset</w>
+      <w>pht</w>
+      <w>phuber</w>
       <w>phyper</w>
       <w>physical</w>
       <w>pi</w>
@@ -11151,6 +11225,8 @@
       <w>pillar</w>
       <w>pillar_shaft</w>
       <w>pintersect</w>
+      <w>pinvchisq</w>
+      <w>pinvgamma</w>
       <w>pinvgauss</w>
       <w>pipe</w>
       <w>pivots</w>
@@ -11174,16 +11250,20 @@
       <w>pkgconfig</w>
       <w>pkgload</w>
       <w>pkgtest</w>
+      <w>pkumar</w>
       <w>place.knots</w>
       <w>placeGrob</w>
       <w>planarCanonicalOrdering</w>
       <w>planarFaceTraversal</w>
       <w>plantTraits</w>
+      <w>plaplace</w>
       <w>plasma</w>
       <w>plclust</w>
+      <w>plgser</w>
       <w>plnorm</w>
       <w>plogis</w>
       <w>plogr</w>
+      <w>plomax</w>
       <w>plot</w>
       <w>plot.Krig</w>
       <w>plot.default</w>
@@ -11326,6 +11406,7 @@
       <w>plpYieldBy</w>
       <w>plpYieldSize</w>
       <w>plsmo</w>
+      <w>plst</w>
       <w>pltree</w>
       <w>pluralize</w>
       <w>pluton</w>
@@ -11348,12 +11429,16 @@
       <w>pmin</w>
       <w>pmin.int</w>
       <w>pmin2</w>
+      <w>pmixnorm</w>
+      <w>pmixpois</w>
       <w>pmvnorm</w>
       <w>pmvt</w>
       <w>pnbinom</w>
       <w>png</w>
       <w>pngNeedle</w>
+      <w>pnhyper</w>
       <w>pnorm</w>
+      <w>pnsbeta</w>
       <w>points</w>
       <w>points.default</w>
       <w>pointsGrob</w>
@@ -11440,17 +11525,21 @@
       <w>powerPoisson</w>
       <w>powerboost</w>
       <w>pp</w>
+      <w>ppareto</w>
       <w>ppgetregion</w>
       <w>ppinit</w>
       <w>pplik</w>
       <w>ppoints</w>
       <w>ppois</w>
+      <w>ppower</w>
       <w>ppr</w>
       <w>ppregion</w>
+      <w>pprop</w>
       <w>prList</w>
       <w>prType</w>
       <w>praise</w>
       <w>praise_parts</w>
+      <w>prayleigh</w>
       <w>prcomp</w>
       <w>pre</w>
       <w>preDrawDetails</w>
@@ -11748,18 +11837,24 @@
       <w>pscl</w>
       <w>psetdiff</w>
       <w>pseudo_log_trans</w>
+      <w>psgomp</w>
       <w>psi.bisquare</w>
       <w>psi.hampel</w>
       <w>psi.huber</w>
       <w>psigamma</w>
       <w>psignrank</w>
       <w>pskill</w>
+      <w>pslash</w>
       <w>psnice</w>
       <w>pspline</w>
       <w>pstamp</w>
       <w>psum.chisq</w>
       <w>psurvreg</w>
       <w>pt</w>
+      <w>ptbinom</w>
+      <w>ptnorm</w>
+      <w>ptpois</w>
+      <w>ptriang</w>
       <w>ptukey</w>
       <w>pubDate</w>
       <w>pubMedAbst</w>
@@ -11786,6 +11881,7 @@
       <w>pvc</w>
       <w>pvc.control</w>
       <w>pvec</w>
+      <w>pwald</w>
       <w>pweibull</w>
       <w>pwilcox</w>
       <w>pwr</w>
@@ -11800,6 +11896,9 @@
       <w>pwr.t.test</w>
       <w>pwr.t2n.test</w>
       <w>pyears</w>
+      <w>pzib</w>
+      <w>pzinb</w>
+      <w>pzip</w>
       <w>q</w>
       <w>q2qnbinom</w>
       <w>q2qpois</w>
@@ -11918,31 +12017,58 @@
       <w>qZIPF</w>
       <w>qZIPIG</w>
       <w>qZISICHEL</w>
+      <w>qbern</w>
       <w>qbeta</w>
+      <w>qbetapr</w>
       <w>qbinom</w>
       <w>qbirthday</w>
+      <w>qcat</w>
       <w>qcauchy</w>
       <w>qchisq</w>
       <w>qda</w>
+      <w>qdunif</w>
+      <w>qdweibull</w>
       <w>qexGAUS</w>
       <w>qexp</w>
       <w>qf</w>
+      <w>qfatigue</w>
+      <w>qfrechet</w>
       <w>qgamma</w>
       <w>qgeom</w>
+      <w>qgev</w>
+      <w>qgompertz</w>
+      <w>qgpd</w>
+      <w>qgumbel</w>
+      <w>qhcauchy</w>
+      <w>qhnorm</w>
+      <w>qht</w>
+      <w>qhuber</w>
       <w>qhyper</w>
       <w>qigamma</w>
+      <w>qinvchisq</w>
+      <w>qinvgamma</w>
       <w>qinvgauss</w>
+      <w>qkumar</w>
+      <w>qlaplace</w>
+      <w>qlgser</w>
       <w>qlnorm</w>
       <w>qlogis</w>
+      <w>qlomax</w>
+      <w>qlst</w>
       <w>qmvnorm</w>
       <w>qmvt</w>
       <w>qnamePrefixEnd</w>
       <w>qnameSuffixStart</w>
       <w>qnarrow</w>
       <w>qnbinom</w>
+      <w>qnhyper</w>
       <w>qnorm</w>
+      <w>qnsbeta</w>
+      <w>qpareto</w>
       <w>qplot</w>
       <w>qpois</w>
+      <w>qpower</w>
+      <w>qprop</w>
       <w>qq</w>
       <w>qq.gam</w>
       <w>qqf</w>
@@ -11966,6 +12092,7 @@
       <w>qr.solve</w>
       <w>qr.yq2</w>
       <w>qrR</w>
+      <w>qrayleigh</w>
       <w>qres.binom</w>
       <w>qres.default</w>
       <w>qres.gamma</w>
@@ -11986,6 +12113,11 @@
       <w>qsreg.trace</w>
       <w>qsurvreg</w>
       <w>qt</w>
+      <w>qtbinom</w>
+      <w>qtlambda</w>
+      <w>qtnorm</w>
+      <w>qtpois</w>
+      <w>qtriang</w>
       <w>qtukey</w>
       <w>qty</w>
       <w>quade.test</w>
@@ -12042,6 +12174,9 @@
       <w>qweibull</w>
       <w>qwidth</w>
       <w>qwilcox</w>
+      <w>qzib</w>
+      <w>qzinb</w>
+      <w>qzip</w>
       <w>r</w>
       <w>r.mvt</w>
       <w>r2dtable</w>
@@ -12238,8 +12373,12 @@
       <w>raw_output</w>
       <w>raw_string</w>
       <w>razip</w>
+      <w>rbbinom</w>
+      <w>rbern</w>
       <w>rbeta</w>
+      <w>rbetapr</w>
       <w>rbfdot</w>
+      <w>rbhatt</w>
       <w>rbind</w>
       <w>rbind.CompressedMatrix</w>
       <w>rbind.DGEList</w>
@@ -12255,11 +12394,16 @@
       <w>rbind_pages</w>
       <w>rbindlist</w>
       <w>rbinom</w>
+      <w>rbnbinom</w>
       <w>rbox</w>
+      <w>rbvnorm</w>
+      <w>rbvpois</w>
       <w>rc.getOption</w>
       <w>rc.options</w>
       <w>rc.settings</w>
       <w>rc.status</w>
+      <w>rcat</w>
+      <w>rcatlp</w>
       <w>rcauchy</w>
       <w>rchisq</w>
       <w>rcmd</w>
@@ -12281,11 +12425,17 @@
       <w>rcsplineFunction</w>
       <w>rcss</w>
       <w>rdaPath</w>
+      <w>rdgamma</w>
       <w>rdirichlet</w>
+      <w>rdirmnom</w>
       <w>rdist</w>
       <w>rdist.earth</w>
       <w>rdist.earth.vec</w>
       <w>rdist.vec</w>
+      <w>rdlaplace</w>
+      <w>rdnorm</w>
+      <w>rdunif</w>
+      <w>rdweibull</w>
       <w>re</w>
       <w>reLabelled</w>
       <w>reShape</w>
@@ -12702,7 +12852,9 @@
       <w>rf</w>
       <w>rfImpute</w>
       <w>rfNews</w>
+      <w>rfatigue</w>
       <w>rfcv</w>
+      <w>rfrechet</w>
       <w>rfs</w>
       <w>rgamma</w>
       <w>rgb</w>
@@ -12710,9 +12862,18 @@
       <w>rgb2hsv</w>
       <w>rgb2mnsl</w>
       <w>rgeom</w>
+      <w>rgev</w>
       <w>rglist</w>
+      <w>rgompertz</w>
+      <w>rgpd</w>
+      <w>rgpois</w>
+      <w>rgumbel</w>
       <w>rhDNase</w>
+      <w>rhcauchy</w>
+      <w>rhnorm</w>
       <w>rho</w>
+      <w>rht</w>
+      <w>rhuber</w>
       <w>rhyper</w>
       <w>ri</w>
       <w>ribbon.plot</w>
@@ -12722,9 +12883,13 @@
       <w>rigamma</w>
       <w>right</w>
       <w>right_join</w>
+      <w>rinvchisq</w>
+      <w>rinvgamma</w>
       <w>rinvgauss</w>
       <w>ripemd160</w>
       <w>rivers</w>
+      <w>rkumar</w>
+      <w>rlaplace</w>
       <w>rle</w>
       <w>rlegend</w>
       <w>rlegendg</w>
@@ -12732,16 +12897,23 @@
       <w>rleidv</w>
       <w>rlepack</w>
       <w>rleunpack</w>
+      <w>rlgser</w>
       <w>rlm</w>
       <w>rlnorm</w>
       <w>rlog</w>
       <w>rlogTransformation</w>
       <w>rlogis</w>
+      <w>rlomax</w>
+      <w>rlst</w>
       <w>rm</w>
       <w>rm.boot</w>
+      <w>rmixnorm</w>
+      <w>rmixpois</w>
+      <w>rmnom</w>
       <w>rms.curv</w>
       <w>rms.wavefront</w>
       <w>rmultinom</w>
+      <w>rmvhyper</w>
       <w>rmvn</w>
       <w>rmvnorm</w>
       <w>rmvnorm.canonical</w>
@@ -12754,7 +12926,9 @@
       <w>rname</w>
       <w>rnbinom</w>
       <w>rnegbin</w>
+      <w>rnhyper</w>
       <w>rnorm</w>
+      <w>rnsbeta</w>
       <w>road</w>
       <w>roast</w>
       <w>roast.DGEList</w>
@@ -12866,6 +13040,7 @@
       <w>rowttests</w>
       <w>rowwise</w>
       <w>royston</w>
+      <w>rpareto</w>
       <w>rpart</w>
       <w>rpart.control</w>
       <w>rpart.exp</w>
@@ -12876,17 +13051,24 @@
       <w>rpkmByGroup.DGEList</w>
       <w>rpkmByGroup.default</w>
       <w>rpois</w>
+      <w>rpower</w>
       <w>rpretty</w>
       <w>rprojroot</w>
+      <w>rprop</w>
       <w>rpubsUpload</w>
       <w>rqres.plot</w>
+      <w>rrayleigh</w>
       <w>rsa_decrypt</w>
       <w>rsa_encrypt</w>
       <w>rsa_keygen</w>
       <w>rscript</w>
       <w>rscript_process</w>
       <w>rscript_process_options</w>
+      <w>rsgomp</w>
+      <w>rsign</w>
       <w>rsignrank</w>
+      <w>rskellam</w>
+      <w>rslash</w>
       <w>rsparsematrix</w>
       <w>rsq.rpart</w>
       <w>rsqliteVersion</w>
@@ -12899,9 +13081,14 @@
       <w>rt</w>
       <w>rtPCR</w>
       <w>rtags</w>
+      <w>rtbinom</w>
+      <w>rtlambda</w>
+      <w>rtnorm</w>
       <w>rtools_needed</w>
       <w>rtools_path</w>
+      <w>rtpois</w>
       <w>rtracklayer</w>
+      <w>rtriang</w>
       <w>rttright</w>
       <w>rug</w>
       <w>rule</w>
@@ -12936,9 +13123,13 @@
       <w>rv</w>
       <w>rvcov</w>
       <w>rvm</w>
+      <w>rwald</w>
       <w>rweibull</w>
       <w>rwilcox</w>
       <w>rygbp</w>
+      <w>rzib</w>
+      <w>rzinb</w>
+      <w>rzip</w>
       <w>s</w>
       <w>s109</w>
       <w>s3_register</w>

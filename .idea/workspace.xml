@@ -2,14 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="83376207-f3df-40e7-a87d-f0ce9b78cbba" name="Default" comment="">
-      <change afterPath="$PROJECT_DIR$/src/python/interact_density_around_regions.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/jbwa/jbwa-1.0.0/Makefile" beforeDir="false" afterPath="$PROJECT_DIR$/jbwa/jbwa-1.0.0/Makefile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/mapping/Bhmem.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/mapping/Bhmem.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/python/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/src/python/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/python/eigen_adjust_direction.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/python/eigen_adjust_direction.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/bisulfitehic-0.27-jar-with-dependencies.jar" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/python/betabinom_test_mgch.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/python/betabinom_test_mgch.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
