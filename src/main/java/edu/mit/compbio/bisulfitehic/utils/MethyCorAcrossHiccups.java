@@ -103,6 +103,9 @@ public class MethyCorAcrossHiccups {
 	@Option(name="-randomHiccupsInput",usage="when the input file is random hiccups links for the control, no need to restrict each end of fragment at the same hiccups links.., default: not enabled")
 	public boolean randomHiccupsInput = false;
 
+	@Option(name="-shortLowerBound",usage="only use the paired end within certain short distance. this is the lower bound of distance, use it together with -onlyShort. default: -1")
+	public int shortLowerBound = -1;
+
 	@Option(name="-onlyShort",usage="only use the paired end within very short region. when enable it with positive number, it will automate disable -minDistEnds option, default: -1")
 	public int onlyShort = -1;
 
@@ -123,7 +126,19 @@ public class MethyCorAcrossHiccups {
 
 	@Option(name="-outputCount",usage="output the raw read count frequency between two end when not in ASM mode, default: not enabled")
 	public boolean outputCount = false;
-	
+
+	@Option(name="-methyPatternSearch",usage="methylation pattern to search, allow IUPAC match code, such as HCG or GCH for NOMe-seq, default: CG")
+	public String methyPatternSearch = "CG";
+
+	@Option(name="-methyPatternCytPos",usage="cytosine position in -methyPatternSearch. for example, 1 for CG and 2 for HCG, default: 1")
+	public int methyPatternCytPos = 1;
+
+	@Option(name="-bsConvPatternSearch",usage="bisulfite conversion pattern to search, allow IUPAC match code, such as WCH for NOMe-seq, default: CH")
+	public String bsConvPatternSearch = "CH";
+
+	@Option(name="-bsConvPatternCytPos",usage="cytosine position in -bsConvPatternSearch. for example, 1 for CH and 2 for WCH, default: 1")
+	public int bsConvPatternCytPos = 1;
+
 	@Option(name="-h",usage="show option information")
 	public boolean help = false;
 
@@ -202,6 +217,7 @@ public class MethyCorAcrossHiccups {
 						
 						while( (line = br.readLine()) != null){
 							if((skipProcessFirstRow && lineNum==0) || line.startsWith("#")){
+								lineNum++;
 								continue;
 							}else{
 								String[] splitin = line.split("\t");
@@ -419,7 +435,7 @@ public class MethyCorAcrossHiccups {
 					//new String(CcInferenceUtils.toUpperCase(readBases)));
 					
 					
-					Triple<Integer,Integer, Integer> ctSummary = BisulfiteHicUtils.readsMethySummary(r1, minMapQ, minBaseQ, turnOffBisulfiteFilter);
+					Triple<Integer,Integer, Integer> ctSummary = BisulfiteHicUtils.readsMethySummaryGeneral(r1, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
 					int numC = ctSummary.getLeft();
 					int numT = ctSummary.getMiddle();
 					int numCg = ctSummary.getRight();
@@ -430,7 +446,7 @@ public class MethyCorAcrossHiccups {
 					boolean matchedEndFound = false;
 					if(countedReadsEnd2.containsKey(r1.getReadName())){
 						matchedEndFound = true;
-						ctSummary2 = BisulfiteHicUtils.readsMethySummary(countedReadsEnd2.get(r1.getReadName()), minMapQ, minBaseQ, turnOffBisulfiteFilter);
+						ctSummary2 = BisulfiteHicUtils.readsMethySummaryGeneral(countedReadsEnd2.get(r1.getReadName()), methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
 					}else{
 						
 					}
@@ -656,15 +672,15 @@ public class MethyCorAcrossHiccups {
 					SAMRecord r1 = countedReadsEnd1.get(readName);
 					SAMRecord r2 = countedReadsEnd2.get(readName);
 					
-					Triple<Integer,Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummary(r1, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
-					Triple<Integer,Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummary(r2, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+					Triple<Integer,Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummaryGeneral(r1, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+					Triple<Integer,Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummaryGeneral(r2, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
 					int numC1 = ctSummary1.getLeft();
 					int numT1 = ctSummary1.getMiddle();
 					int numCg1 = ctSummary1.getRight();
 					int numC2 = ctSummary2.getLeft();
 					int numT2 = ctSummary2.getMiddle();
 					int numCg2 = ctSummary2.getRight();
-					//System.err.println((numC1 + numT1) + "\t" + (numC2 + numT2) + "\t" + numCg1 + "\t" + numCg2);
+					//System.err.println(chr + "\t" + start1 + "\t" + end1 + "\t" + chr2 + "\t" + start2 + "\t" + end2 + "\t" + (numC1 + numT1) + "\t" + (numC2 + numT2) + "\t" + numCg1 + "\t" + numCg2);
 					if(outputCount) {
 						
 						methyCorWriter.write(chr + "\t" + start1 + "\t" + end1 + "\t" + chr2 + "\t" + start2 + "\t" + end2 + "\t" +
@@ -771,8 +787,8 @@ public class MethyCorAcrossHiccups {
 						SAMRecord r2 = countedReadsEnd2.get(readName2);
 
 
-						Triple<Integer, Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummary(r1, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
-						Triple<Integer, Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummary(r2, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+						Triple<Integer, Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummaryGeneral(r1, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+						Triple<Integer, Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummaryGeneral(r2, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
 						int numC1 = ctSummary1.getLeft();
 						int numT1 = ctSummary1.getMiddle();
 						int numCg1 = ctSummary1.getRight();
@@ -814,7 +830,7 @@ public class MethyCorAcrossHiccups {
 			while(wgsIt.hasNext()){
 				SAMRecord r = wgsIt.next();
 				
-				if(failFlagFilter(r) || Math.abs(r.getInferredInsertSize())>onlyShort){
+				if(failFlagFilter(r) || Math.abs(r.getInferredInsertSize())>onlyShort || Math.abs(r.getInferredInsertSize())<shortLowerBound){
 					continue;
 				}else{
 					String name = r.getReadName();
@@ -834,7 +850,7 @@ public class MethyCorAcrossHiccups {
 			wgsIt = wgsReader.queryOverlapping(chr,start2,end2);
 			while(wgsIt.hasNext()){
 				SAMRecord r = wgsIt.next();
-				if(failFlagFilter(r) || Math.abs(r.getInferredInsertSize())>onlyShort){
+				if(failFlagFilter(r) || Math.abs(r.getInferredInsertSize())>onlyShort || Math.abs(r.getInferredInsertSize())<shortLowerBound){
 					continue;
 				}else{
 					String name = r.getReadName();
@@ -859,8 +875,8 @@ public class MethyCorAcrossHiccups {
 					SAMRecord r2 = countedReadsEnd2.get(readName);
 					
 					
-					Triple<Integer,Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummary(r1, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
-					Triple<Integer,Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummary(r2, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+					Triple<Integer,Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummaryGeneral(r1, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+					Triple<Integer,Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummaryGeneral(r2, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
 					int numC1 = ctSummary1.getLeft();
 					int numT1 = ctSummary1.getMiddle();
 					int numCg1 = ctSummary1.getRight();

@@ -9,6 +9,7 @@ package main.java.edu.mit.compbio.bisulfitehic.utils;
 import java.util.ArrayList;
 import java.util.TreeMap;
 
+import main.java.edu.mit.compbio.ccinference.utils.BaseUtilsMore;
 import main.java.edu.mit.compbio.ccinference.utils.CcInferenceUtils;
 
 import org.apache.commons.lang3.ArrayUtils;
@@ -19,6 +20,7 @@ import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.util.CigarUtil;
 import htsjdk.samtools.util.SequenceUtil;
+import org.broadinstitute.gatk.utils.BaseUtils;
 
 /**
  *
@@ -131,7 +133,43 @@ public class BisulfiteHicUtils {
 
 		return ctSummary; //first is C, second is T
 	}
-	
+
+
+	static public Triple<Integer,Integer, Integer> readsMethySummaryGeneral(SAMRecord read, String patSearchMeth, int cPos, String patCheckBsConv, int cPosBs, int minMapQ, int minBaseQ, boolean turnOffBisulfiteFilter, boolean useBadMate) throws Exception{
+		boolean negStrand = read.getReadNegativeStrandFlag();
+		boolean secondPair = read.getReadPairedFlag() && read.getSecondOfPairFlag();
+		//filter if it is bad reads
+		if(read.getReadUnmappedFlag() || read.getNotPrimaryAlignmentFlag() || read.getDuplicateReadFlag()
+				|| read.getReadFailsVendorQualityCheckFlag() || !read.getReadPairedFlag() || (useBadMate ? false : !read.getProperPairFlag())
+				|| read.getMappingQuality() < minMapQ){
+			return Triple.of(0,0,0);
+		}
+
+		byte[] refBases = CcInferenceUtils.toUpperCase(modifyRefSeqByCigar(SequenceUtil.makeReferenceFromAlignment(read, false), read.getCigarString()));
+
+		byte[] readBasesQ = getClippedReadsBaseQuality(read);
+		byte[] readBases = CcInferenceUtils.toUpperCase(getClippedReadsBase(read));
+		//if(negStrand){
+		//System.err.println(new String(refBases) + "\n" + new String(readBases) + "\t" +read.getCigarString() + "\t" + secondPair);
+		//readBases = complementArray(readBases);
+		//}
+
+		Triple<Integer,Integer, Integer> ctSummary = Triple.of(0,0,0);
+		int pos = 0;
+		if(!turnOffBisulfiteFilter){
+			//System.err.println(new String(refBases) + "\t" + refBases.length + "\n" + new String(readBases) + "\t" + readBases.length + "\n" + new String(SequenceUtil.makeReferenceFromAlignment(read, false)) + "\t" + read.getCigarString());
+			pos = CcInferenceUtils.bisulfiteIncompleteReads(readBases, refBases, negStrand, secondPair, false, true, true, 0.1, 0.4, 0, patCheckBsConv, cPosBs);
+			if(pos<0){
+				return ctSummary;
+			}
+		}
+		byte[] baseSearchMeth = patSearchMeth.getBytes();
+		ctSummary = readsMethySummaryWithFivePrimeFilterGeneral(refBases, readBases, readBasesQ, baseSearchMeth, cPos, negStrand, secondPair, minBaseQ, pos);
+
+		return ctSummary; //first is C, second is T, third is number of CG
+	}
+
+
 	static public Triple<Integer,Integer, Integer> readsMethySummary(SAMRecord read, int minMapQ, int minBaseQ, boolean turnOffBisulfiteFilter, boolean useBadMate) throws Exception{
 		boolean negStrand = read.getReadNegativeStrandFlag();
 		boolean secondPair = read.getReadPairedFlag() && read.getSecondOfPairFlag();
@@ -292,7 +330,49 @@ public class BisulfiteHicUtils {
 		 
 		return Triple.of(numC, numT,numCg);  //first is numC, second is numT, third is Cpg number
 	}
-	
+
+	//cPos: for GCH, it is 2. for CG, it is 1.
+	//searchBases allow IUAUC match: H: A,C,T
+	static public Triple<Integer,Integer, Integer> readsMethySummaryWithFivePrimeFilterGeneral(byte[] refBases, byte[] bases, byte[] basesQ, byte[] searchBases, int cPos, boolean negStrand, boolean secondPair, int minBaseQ, int bisulfiteConvertStart){
+		if(bisulfiteConvertStart<0){
+			bisulfiteConvertStart=0;
+		}
+		if((!secondPair && !negStrand) || (secondPair && negStrand)) {
+
+		}else {
+			//reverse completment refBases, bases, reverse basesQ
+			bases = BaseUtils.simpleReverseComplement(bases);
+			refBases = BaseUtils.simpleReverseComplement(refBases);
+			basesQ = BaseUtilsMore.simpleReverse(basesQ);
+		}
+		int numC = 0;
+		int numT = 0;
+		int numCg = 0;
+		for(int i = bisulfiteConvertStart; i < refBases.length - (searchBases.length-1); i++){
+			int j = i;
+			boolean found = true;
+			for(int index = 0; index < searchBases.length; j++,index++) {
+				if (!BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(searchBases[index], refBases[j])) {
+					found = false;
+					break;
+				}
+			}
+			if(found){
+				int currentCytPos = i+cPos-1;
+				//System.err.println(new String(refBases) + "\t" + bisulfiteConvertStart + "\t" + i + "\t" + new String(bases) + "\t" + j + "\t" + new String(basesQ) + "\t" + negStrand + "\t" + secondPair);
+				if(SequenceUtil.basesEqual(bases[currentCytPos], SequenceUtil.C) && basesQ[currentCytPos] >= minBaseQ){
+					numC++;
+					numCg++;
+				}else if(SequenceUtil.basesEqual(bases[currentCytPos], SequenceUtil.T) && basesQ[currentCytPos] >= minBaseQ){
+					numT++;
+					numCg++;
+				}
+			}
+		}
+		return Triple.of(numC, numT,numCg); //first is numC, second is numT, third is Cpg number
+	}
+
+
 	static public Triple<Integer,Integer, Integer> readsMethySummaryWithFivePrimeFilter(byte[] refBases, byte[] bases, byte[] basesQ, boolean negStrand, boolean secondPair, int minBaseQ, int bisulfiteConvertStart){
 		if(bisulfiteConvertStart<0){
 			bisulfiteConvertStart=0;
