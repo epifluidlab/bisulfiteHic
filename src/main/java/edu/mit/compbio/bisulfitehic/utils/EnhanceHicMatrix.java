@@ -47,7 +47,7 @@ import org.kohsuke.args4j.Option;
 
 /**
  * use the concordance of the methylation status at each end to increase the resolution of HiC. 
- * beta-binomial distriution is a little bit difficult.. use simple correlation now...
+ * use simple correlation now... later the similarity of beta-binomial distriution
  * correlation, p value, number of points, cor_random, pvalue_random, numOfPoints_random
  */
 public class EnhanceHicMatrix {
@@ -58,21 +58,27 @@ public class EnhanceHicMatrix {
 	
 	@Option(name="-turnOffBisulfiteFilter",usage="turn off bisulfite conversion reads filter. Default: false")
 	public boolean turnOffBisulfiteFilter = false;
-	
+
+	@Option(name="-useBadMate",usage="use not proper paired reads. Default: false")
+	public boolean useBadMate = false;
+
+	@Option(name="-useUnpaired",usage="reads are mapped in single end mode, have not joined into pairs yet. Default: false")
+	public boolean useUnpaired = false;
+
 	@Option(name="-minMapQ",usage="minimum mapping quality score required to check. Default: 30")
-	public int minMapQ = -1;
+	public int minMapQ = 30;
 
 	@Option(name="-minDistEnds",usage="minimum distance between two end to be output. Default: 20000")
 	public int minDistEnds = 20000;
 
-	@Option(name="-maxDistEnds",usage="maximum distance between two end to be output. Default: 3000000")
-	public int maxDistEnds = 3000000;
+	@Option(name="-maxDistEnds",usage="maximum distance between two end to be output. Default: 2000000")
+	public int maxDistEnds = 2000000;
 
 	@Option(name="-resolution",usage="if not use -bedpe, the window size to look at matrix. Default: 25000")
 	public int resolution = 25000;
 
-	@Option(name="-window",usage="the smaller window size to look into the resolution. Default: 500")
-	public int window = 500;
+	@Option(name="-window",usage="the smaller window size to look into the resolution. Default: 5000")
+	public int window = 5000;
 
 	@Option(name="-slidingWindow",usage="use 10% of window length to slide the window rather than non-overlapped one, default: not enabled")
 	public boolean slidingWindow = false;
@@ -83,7 +89,7 @@ public class EnhanceHicMatrix {
 	@Option(name="-bedpe",usage="bedpe file to limit the analysis only in these regions. Otherwise, it will scan the whole genome for all of the possible resolution windows. Default: null")
 	public String bedpe = null;
 	
-	@Option(name="-minCgNum",usage="specify the minimum  number of CpG to call ASM. Default: 1")
+	@Option(name="-minCgNum",usage="specify the minimum  number of CpG/GCH. Default: 1")
 	public int minCgNum = 1;
 	
 	@Option(name="-permutations",usage="number of permutations to generate expectated p value within the same segments, default: 10")
@@ -91,6 +97,19 @@ public class EnhanceHicMatrix {
 	
 	@Option(name="-skipProcessFirstRow",usage="don't process first row for bedpe file, default: not enabled")
 	public boolean skipProcessFirstRow = false;
+
+	@Option(name="-methyPatternSearch",usage="methylation pattern to search, allow IUPAC match code, such as HCG or GCH for NOMe-seq, default: CG")
+	public String methyPatternSearch = "CG";
+
+	@Option(name="-methyPatternCytPos",usage="cytosine position in -methyPatternSearch. for example, 1 for CG and 2 for HCG, default: 1")
+	public int methyPatternCytPos = 1;
+
+	@Option(name="-bsConvPatternSearch",usage="bisulfite conversion pattern to search, allow IUPAC match code, such as WCH for NOMe-seq, default: CH")
+	public String bsConvPatternSearch = "CH";
+
+	@Option(name="-bsConvPatternCytPos",usage="cytosine position in -bsConvPatternSearch. for example, 1 for CH and 2 for WCH, default: 1")
+	public int bsConvPatternCytPos = 1;
+
 
 	@Option(name="-h",usage="show option information")
 	public boolean help = false;
@@ -240,7 +259,7 @@ public class EnhanceHicMatrix {
 								continue;
 							}
 							
-							Triple<Integer,Integer, Integer> cpgSummary = BisulfiteHicUtils.readsMethySummary(r, minMapQ, minBaseQ, turnOffBisulfiteFilter);
+							Triple<Integer,Integer, Integer> cpgSummary = BisulfiteHicUtils.readsMethySummaryGeneral(r, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
 							int numC = cpgSummary.getLeft();
 							int numT = cpgSummary.getMiddle();
 							int numCg = cpgSummary.getRight();
@@ -288,7 +307,7 @@ public class EnhanceHicMatrix {
 								continue;
 							}
 							
-							Triple<Integer,Integer, Integer> cpgSummary = BisulfiteHicUtils.readsMethySummary(r, minMapQ, minBaseQ, turnOffBisulfiteFilter);
+							Triple<Integer,Integer, Integer> cpgSummary = BisulfiteHicUtils.readsMethySummaryGeneral(r, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
 							int numC = cpgSummary.getLeft();
 							int numT = cpgSummary.getMiddle();
 							int numCg = cpgSummary.getRight();
@@ -494,23 +513,26 @@ public class EnhanceHicMatrix {
 					String line;
 					long i = 0;
 					while( (line = br.readLine()) != null){
-						if(line.startsWith("#") || (skipProcessFirstRow && i == 0))
+						if((skipProcessFirstRow && i==0) || line.startsWith("#")){
+							i++;
 							continue;
-						String[] splitin = line.split("\t");
-						String chr1 = splitin[0];
-						int start1 = Integer.parseInt(splitin[1]);
-						int end1 = Integer.parseInt(splitin[2]);
-						String chr2 = splitin[3];
-						int start2 = Integer.parseInt(splitin[4]);
-						int end2 = Integer.parseInt(splitin[5]);
-						if((!chr1.equalsIgnoreCase(chr2)) || Math.abs(start1-start2)<minDistEnds || Math.abs(end1-end2)<minDistEnds ||  Math.abs(start1-start2)>maxDistEnds || Math.abs(end1-end2)>maxDistEnds){
-							continue;
+						}else {
+							String[] splitin = line.split("\t");
+							String chr1 = splitin[0];
+							int start1 = Integer.parseInt(splitin[1]);
+							int end1 = Integer.parseInt(splitin[2]);
+							String chr2 = splitin[3];
+							int start2 = Integer.parseInt(splitin[4]);
+							int end2 = Integer.parseInt(splitin[5]);
+							if ((!chr1.equalsIgnoreCase(chr2)) || Math.abs(start1 - start2) < minDistEnds || Math.abs(end1 - end2) < minDistEnds || Math.abs(start1 - start2) > maxDistEnds || Math.abs(end1 - end2) > maxDistEnds) {
+								continue;
+							}
+
+							Interval interval1 = new Interval(chr1, start1, end1);
+							Interval interval2 = new Interval(chr2, start2, end2);
+							ranges.add(new Pair<Interval, Interval>(interval1, interval2));
+							i++;
 						}
-						
-						Interval interval1 = new Interval(chr1, start1, end1);
-						Interval interval2 = new Interval(chr2, start2, end2);
-						ranges.add(new Pair<Interval,Interval>(interval1, interval2));
-						i++;
 						
 					}
 					if(bedpe.endsWith(".gz")){
@@ -577,7 +599,7 @@ public class EnhanceHicMatrix {
 			
 			private boolean failFlagFilter(SAMRecord r){
 				return r.getReadUnmappedFlag() || r.getNotPrimaryAlignmentFlag() || r.getMappingQuality() < minMapQ
-						|| r.getReadFailsVendorQualityCheckFlag() || r.getDuplicateReadFlag() || !r.getReadPairedFlag() || !r.getProperPairFlag();
+						|| r.getReadFailsVendorQualityCheckFlag() || r.getDuplicateReadFlag() || (useUnpaired ? false : !r.getReadPairedFlag()) || (useBadMate ? false : !r.getProperPairFlag());
 			}
 
 			
