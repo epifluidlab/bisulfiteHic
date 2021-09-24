@@ -66,6 +66,30 @@ public class LongRangeAsm {
 	@Option(name="-region",usage="specify the genomic region to look at, use interval format. e.g. chr1:1000-2000 or chr1 for the whole chromsome. default: null, the whole bam file")
 	public String region = null;
 
+	@Option(name="-turnOffBisulfiteFilter",usage="turn off bisulfite conversion reads filter. Default: false")
+	public boolean turnOffBisulfiteFilter = false;
+
+	@Option(name="-useBadMate",usage="use not proper paired reads. Default: false")
+	public boolean useBadMate = false;
+
+	@Option(name="-diffChr",usage="don't skip the region from two different chromosomes, default: not enabled")
+	public boolean diffChr = false;
+
+	@Option(name="-useUnpaired",usage="reads are mapped in single end mode, have not joined into pairs yet. Default: false")
+	public boolean useUnpaired = false;
+
+	@Option(name="-methyPatternSearch",usage="methylation pattern to search, allow IUPAC match code, such as HCG or GCH for NOMe-seq, default: CG")
+	public String methyPatternSearch = "CG";
+
+	@Option(name="-methyPatternCytPos",usage="cytosine position in -methyPatternSearch. for example, 1 for CG and 2 for HCG, default: 1")
+	public int methyPatternCytPos = 1;
+
+	@Option(name="-bsConvPatternSearch",usage="bisulfite conversion pattern to search, allow IUPAC match code, such as WCH for NOMe-seq, default: CH")
+	public String bsConvPatternSearch = "CH";
+
+	@Option(name="-bsConvPatternCytPos",usage="cytosine position in -bsConvPatternSearch. for example, 1 for CH and 2 for WCH, default: 1")
+	public int bsConvPatternCytPos = 1;
+
 	@Option(name="-minMapQ",usage="minmum mapping quality score, default: 30")
 	public int minMapQ = 30;
 
@@ -352,8 +376,8 @@ public class LongRangeAsm {
 					int r1Start = d.getAlignmentStart();
 					int r2Start = r2.getAlignmentStart();
 					
-					TreeMap<Integer, Integer> ctSummary = BisulfiteHicUtils.readsMethySummaryAtEachLoc(d, minMapQ, minBaseQ, false);
-					TreeMap<Integer, Integer> ctSummaryEnd2 = BisulfiteHicUtils.readsMethySummaryAtEachLoc(r2, minMapQ, minBaseQ, false);
+					TreeMap<Integer, Integer> ctSummary = BisulfiteHicUtils.readsMethySummaryAtEachLocGeneral(d, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+					TreeMap<Integer, Integer> ctSummaryEnd2 = BisulfiteHicUtils.readsMethySummaryAtEachLocGeneral(r2, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
 					if(ctSummary.isEmpty() || ctSummaryEnd2.isEmpty())
 						continue;
 					
@@ -474,11 +498,11 @@ public class LongRangeAsm {
 		}
 		reader.close();
 	}
-	
+
 
 	private boolean failFlagFilter(SAMRecord r){
 		return r.getReadUnmappedFlag() || r.getNotPrimaryAlignmentFlag() || r.getMappingQuality() < minMapQ
-				|| r.getReadFailsVendorQualityCheckFlag() || r.getDuplicateReadFlag() || !r.getReadPairedFlag() || !r.getProperPairFlag() || Math.abs(r.getInferredInsertSize()) < minDist;
+				|| r.getReadFailsVendorQualityCheckFlag() || r.getDuplicateReadFlag() || (useUnpaired ? false : !r.getReadPairedFlag()) || (useBadMate ? false : !r.getProperPairFlag()) || (diffChr ? (Math.abs(r.getInferredInsertSize()) < minDist && Math.abs(r.getInferredInsertSize())!=0 ): Math.abs(r.getInferredInsertSize()) < minDist);
 	}
 	
 	private VCFFileReader initiate(String vcfFile, String outputFile, String refFile, String altFile) throws IOException{

@@ -88,6 +88,9 @@ public class EnhanceHicMatrix {
 
 	@Option(name="-bedpe",usage="bedpe file to limit the analysis only in these regions. Otherwise, it will scan the whole genome for all of the possible resolution windows. Default: null")
 	public String bedpe = null;
+
+	@Option(name="-chrom",usage="specify the chromosome. otherwise, use all the chrs Default: null")
+	public String chrom = null;
 	
 	@Option(name="-minCgNum",usage="specify the minimum  number of CpG/GCH. Default: 1")
 	public int minCgNum = 1;
@@ -173,8 +176,9 @@ public class EnhanceHicMatrix {
 							getChromSize(chromSizeFile);
 							
 							ArrayList<Pair<Interval,Interval>> regions = getPairedRange();
-								
-								
+
+							log.info("The number of interval pairs:" + regions.size());
+
 							log.info("Parsing input cpgList bed file ...");
 							HashMap<String,IntervalTree<String>> allCpgLocCollections = new HashMap<String,IntervalTree<String>>();
 								log.info("Loading all CpG intervals ... ");
@@ -200,6 +204,9 @@ public class EnhanceHicMatrix {
 										String chr = splitLines[0];
 										int start = Integer.parseInt(splitLines[1]);
 										int end = Integer.parseInt(splitLines[2]);
+										if(chrom != null && !chr.equalsIgnoreCase(chrom)){
+											continue;
+										}
 										IntervalTree<String> tree;
 										
 										if(allCpgLocCollections.containsKey(chr)){
@@ -340,60 +347,117 @@ public class EnhanceHicMatrix {
 						//System.err.println(cpgMethyMatrix1.size());
 						//System.err.println(cpgMethyMatrix2.size());
 						//use window size to scan all within the interval. calculate distance/correlation score within each window, for each window, also permuatte to calculate permutated distance & correlation score
-						for(int startW1 = interval1.getStart(); startW1 < interval1.getEnd()-window; startW1+=(slidingWindow ? window/10 : window)){
-							int endW1 = startW1 + window;
-							HashMap<String, Double> reads1 = new HashMap<String, Double>();
-							Iterator<Node<HashMap<String, Double>>> readsIt1 = cpgMethyMatrix1.overlappers(startW1, endW1);
-							if(readsIt1 == null){
-								continue;
-							}else{
-								while(readsIt1.hasNext()){
-									reads1.putAll(readsIt1.next().getValue());
-								}
-								
-							}
-							if(reads1.size() < minReadsInWindow){
-								continue;
-							}
-							for(int startW2 = interval2.getStart(); startW2 < interval2.getEnd()-window; startW2+=(slidingWindow ? window/10 : window)){
-								int endW2 = startW2 + window;
-								HashMap<String, Double> reads2 = new HashMap<String, Double>();
-								Iterator<Node<HashMap<String, Double>>> readsIt2 = cpgMethyMatrix2.overlappers(startW2, endW2);
-								if(readsIt2 == null){
+						if(bedpe == null){ //dont' need to go over each possible window...
+
+								int startW1 = interval1.getStart();
+								int endW1 = interval1.getEnd();
+								HashMap<String, Double> reads1 = new HashMap<String, Double>();
+								Iterator<Node<HashMap<String, Double>>> readsIt1 = cpgMethyMatrix1.overlappers(startW1, endW1);
+								if(readsIt1 == null){
 									continue;
 								}else{
-									while(readsIt2.hasNext()){
-										reads2.putAll(readsIt2.next().getValue());
+									while(readsIt1.hasNext()){
+										reads1.putAll(readsIt1.next().getValue());
 									}
+
 								}
-								if(reads2.size() < minReadsInWindow){
+								if(reads1.size() < minReadsInWindow){
 									continue;
 								}
-								//System.err.println(reads1.size());
-								//System.err.println(reads2.size());
-								
-								ArrayList<Double> ratios = cpgContactFreq(reads1, reads2);
-								queryNum++;
-								if(!ratios.get(0).isNaN()){
-									String name = interval1.getContig() + ":" + startW1 + ":" + endW1 + ":" + startW2 + ":" + endW2;
-									if(bedpe != null){
-										name = interval1.getContig() + ":" + interval1.getStart() + ":" + interval1.getEnd() + ":" + interval2.getStart() + ":" + interval2.getEnd(); //use bedpe's interval as row names...
+
+									int startW2 = interval2.getStart();
+									int endW2 = interval2.getEnd();
+									HashMap<String, Double> reads2 = new HashMap<String, Double>();
+									Iterator<Node<HashMap<String, Double>>> readsIt2 = cpgMethyMatrix2.overlappers(startW2, endW2);
+									if(readsIt2 == null){
+										continue;
+									}else{
+										while(readsIt2.hasNext()){
+											reads2.putAll(readsIt2.next().getValue());
+										}
 									}
-									writer.write(interval1.getContig() + "\t" + startW1 + "\t" + endW1 + "\t" + interval2.getContig() + "\t" + startW2 + "\t" + endW2 + "\t" + name);
-									for(Double ratio : ratios){
-										writer.write("\t" + ratio);
+									if(reads2.size() < minReadsInWindow){
+										continue;
 									}
-									writer.write("\n");
-									
-									
+									//System.err.println(reads1.size());
+									//System.err.println(reads2.size());
+
+									ArrayList<Double> ratios = cpgContactFreq(reads1, reads2);
+									queryNum++;
+									if(!ratios.get(0).isNaN()){
+										String name = interval1.getContig() + ":" + startW1 + ":" + endW1 + ":" + startW2 + ":" + endW2;
+										writer.write(interval1.getContig() + "\t" + startW1 + "\t" + endW1 + "\t" + interval2.getContig() + "\t" + startW2 + "\t" + endW2 + "\t" + name);
+										for(Double ratio : ratios){
+											writer.write("\t" + ratio);
+										}
+										writer.write("\n");
+
+
+									}
+									if(queryNum % 1000000 == 0){
+										log.info("Processing CpG ... " + queryNum);
+										writer.flush();
+									}
+
+
+
+						}else{
+							for(int startW1 = interval1.getStart(); startW1 < interval1.getEnd()-window; startW1+=(slidingWindow ? window/10 : window)){
+								int endW1 = startW1 + window;
+								HashMap<String, Double> reads1 = new HashMap<String, Double>();
+								Iterator<Node<HashMap<String, Double>>> readsIt1 = cpgMethyMatrix1.overlappers(startW1, endW1);
+								if(readsIt1 == null){
+									continue;
+								}else{
+									while(readsIt1.hasNext()){
+										reads1.putAll(readsIt1.next().getValue());
+									}
+
 								}
-								if(queryNum % 1000000 == 0){
-									log.info("Processing CpG ... " + queryNum);
-									writer.flush();
+								if(reads1.size() < minReadsInWindow){
+									continue;
 								}
-								
+								for(int startW2 = interval2.getStart(); startW2 < interval2.getEnd()-window; startW2+=(slidingWindow ? window/10 : window)){
+									int endW2 = startW2 + window;
+									HashMap<String, Double> reads2 = new HashMap<String, Double>();
+									Iterator<Node<HashMap<String, Double>>> readsIt2 = cpgMethyMatrix2.overlappers(startW2, endW2);
+									if(readsIt2 == null){
+										continue;
+									}else{
+										while(readsIt2.hasNext()){
+											reads2.putAll(readsIt2.next().getValue());
+										}
+									}
+									if(reads2.size() < minReadsInWindow){
+										continue;
+									}
+									//System.err.println(reads1.size());
+									//System.err.println(reads2.size());
+
+									ArrayList<Double> ratios = cpgContactFreq(reads1, reads2);
+									queryNum++;
+									if(!ratios.get(0).isNaN()){
+										String name = interval1.getContig() + ":" + startW1 + ":" + endW1 + ":" + startW2 + ":" + endW2;
+										if(bedpe != null){
+											name = interval1.getContig() + ":" + interval1.getStart() + ":" + interval1.getEnd() + ":" + interval2.getStart() + ":" + interval2.getEnd(); //use bedpe's interval as row names...
+										}
+										writer.write(interval1.getContig() + "\t" + startW1 + "\t" + endW1 + "\t" + interval2.getContig() + "\t" + startW2 + "\t" + endW2 + "\t" + name);
+										for(Double ratio : ratios){
+											writer.write("\t" + ratio);
+										}
+										writer.write("\n");
+
+
+									}
+									if(queryNum % 1000000 == 0){
+										log.info("Processing CpG ... " + queryNum);
+										writer.flush();
+									}
+
+								}
 							}
 						}
+
 						
 					}
 					wgsReader.close();
@@ -524,7 +588,10 @@ public class EnhanceHicMatrix {
 							String chr2 = splitin[3];
 							int start2 = Integer.parseInt(splitin[4]);
 							int end2 = Integer.parseInt(splitin[5]);
-							if ((!chr1.equalsIgnoreCase(chr2)) || Math.abs(start1 - start2) < minDistEnds || Math.abs(end1 - end2) < minDistEnds || Math.abs(start1 - start2) > maxDistEnds || Math.abs(end1 - end2) > maxDistEnds) {
+							if ((!chr1.equalsIgnoreCase(chr2)) || Math.abs(start1 - end2) < minDistEnds || Math.abs(end1 - start2) < minDistEnds || Math.abs(start1 - start2) > maxDistEnds || Math.abs(end1 - end2) > maxDistEnds) {
+								continue;
+							}
+							if(chrom != null && !chr1.equalsIgnoreCase(chrom)){
 								continue;
 							}
 
@@ -544,12 +611,15 @@ public class EnhanceHicMatrix {
 			}else{
 				log.info("Generating windows in the whole genome ...");
 				for(String chr : chromSize.keySet()){
+					if(chrom != null && !chr.equalsIgnoreCase(chrom)){
+						continue;
+					}
 					int size = chromSize.get(chr);
 					for(int start1 = 0; start1 < size - 2*resolution; start1+=resolution){
 						int end1 = start1 + resolution;
 						for(int start2 = end1; start2 < size - resolution; start2+=resolution){
 							int end2 = start2 + resolution;
-							if(Math.abs(start1-start2)<minDistEnds || Math.abs(end1-end2)<minDistEnds ||  Math.abs(start1-start2)>maxDistEnds || Math.abs(end1-end2)>maxDistEnds){
+							if(Math.abs(start1-end2)<minDistEnds || Math.abs(end1-start2)<minDistEnds ||  Math.abs(start1-start2)>maxDistEnds || Math.abs(end1-end2)>maxDistEnds){
 								continue;
 							}
 							Interval interval1 = new Interval(chr, start1, end1);

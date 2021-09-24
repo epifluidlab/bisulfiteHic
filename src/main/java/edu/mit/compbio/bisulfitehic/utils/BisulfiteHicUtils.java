@@ -203,6 +203,41 @@ public class BisulfiteHicUtils {
 
 		return ctSummary; //first is C, second is T
 	}
+
+	static public TreeMap<Integer, Integer> readsMethySummaryAtEachLocGeneral(SAMRecord read, String patSearchMeth, int cPos, String patCheckBsConv, int cPosBs, int minMapQ, int minBaseQ, boolean turnOffBisulfiteFilter, boolean useBadMate) throws Exception{
+		boolean negStrand = read.getReadNegativeStrandFlag();
+		boolean secondPair = read.getReadPairedFlag() && read.getSecondOfPairFlag();
+		//filter if it is bad reads
+		if(read.getReadUnmappedFlag() || read.getNotPrimaryAlignmentFlag() || read.getDuplicateReadFlag()
+				|| read.getReadFailsVendorQualityCheckFlag() || !read.getReadPairedFlag() || (useBadMate ? false : !read.getProperPairFlag())
+				|| read.getMappingQuality() < minMapQ){
+			return null;
+		}
+
+		byte[] refBases = CcInferenceUtils.toUpperCase(modifyRefSeqByCigar(SequenceUtil.makeReferenceFromAlignment(read, false), read.getCigarString()));
+
+		byte[] readBasesQ = getClippedReadsBaseQuality(read);
+		byte[] readBases = CcInferenceUtils.toUpperCase(getClippedReadsBase(read));
+
+		if(refBases.length != readBases.length || refBases.length != readBasesQ.length){
+			throw new IllegalArgumentException("read base is different from reference base length:" + read.getReadName() + "\t" + read.getCigarString() + "\t" + read.getContig() + "\t" + read.getAlignmentStart()
+					+ "\n" + new String(refBases) + "\n" + new String(readBases) + "\n" + new String(readBasesQ));
+		}
+
+		TreeMap<Integer, Integer> ctSummary = new TreeMap<Integer, Integer>();
+		int pos = 0;
+		if(!turnOffBisulfiteFilter){
+
+			pos = CcInferenceUtils.bisulfiteIncompleteReads(readBases, refBases, negStrand, secondPair, false, true, true, 0.1, 0.4, 0, patCheckBsConv, cPosBs);
+			if(pos<0){
+				return ctSummary;
+			}
+		}
+		byte[] baseSearchMeth = patSearchMeth.getBytes();
+		ctSummary = readsMethyAndLocWithFivePrimeFilterGeneral(refBases, readBases, readBasesQ, baseSearchMeth, cPos, negStrand, secondPair, minBaseQ, pos);
+
+		return ctSummary; //first is location, second is methylation status: 0 unmethy, 1 methy.
+	}
 	
 	static public TreeMap<Integer, Integer> readsMethySummaryAtEachLoc(SAMRecord read, int minMapQ, int minBaseQ, boolean turnOffBisulfiteFilter, boolean useBadMate) throws Exception{
 		boolean negStrand = read.getReadNegativeStrandFlag();
@@ -412,6 +447,43 @@ public class BisulfiteHicUtils {
 		//}
 		 
 		return Triple.of(numC, numT,numCg); //first is numC, second is numT, third is Cpg number
+	}
+
+	static public TreeMap<Integer, Integer> readsMethyAndLocWithFivePrimeFilterGeneral(byte[] refBases, byte[] bases, byte[] basesQ, byte[] searchBases, int cPos, boolean negStrand, boolean secondPair, int minBaseQ, int bisulfiteConvertStart){
+		if(bisulfiteConvertStart<0){
+			bisulfiteConvertStart=0;
+		}
+		if((!secondPair && !negStrand) || (secondPair && negStrand)) {
+
+		}else {
+			//reverse completment refBases, bases, reverse basesQ
+			bases = BaseUtils.simpleReverseComplement(bases);
+			refBases = BaseUtils.simpleReverseComplement(refBases);
+			basesQ = BaseUtilsMore.simpleReverse(basesQ);
+		}
+		TreeMap<Integer, Integer> cpgMethy = new TreeMap<Integer, Integer>(); //key: relative location from beginning of fragment, value: 0:unmethy, 1: methy
+
+		for(int i = bisulfiteConvertStart; i < refBases.length - (searchBases.length-1); i++){
+			int j = i;
+			boolean found = true;
+			for(int index = 0; index < searchBases.length; j++,index++) {
+				if (!BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(searchBases[index], refBases[j])) {
+					found = false;
+					break;
+				}
+			}
+			if(found){
+				int currentCytPos = i+cPos-1;
+				//System.err.println(new String(refBases) + "\t" + bisulfiteConvertStart + "\t" + i + "\t" + new String(bases) + "\t" + j + "\t" + new String(basesQ) + "\t" + negStrand + "\t" + secondPair);
+				if(SequenceUtil.basesEqual(bases[currentCytPos], SequenceUtil.C) && basesQ[currentCytPos] >= minBaseQ){
+					cpgMethy.put(currentCytPos, 1);
+				}else if(SequenceUtil.basesEqual(bases[currentCytPos], SequenceUtil.T) && basesQ[currentCytPos] >= minBaseQ){
+					cpgMethy.put(currentCytPos, 0);
+				}
+			}
+		}
+
+		return cpgMethy; //key: relative location from beginning of fragment, value: 0:unmethy, 1: methy
 	}
 	
 	static public TreeMap<Integer, Integer> readsMethyAndLocWithFivePrimeFilter(byte[] refBases, byte[] bases, byte[] basesQ, 
