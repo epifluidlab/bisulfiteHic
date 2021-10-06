@@ -112,8 +112,8 @@ public class MethyCorAcrossHiccups {
 	@Option(name="-randomSampleReads",usage="only use part of the reads in each interval. good for -randomHiccupsInput mode or -onlyShort mode, default: -1. not enabled")
 	public int randomSampleReads = -1;
 
-	@Option(name="-minRandonReads",usage="minimum pairs of reads to random sampling, only for -randomHiccupsInput mode. default: 0")
-	public int minRandonReads = 0;
+	@Option(name="-minReads",usage="minimum pairs of reads within the regions. default: 0")
+	public int minReads = 0;
 	
 	@Option(name="-skipProcessFirstRow",usage="don't process first row, default: not enabled")
 	public boolean skipProcessFirstRow = false;
@@ -665,6 +665,16 @@ public class MethyCorAcrossHiccups {
 				reopenFlag=false;
 			}
 			//System.err.println(countedReadsEnd1.size() + "\t" + countedReadsEnd2.size());
+
+			int totalPairs = 0;
+			for(String readName : countedReadsEnd1.keySet()) {
+				if (countedReadsEnd2.containsKey(readName)) {
+					totalPairs++;
+				}
+			}
+			if(totalPairs<minReads){
+				return; //too few reads, not wirte the pairs...
+			}
 			int readNum = 1;
 			for(String readName : countedReadsEnd1.keySet()){
 				if(countedReadsEnd2.containsKey(readName)){
@@ -776,7 +786,7 @@ public class MethyCorAcrossHiccups {
 
 			String[] readNames = sharedReadNames.toArray(new String[sharedReadNames.size()]);
 			//if(readNames1.length>10 && readNames2.length>10){
-			if(readNames.length > minRandonReads) {
+			if(readNames.length > minReads) {
 				for (int i = 0; i < randomSampleReads; i++) {
 					Collections.shuffle(sharedReadNames);
 					for (int j = 0; j < readNames.length; j++) {
@@ -865,7 +875,15 @@ public class MethyCorAcrossHiccups {
 				}
 			}
 			wgsIt.close();
-			
+			int totalPairs = 0;
+			for(String readName : countedReadsEnd1.keySet()) {
+				if (countedReadsEnd2.containsKey(readName)) {
+					totalPairs++;
+				}
+			}
+			if(totalPairs<minReads){
+				return; //too few reads, not wirte the pairs...
+			}
 			//System.err.println(countedReadsEnd1.size() + "\t" + countedReadsEnd2.size());
 			int readNum = 0;
 			for(String readName : countedReadsEnd1.keySet()){

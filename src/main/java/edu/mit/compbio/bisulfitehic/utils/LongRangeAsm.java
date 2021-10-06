@@ -55,12 +55,11 @@ import org.kohsuke.args4j.Option;
 public class LongRangeAsm {
 
 	/**
-	 * not use the full genotype information, just use REF/ALT in vcf... so only useful for single sample
+	 *
 	 * output.ASM.tab format:
-	 * chr, start, end, Ref, Alt, Ref_SNP_cov, Ref_methy_num, Ref_unmethy_num, Ref_CG_num, Ref_CG_methy_sum, Ref_C_CT, Ref_CG_methy_mean, 
-	 * , Alt_SNP_cov, Alt_methy_num, Alt_unmethy_num, Alt_CG_num, Alt_CG_methy_sum, Alt_C_CT, Alt_CG_methy_mean
-	 * End2_Ref_methy_num, End2_Ref_unmethy_num, End2_Ref_CG_num, End2_Ref_CG_methy_sum, End2_Ref_C_CT, End2_Ref_CG_methy_mean,
-	 * End2_Alt_methy_num, End2_Alt_unmethy_num, End2_Alt_CG_num, End2_Alt_CG_methy_sum, End2_Alt_C_CT, End2_Alt_CG_methy_mean
+	 * #chr\tstart\tend\tAlleleA\tAlleleA_count\tAlleleA_C\tAlleleA_T\tAlleleA_meth_mean\t"
+	 * 				+ "AlleleB\tAlleleB_count\tAlleleB_C\tAlleleB_T\tAlleleB_meth_mean\tEnd2_anchor_point\tEnd2_AlleleA_C\tEnd2_AlleleA_T\tEnd2_AlleleA_meth_mean\t"
+	 * 				+ "End2_AlleleB_C\tEnd2_AlleleB_T\tEnd2_AlleleB_meth_mean\tMaxEnd2Dist
 	 * 
 	 */
 	@Option(name="-region",usage="specify the genomic region to look at, use interval format. e.g. chr1:1000-2000 or chr1 for the whole chromsome. default: null, the whole bam file")
@@ -237,11 +236,12 @@ public class LongRangeAsm {
 				Genotype gt = vc.getGenotype(sample);
 				//if(vc.getEnd()==221974)
 					//System.err.println(vc + "\t" + vc.isFiltered() + "\t" + vc.isIndel() + "\t" +  vc.isMixed() + "\t" + gt.isFiltered() + "\t" + gt.isHet());
-				if(!gt.isFiltered() && gt.isHet()){ //only phased Het SNP is considered
+				if(!gt.isFiltered() && gt.isHet() && gt.isPhased()){ //only phased Het SNP is considered.
 					GenomeLoc genomeLoc = glp.createGenomeLoc(vc.getChr(),vc.getStart(), vc.getEnd());
 					
-					Byte alleleA = gt.getAllele(0).getBases()[0];
+					Byte alleleA = gt.getAllele(0).getBases()[0]; // the first one (alleleA) is indeed the first at genotype. e,g, 1|0, the first is indeed the alternative allele. not the reference allele.
 					Byte alleleB = gt.getAllele(1).getBases()[0];
+					//System.err.println(vc.getChr() + "\t" + vc.getStart() + "\t" + vc.getEnd() + "\t" + String.valueOf(alleleA) + "\t" + String.valueOf(alleleB) + "\t" + vc.toStringDecodeGenotypes());
 					Pair<Byte, Byte> tmp = new Pair<Byte, Byte>(alleleA, alleleB);
 					if(!gss.contains(genomeLoc)){
 						genotypeMapList.put(genomeLoc, tmp);
@@ -515,9 +515,9 @@ public class LongRangeAsm {
 		
 		writer =  new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(outputFile)), "UTF-8");
 		//write the file header
-		writer.write("#chr\tstart\tend\tRefAllele\tRefAllele_count\tRef_C\tRef_T\tRef_meth_mean\t"
-				+ "AltAllele\tAltAllele_count\tAlt_C\tAlt_T\tAlt_meth_mean\tEnd2_anchor_point\tEnd2_Ref_C\tEnd2_Ref_T\tEnd2_Ref_meth_mean\t"
-				+ "End2_Alt_C\tEnd2_Alt_T\tEnd2_Alt_meth_mean\tMaxEnd2Dist\n");
+		writer.write("#chr\tstart\tend\tAlleleA\tAlleleA_count\tAlleleA_C\tAlleleA_T\tAlleleA_meth_mean\t"
+				+ "AlleleB\tAlleleB_count\tAlleleB_C\tAlleleB_T\tAlleleB_meth_mean\tEnd2_anchor_point\tEnd2_AlleleA_C\tEnd2_AlleleA_T\tEnd2_AlleleA_meth_mean\t"
+				+ "End2_AlleleB_C\tEnd2_AlleleB_T\tEnd2_AlleleB_meth_mean\tMaxEnd2Dist\n");
 		refWriter =  new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(refFile)), "UTF-8");
 		altWriter =  new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(altFile)), "UTF-8");
 		
