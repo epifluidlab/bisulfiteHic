@@ -3,8 +3,8 @@
   <component name="ChangeListManager">
     <list default="true" id="83376207-f3df-40e7-a87d-f0ce9b78cbba" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/AlleImbalanceExpr.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/AlleImbalanceExpr.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/python/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/src/python/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/python/betabinom_test_mgch.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/python/betabinom_test_mgch.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -51,8 +51,8 @@
   </component>
   <component name="RecentsManager">
     <key name="CopyClassDialog.RECENTS_KEY">
-      <recent name="main.java.edu.mit.compbio.bisulfitehic.mapping" />
       <recent name="main.java.edu.mit.compbio.bisulfitehic.utils" />
+      <recent name="main.java.edu.mit.compbio.bisulfitehic.mapping" />
     </key>
   </component>
   <component name="RunDashboard">
@@ -372,6 +372,8 @@
       <workItem from="1604095493562" duration="1760000" />
       <workItem from="1605439608375" duration="502000" />
       <workItem from="1607601636446" duration="10925000" />
+      <workItem from="1631824199180" duration="18893000" />
+      <workItem from="1632419666080" duration="24327000" />
     </task>
     <servers />
   </component>
@@ -398,16 +400,6 @@
     <option name="RECENTLY_FILTERED_BRANCH_GROUPS">
       <collection />
     </option>
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/EnhanceHicMatrix.java</url>
-          <line>373</line>
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
   <component name="antWorkspaceConfiguration">
     <option name="IS_AUTOSCROLL_TO_SOURCE" value="false" />

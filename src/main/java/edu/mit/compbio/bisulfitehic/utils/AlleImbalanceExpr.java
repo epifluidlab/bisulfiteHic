@@ -159,7 +159,7 @@ public class AlleImbalanceExpr {
 								if(chrom != null && !chrom.equalsIgnoreCase(chr)){
 									continue;
 								}
-								GenomeLoc genomeLoc = glp.createGenomeLoc(consistentPrefix ? (chr.startsWith("chr") ? chr : ("chr" + chr) ): chr, start, end);
+								GenomeLoc genomeLoc = glp.createGenomeLoc(chr, start, end);
 								geneList.put(genomeLoc, line);
 							}
 					}
@@ -209,7 +209,7 @@ public class AlleImbalanceExpr {
 				continue;
 			if(partialVcf){
 
-				GenomeLoc genomeLoc = glp.createGenomeLoc(consistentPrefix ? (vc.getChr().startsWith("chr") ? vc.getChr() : ("chr" + vc.getChr()) ): vc.getChr(), vc.getStart(), vc.getEnd());
+				GenomeLoc genomeLoc = glp.createGenomeLoc(vc.getChr(), vc.getStart(), vc.getEnd());
 				Byte alleleA = vc.getAlleles().get(0).getBases()[0];
 				Byte alleleB = vc.getAlleles().get(1).getBases()[0];
 				Pair<Byte, Byte> tmp = new Pair<Byte, Byte>(alleleA, alleleB);
@@ -220,7 +220,7 @@ public class AlleImbalanceExpr {
 				//if(vc.getEnd()==221974)
 					//System.err.println(vc + "\t" + vc.isFiltered() + "\t" + vc.isIndel() + "\t" +  vc.isMixed() + "\t" + gt.isFiltered() + "\t" + gt.isHet());
 				if(!gt.isFiltered() && gt.isHet() && gt.isPhased()){ //only phased Het SNP is considered.
-					GenomeLoc genomeLoc = glp.createGenomeLoc(consistentPrefix ? (vc.getChr().startsWith("chr") ? vc.getChr() : ("chr" + vc.getChr()) ): vc.getChr(), vc.getStart(), vc.getEnd());
+					GenomeLoc genomeLoc = glp.createGenomeLoc(vc.getChr(), vc.getStart(), vc.getEnd());
 					
 					Byte alleleA = gt.getAllele(0).getBases()[0]; // the first one (alleleA) is indeed the first at genotype. e,g, 1|0, the first is indeed the alternative allele. not the reference allele.
 					Byte alleleB = gt.getAllele(1).getBases()[0];
@@ -272,7 +272,7 @@ public class AlleImbalanceExpr {
 
 				Pair<Byte, Byte> alleles = gl.genomeLocsAlleleMap.get(loc);
 
-				SAMRecordIterator samIt = reader.queryOverlapping(loc.getContig(), loc.getStart(), loc.getStop());
+				SAMRecordIterator samIt = reader.queryOverlapping(consistentPrefix ? (loc.getContig().startsWith("chr") ? loc.getContig() : ("chr" + loc.getContig()) ): loc.getContig(), loc.getStart(), loc.getStop());
 
 				HashMap<String, SAMRecord> countedReads = new HashMap<String, SAMRecord>();
 				while(samIt.hasNext()){
