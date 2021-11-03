@@ -22,7 +22,7 @@
   <modelVersion>4.0.0</modelVersion>
   <name>bisulfitehic</name>
   <packaging>jar</packaging>
-  <version>0.36</version>
+  <version>0.37</version>
 
  <dependencies>
   	<dependency>

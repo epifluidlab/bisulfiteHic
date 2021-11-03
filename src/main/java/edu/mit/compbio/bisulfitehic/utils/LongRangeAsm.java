@@ -57,10 +57,21 @@ public class LongRangeAsm {
 	/**
 	 *
 	 * output.ASM.tab format:
-	 * #chr\tstart\tend\tAlleleA\tAlleleA_count\tAlleleA_C\tAlleleA_T\tAlleleA_meth_mean\t"
-	 * 				+ "AlleleB\tAlleleB_count\tAlleleB_C\tAlleleB_T\tAlleleB_meth_mean\tEnd2_anchor_point\tEnd2_AlleleA_C\tEnd2_AlleleA_T\tEnd2_AlleleA_meth_mean\t"
-	 * 				+ "End2_AlleleB_C\tEnd2_AlleleB_T\tEnd2_AlleleB_meth_mean\tMaxEnd2Dist
-	 * 
+	 * "#chr\tstart\tend\t"
+	 * 				+ "AlleleA\tAlleleA_count\tAlleleA_C\tAlleleA_T\tAlleleA_meth_mean\t"
+	 * 				+ "AlleleB\tAlleleB_count\tAlleleB_C\tAlleleB_T\tAlleleB_meth_mean\t"
+	 * 				+ "End2_anchor_point\tEnd2_AlleleA_C\tEnd2_AlleleA_T\tEnd2_AlleleA_meth_mean\t"
+	 * 				+ "End2_AlleleB_C\tEnd2_AlleleB_T\tEnd2_AlleleB_meth_mean\tMaxEnd2Dist\t"
+	 * 				//+ "AlleleRef\tAlleleRef_count\tAlleleAlt\tAlleleAlt_count\t"
+	 * 				+ "AlleleA_local_count\tAlleleA_local_C\tAlleleA_local_T\tAlleleA_local_meth_mean\t"
+	 * 				+ "AlleleB_local_count\tAlleleB_local_C\tAlleleB_local_T\tAlleleB_local_meth_mean\t"
+	 * 				+ "AlleleA_2nd_local_count\tAlleleA_2nd_local_C\tAlleleA_2nd_local_T\tAlleleA_2nd_local_meth_mean\t"
+	 * 				+ "AlleleB_2nd_local_count\tAlleleB_2nd_local_C\tAlleleB_2nd_local_T\tAlleleB_2nd_local_meth_mean\t"
+	 * 				+ "AlleleA_2nd_C\tAlleleA_2nd_T\tAlleleA_2nd_meth_mean\t"
+	 * 				+ "AlleleB_2nd_C\tAlleleB_2nd_T\tAlleleB_2nd_meth_mean\t"
+	 * 				+ "End2_AlleleA_2nd_C\tEnd2_AlleleA_2nd_T\tEnd2_AlleleA_2nd_meth_mean\t"
+	 * 				+ "End2_AlleleB_2nd_C\tEnd2_AlleleB_2nd_T\tEnd2_AlleleB_2nd_meth_mean\n"
+	 *
 	 */
 	@Option(name="-region",usage="specify the genomic region to look at, use interval format. e.g. chr1:1000-2000 or chr1 for the whole chromsome. default: null, the whole bam file")
 	public String region = null;
@@ -83,6 +94,12 @@ public class LongRangeAsm {
 	@Option(name="-methyPatternCytPos",usage="cytosine position in -methyPatternSearch. for example, 1 for CG and 2 for HCG, default: 1")
 	public int methyPatternCytPos = 1;
 
+	@Option(name="-methyPattern2ndSearch",usage="the 2nd methylation pattern in the same reads to search, allow IUPAC match code, such as HCG or GCH for NOMe-seq, default: CG")
+	public String methyPattern2ndSearch = null;
+
+	@Option(name="-methyPattern2ndCytPos",usage="cytosine position in -methyPattern2ndSearch. for example, 1 for CG and 2 for HCG, default: 1")
+	public int methyPattern2ndCytPos = 1;
+
 	@Option(name="-bsConvPatternSearch",usage="bisulfite conversion pattern to search, allow IUPAC match code, such as WCH for NOMe-seq, default: CH")
 	public String bsConvPatternSearch = "CH";
 
@@ -92,11 +109,14 @@ public class LongRangeAsm {
 	@Option(name="-minMapQ",usage="minmum mapping quality score, default: 30")
 	public int minMapQ = 30;
 
-	@Option(name="-minBaseQ",usage="minmum mapping quality score, default: 5")
-	public int minBaseQ = 5;
+	@Option(name="-minBaseQ",usage="minmum mapping quality score, default: 20")
+	public int minBaseQ = 20;
 
 	@Option(name="-minDist",usage="minmum distance from two ends, default: 20000")
 	public int minDist = 20000;
+
+	@Option(name="-maxDist",usage="maximum distance from two ends, default: 1000000000")
+	public int maxDist = 1000000000;
 	
 	@Option(name="-coverageRef",usage="specify the minimum  coverage in SNP's allele Ref, default: 5")
 	public int coverageRef = 5;
@@ -311,7 +331,7 @@ public class LongRangeAsm {
 					continue;
 				}else{
 					if(countedReadsEnd1.containsKey(r.getReadName())){
-						countedReadsEnd1.remove(r.getReadName()); //if two ends are within the same half end of hiccup links
+						//countedReadsEnd1.remove(r.getReadName()); //if two ends are overlapped with the same SNPs, just randomly keep one of them there
 					}else{
 						countedReadsEnd1.put(r.getReadName(), r);
 					}
@@ -319,7 +339,12 @@ public class LongRangeAsm {
 				
 			}
 			samIt.close();
-			
+
+			Pair<Integer, Integer> ctAlleleLocalRef = new Pair<Integer, Integer>(0,0);
+			Pair<Integer, Integer> ctAlleleLocalAlt = new Pair<Integer, Integer>(0,0);
+
+			int refAlleleLocalCount = 0;
+			int altAlleleLocalCount = 0;
 
 			Pair<Integer, Integer> ctAlleleRef = new Pair<Integer, Integer>(0,0);
 			Pair<Integer, Integer> ctAlleleAlt = new Pair<Integer, Integer>(0,0);
@@ -330,13 +355,20 @@ public class LongRangeAsm {
 			int altAlleleCount = 0;
 			HashSet<Integer> end2Anchors = new HashSet<Integer>();
 			int maxEnd2Dist = -1;
+
+			//for 2nd methylation patterns
+			Pair<Integer, Integer> ctAllele2ndLocalRef = new Pair<Integer, Integer>(0,0);
+			Pair<Integer, Integer> ctAllele2ndLocalAlt = new Pair<Integer, Integer>(0,0);
+			Pair<Integer, Integer> ctAllele2ndRef = new Pair<Integer, Integer>(0,0);
+			Pair<Integer, Integer> ctAllele2ndAlt = new Pair<Integer, Integer>(0,0);
+			Pair<Integer, Integer> ctAllele2ndRefEnd2 = new Pair<Integer, Integer>(0,0);
+			Pair<Integer, Integer> ctAllele2ndAltEnd2 = new Pair<Integer, Integer>(0,0);
 			
 			for(String readName : countedReadsEnd1.keySet()){
 				SAMRecord d = countedReadsEnd1.get(readName);
 				SAMRecord r2 = reader.queryMate(d);
-				if(failFlagFilter(r2)){
-					continue;
-				}else{
+				boolean badr2 = failFlagFilter(r2);
+
 					boolean negStrand = d.getReadNegativeStrandFlag();
 					boolean secondPair = d.getReadPairedFlag() && d.getSecondOfPairFlag();
 					
@@ -374,22 +406,45 @@ public class LongRangeAsm {
 					//	System.err.println(new String(BisSnp2Utils.getClippedReadBases(d)) + "\t" + d.getAlignmentStart() + "\t" + d.getAlignmentEnd() + "\t" + d.getUnclippedStart() + "\t" + d.getUnclippedEnd());
 					//}
 					int r1Start = d.getAlignmentStart();
-					int r2Start = r2.getAlignmentStart();
-					
+					int r2Start = -1;
+					if(!badr2){
+						r2Start = r2.getAlignmentStart();
+					}
+
+
 					TreeMap<Integer, Integer> ctSummary = BisulfiteHicUtils.readsMethySummaryAtEachLocGeneral(d, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
-					TreeMap<Integer, Integer> ctSummaryEnd2 = BisulfiteHicUtils.readsMethySummaryAtEachLocGeneral(r2, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
-					if(ctSummary.isEmpty() || ctSummaryEnd2.isEmpty())
+					TreeMap<Integer, Integer> ctSummaryEnd2 = new TreeMap<Integer, Integer>();
+					if(!badr2){
+						ctSummaryEnd2 = BisulfiteHicUtils.readsMethySummaryAtEachLocGeneral(r2, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+					}
+					if(ctSummary.isEmpty())
 						continue;
-					
+
+					TreeMap<Integer, Integer> ctSummary2nd = new TreeMap<Integer, Integer>();
+					TreeMap<Integer, Integer> ctSummary2ndEnd2 = new TreeMap<Integer, Integer>();
+					if(methyPattern2ndSearch != null){
+						ctSummary2nd = BisulfiteHicUtils.readsMethySummaryAtEachLocGeneral(d, methyPattern2ndSearch, methyPattern2ndCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+						if(!badr2){
+							ctSummary2ndEnd2 = BisulfiteHicUtils.readsMethySummaryAtEachLocGeneral(r2, methyPattern2ndSearch, methyPattern2ndCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+						}
+					}
+
 					boolean refStrand = BisulfiteHicUtils.baseMatchInBisulfiteSpace(alleles.getFirst(), snpBase, negStrand, secondPair);
 					boolean altStrand = BisulfiteHicUtils.baseMatchInBisulfiteSpace(alleles.getSecond(), snpBase, negStrand, secondPair);
 					int numC = 0;
 					int numCT = 0;
+					int numCLocal = 0;
+					int numCTLocal = 0;
 					for(int rpos : ctSummary.keySet()){
 						int methyStat = ctSummary.get(rpos);
 						int cpos = r1Start + rpos;
-						numC += methyStat;
-						numCT++;
+						numCLocal += methyStat;
+						numCTLocal++;
+						if(!badr2){
+							numC += methyStat;
+							numCT++;
+						}
+
 						if(refStrand){
 							if(methyRef.containsKey(cpos)){
 								Pair<Integer, Integer> stat = methyRef.get(cpos);
@@ -411,63 +466,115 @@ public class LongRangeAsm {
 					
 					int numCEnd2 = 0;
 					int numCTEnd2 = 0;
-					for(int rpos : ctSummaryEnd2.keySet()){
-						int methyStat = ctSummaryEnd2.get(rpos);
-						int cpos = r2Start + rpos;
-						numCEnd2 += methyStat;
-						numCTEnd2++;
-						if(refStrand){
-							if(methyRef.containsKey(cpos)){
-								Pair<Integer, Integer> stat = methyRef.get(cpos);
-								methyRef.put(cpos, new Pair<Integer, Integer>(stat.getFirst() + methyStat,stat.getSecond() + 1));
-								
-							}else{
-								methyRef.put(cpos, new Pair<Integer, Integer>(methyStat,1));
-							}
-						}else if(altStrand){
-							if(methyAlt.containsKey(cpos)){
-								Pair<Integer, Integer> stat = methyAlt.get(cpos);
-								methyAlt.put(cpos, new Pair<Integer, Integer>(stat.getFirst() + methyStat,stat.getSecond() + 1));
-								
-							}else{
-								methyAlt.put(cpos, new Pair<Integer, Integer>(methyStat,1));
+					if(!badr2){
+						for(int rpos : ctSummaryEnd2.keySet()){
+							int methyStat = ctSummaryEnd2.get(rpos);
+							int cpos = r2Start + rpos;
+							numCEnd2 += methyStat;
+							numCTEnd2++;
+							if(refStrand){
+								if(methyRef.containsKey(cpos)){
+									Pair<Integer, Integer> stat = methyRef.get(cpos);
+									methyRef.put(cpos, new Pair<Integer, Integer>(stat.getFirst() + methyStat,stat.getSecond() + 1));
+
+								}else{
+									methyRef.put(cpos, new Pair<Integer, Integer>(methyStat,1));
+								}
+							}else if(altStrand){
+								if(methyAlt.containsKey(cpos)){
+									Pair<Integer, Integer> stat = methyAlt.get(cpos);
+									methyAlt.put(cpos, new Pair<Integer, Integer>(stat.getFirst() + methyStat,stat.getSecond() + 1));
+
+								}else{
+									methyAlt.put(cpos, new Pair<Integer, Integer>(methyStat,1));
+								}
 							}
 						}
 					}
+
+				int numC2nd = 0;
+				int numCT2nd = 0;
+				int numC2ndLocal = 0;
+				int numCT2ndLocal = 0;
+				int numC2ndEnd2 = 0;
+				int numCT2ndEnd2 = 0;
+					if(methyPattern2ndSearch != null){
+
+						for(int rpos : ctSummary2nd.keySet()){
+							int methyStat = ctSummary2nd.get(rpos);
+							numC2ndLocal += methyStat;
+							numCT2ndLocal++;
+							if(!badr2){
+								numC2nd += methyStat;
+								numCT2nd++;
+							}
+						}
+
+
+						if(!badr2){
+							for(int rpos : ctSummary2ndEnd2.keySet()){
+								int methyStat = ctSummary2ndEnd2.get(rpos);
+								numC2ndEnd2 += methyStat;
+								numCT2ndEnd2++;
+							}
+						}
+					}
+
 					
 					if(refStrand){
 						ctAlleleRef = new Pair<Integer, Integer>(ctAlleleRef.getFirst() + numC,ctAlleleRef.getSecond() + numCT);
 						ctAlleleRefEnd2 = new Pair<Integer, Integer>(ctAlleleRefEnd2.getFirst() + numCEnd2,ctAlleleRefEnd2.getSecond() + numCTEnd2);
-						refAlleleCount++;
-						
+						ctAlleleLocalRef = new Pair<Integer, Integer>(ctAlleleLocalRef.getFirst() + numCLocal,ctAlleleLocalRef.getSecond() + numCTLocal);
+						refAlleleLocalCount++;
+						if(!badr2){
+							refAlleleCount++;
+						}
+						if(methyPattern2ndSearch != null){
+							ctAllele2ndRef = new Pair<Integer, Integer>(ctAllele2ndRef.getFirst() + numC2nd,ctAllele2ndRef.getSecond() + numCT2nd);
+							ctAllele2ndRefEnd2 = new Pair<Integer, Integer>(ctAllele2ndRefEnd2.getFirst() + numC2ndEnd2,ctAllele2ndRefEnd2.getSecond() + numCT2ndEnd2);
+							ctAllele2ndLocalRef = new Pair<Integer, Integer>(ctAllele2ndLocalRef.getFirst() + numC2ndLocal,ctAllele2ndLocalRef.getSecond() + numCT2ndLocal);
+						}
 					}else if(altStrand){
 						ctAlleleAlt = new Pair<Integer, Integer>(ctAlleleAlt.getFirst() + numC,ctAlleleAlt.getSecond() + numCT);
 						ctAlleleAltEnd2 = new Pair<Integer, Integer>(ctAlleleAltEnd2.getFirst() + numCEnd2,ctAlleleAltEnd2.getSecond() + numCTEnd2);
-						altAlleleCount++;
-					}
-					if(end2Anchors.isEmpty()){
-						end2Anchors.add(r2Start);
-						maxEnd2Dist = Math.abs(r2Start-loc.getStart());
-					}else{
-						boolean addEntry = true;
-						for(int p : end2Anchors){
-							if(Math.abs(p-r2Start)<500){ //too far away from original, add it 
-								addEntry = false;
-								break;
-							}
-							
+						ctAlleleLocalAlt = new Pair<Integer, Integer>(ctAlleleLocalAlt.getFirst() + numCLocal,ctAlleleLocalAlt.getSecond() + numCTLocal);
+						altAlleleLocalCount++;
+						if(!badr2){
+							altAlleleCount++;
 						}
-						if(addEntry){
+						if(methyPattern2ndSearch != null){
+							ctAllele2ndAlt = new Pair<Integer, Integer>(ctAllele2ndAlt.getFirst() + numC2nd,ctAllele2ndAlt.getSecond() + numCT2nd);
+							ctAllele2ndAltEnd2 = new Pair<Integer, Integer>(ctAllele2ndAltEnd2.getFirst() + numC2ndEnd2,ctAllele2ndAltEnd2.getSecond() + numCT2ndEnd2);
+							ctAllele2ndLocalAlt = new Pair<Integer, Integer>(ctAllele2ndLocalAlt.getFirst() + numC2ndLocal,ctAllele2ndLocalAlt.getSecond() + numCT2ndLocal);
+						}
+					}
+					if(!badr2){
+						if(end2Anchors.isEmpty()){
 							end2Anchors.add(r2Start);
-							if(Math.abs(r2Start-loc.getStart()) > maxEnd2Dist){
-								maxEnd2Dist = Math.abs(r2Start-loc.getStart());
+							maxEnd2Dist = Math.abs(r2Start-loc.getStart());
+						}else{
+							boolean addEntry = true;
+							for(int p : end2Anchors){
+								if(Math.abs(p-r2Start)<500){ //too far away from original, add it
+									addEntry = false;
+									break;
+								}
+
+							}
+							if(addEntry){
+								end2Anchors.add(r2Start);
+								if(Math.abs(r2Start-loc.getStart()) > maxEnd2Dist){
+									maxEnd2Dist = Math.abs(r2Start-loc.getStart());
+								}
 							}
 						}
 					}
-				}
+
+
 			}
-			
-			if(refAlleleCount < coverageRef || altAlleleCount< coverageAlt || (ctAlleleRef.getSecond() ==0 &&ctAlleleAlt.getSecond() ==0) ) //for the end 2, let the result figure out.. when no CG in the end2, it could still be useful to used for the ASE linking
+
+			//if there is no significant amount of long-range interacted reads, it will skip this SNPs..
+			if(refAlleleLocalCount < coverageRef || altAlleleLocalCount< coverageAlt || (ctAlleleLocalRef.getSecond() ==0 &&ctAlleleLocalAlt.getSecond() ==0) ) //for the end 2, let the result figure out.. when no CG in the end2, it could still be useful to used for the ASE linking
 				continue;
 			String end2AchorString = "";
 			for(int p : end2Anchors){
@@ -478,13 +585,33 @@ public class LongRangeAsm {
 				}
 				
 			}
-			
-			writer.write(loc.getContig() + "\t" + loc.getStart() + "\t" + loc.getStop()  + "\t" + String.format("%c", alleles.getFirst()) + "\t" + refAlleleCount
-					  + "\t" + ctAlleleRef.getFirst() + "\t" + ctAlleleRef.getSecond() + "\t" + (ctAlleleRef.getSecond() == 0 ? Double.NaN : (double)ctAlleleRef.getFirst()/(double)ctAlleleRef.getSecond())
-					  + "\t" + String.format("%c", alleles.getSecond()) + "\t" + altAlleleCount
-					  + "\t" + ctAlleleAlt.getFirst() + "\t" + ctAlleleAlt.getSecond() + "\t" + (ctAlleleAlt.getSecond() == 0 ? Double.NaN : (double)ctAlleleAlt.getFirst()/(double)ctAlleleAlt.getSecond())
-					  + "\t" + end2AchorString + "\t" + ctAlleleRefEnd2.getFirst() + "\t" + ctAlleleRefEnd2.getSecond() + "\t" + (ctAlleleRefEnd2.getSecond()==0 ? Double.NaN : (double)ctAlleleRefEnd2.getFirst()/(double)ctAlleleRefEnd2.getSecond())
-					  + "\t" + ctAlleleAltEnd2.getFirst() + "\t" + ctAlleleAltEnd2.getSecond() + "\t" + (ctAlleleAltEnd2.getSecond()==0 ? Double.NaN : (double)ctAlleleAltEnd2.getFirst()/(double)ctAlleleAltEnd2.getSecond()) + "\t" + maxEnd2Dist + "\n");
+
+			if(methyPattern2ndSearch == null){
+				writer.write(loc.getContig() + "\t" + loc.getStart() + "\t" + loc.getStop()  + "\t" + String.format("%c", alleles.getFirst()) + "\t" + refAlleleCount
+						+ "\t" + ctAlleleRef.getFirst() + "\t" + ctAlleleRef.getSecond() + "\t" + (ctAlleleRef.getSecond() == 0 ? Double.NaN : (double)ctAlleleRef.getFirst()/(double)ctAlleleRef.getSecond())
+						+ "\t" + String.format("%c", alleles.getSecond()) + "\t" + altAlleleCount
+						+ "\t" + ctAlleleAlt.getFirst() + "\t" + ctAlleleAlt.getSecond() + "\t" + (ctAlleleAlt.getSecond() == 0 ? Double.NaN : (double)ctAlleleAlt.getFirst()/(double)ctAlleleAlt.getSecond())
+						+ "\t" + end2AchorString + "\t" + ctAlleleRefEnd2.getFirst() + "\t" + ctAlleleRefEnd2.getSecond() + "\t" + (ctAlleleRefEnd2.getSecond()==0 ? Double.NaN : (double)ctAlleleRefEnd2.getFirst()/(double)ctAlleleRefEnd2.getSecond())
+						+ "\t" + ctAlleleAltEnd2.getFirst() + "\t" + ctAlleleAltEnd2.getSecond() + "\t" + (ctAlleleAltEnd2.getSecond()==0 ? Double.NaN : (double)ctAlleleAltEnd2.getFirst()/(double)ctAlleleAltEnd2.getSecond()) + "\t" + maxEnd2Dist
+						+ "\t" + refAlleleLocalCount + "\t" + ctAlleleLocalRef.getFirst() + "\t" + ctAlleleLocalRef.getSecond() + "\t" + (ctAlleleLocalRef.getSecond() == 0 ? Double.NaN : (double)ctAlleleLocalRef.getFirst()/(double)ctAlleleLocalRef.getSecond())
+						+ "\t" + altAlleleLocalCount + "\t" + ctAlleleLocalAlt.getFirst() + "\t" + ctAlleleLocalAlt.getSecond() + "\t" + (ctAlleleLocalAlt.getSecond() == 0 ? Double.NaN : (double)ctAlleleLocalAlt.getFirst()/(double)ctAlleleLocalAlt.getSecond()) + "\n");
+			}else{
+				writer.write(loc.getContig() + "\t" + loc.getStart() + "\t" + loc.getStop()  + "\t" + String.format("%c", alleles.getFirst()) + "\t" + refAlleleCount
+						+ "\t" + ctAlleleRef.getFirst() + "\t" + ctAlleleRef.getSecond() + "\t" + (ctAlleleRef.getSecond() == 0 ? Double.NaN : (double)ctAlleleRef.getFirst()/(double)ctAlleleRef.getSecond())
+						+ "\t" + String.format("%c", alleles.getSecond()) + "\t" + altAlleleCount
+						+ "\t" + ctAlleleAlt.getFirst() + "\t" + ctAlleleAlt.getSecond() + "\t" + (ctAlleleAlt.getSecond() == 0 ? Double.NaN : (double)ctAlleleAlt.getFirst()/(double)ctAlleleAlt.getSecond())
+						+ "\t" + end2AchorString + "\t" + ctAlleleRefEnd2.getFirst() + "\t" + ctAlleleRefEnd2.getSecond() + "\t" + (ctAlleleRefEnd2.getSecond()==0 ? Double.NaN : (double)ctAlleleRefEnd2.getFirst()/(double)ctAlleleRefEnd2.getSecond())
+						+ "\t" + ctAlleleAltEnd2.getFirst() + "\t" + ctAlleleAltEnd2.getSecond() + "\t" + (ctAlleleAltEnd2.getSecond()==0 ? Double.NaN : (double)ctAlleleAltEnd2.getFirst()/(double)ctAlleleAltEnd2.getSecond()) + "\t" + maxEnd2Dist
+						+ "\t" + refAlleleLocalCount + "\t" + ctAlleleLocalRef.getFirst() + "\t" + ctAlleleLocalRef.getSecond() + "\t" + (ctAlleleLocalRef.getSecond() == 0 ? Double.NaN : (double)ctAlleleLocalRef.getFirst()/(double)ctAlleleLocalRef.getSecond())
+						+ "\t" + altAlleleLocalCount + "\t" + ctAlleleLocalAlt.getFirst() + "\t" + ctAlleleLocalAlt.getSecond() + "\t" + (ctAlleleLocalAlt.getSecond() == 0 ? Double.NaN : (double)ctAlleleLocalAlt.getFirst()/(double)ctAlleleLocalAlt.getSecond())
+						+ "\t" + ctAllele2ndLocalRef.getFirst() + "\t" + ctAllele2ndLocalRef.getSecond() + "\t" + (ctAllele2ndLocalRef.getSecond() == 0 ? Double.NaN : (double)ctAllele2ndLocalRef.getFirst()/(double)ctAllele2ndLocalRef.getSecond())
+						+ "\t" + ctAllele2ndLocalAlt.getFirst() + "\t" + ctAllele2ndLocalAlt.getSecond() + "\t" + (ctAllele2ndLocalAlt.getSecond() == 0 ? Double.NaN : (double)ctAllele2ndLocalAlt.getFirst()/(double)ctAllele2ndLocalAlt.getSecond())
+						+ "\t" + ctAllele2ndRef.getFirst() + "\t" + ctAllele2ndRef.getSecond() + "\t" + (ctAllele2ndRef.getSecond() == 0 ? Double.NaN : (double)ctAllele2ndRef.getFirst()/(double)ctAllele2ndRef.getSecond())
+						+ "\t" + ctAllele2ndAlt.getFirst() + "\t" + ctAllele2ndAlt.getSecond() + "\t" + (ctAllele2ndAlt.getSecond() == 0 ? Double.NaN : (double)ctAllele2ndAlt.getFirst()/(double)ctAllele2ndAlt.getSecond())
+						+ "\t" + ctAllele2ndRefEnd2.getFirst() + "\t" + ctAllele2ndRefEnd2.getSecond() + "\t" + (ctAllele2ndRefEnd2.getSecond() == 0 ? Double.NaN : (double)ctAllele2ndRefEnd2.getFirst()/(double)ctAllele2ndRefEnd2.getSecond())
+						+ "\t" + ctAllele2ndAltEnd2.getFirst() + "\t" + ctAllele2ndAltEnd2.getSecond() + "\t" + (ctAllele2ndAltEnd2.getSecond() == 0 ? Double.NaN : (double)ctAllele2ndAltEnd2.getFirst()/(double)ctAllele2ndAltEnd2.getSecond()) + "\n");
+			}
+
 			
 			
 		}
@@ -502,7 +629,7 @@ public class LongRangeAsm {
 
 	private boolean failFlagFilter(SAMRecord r){
 		return r.getReadUnmappedFlag() || r.getNotPrimaryAlignmentFlag() || r.getMappingQuality() < minMapQ
-				|| r.getReadFailsVendorQualityCheckFlag() || r.getDuplicateReadFlag() || (useUnpaired ? false : !r.getReadPairedFlag()) || (useBadMate ? false : !r.getProperPairFlag()) || (diffChr ? (Math.abs(r.getInferredInsertSize()) < minDist && Math.abs(r.getInferredInsertSize())!=0 ): Math.abs(r.getInferredInsertSize()) < minDist);
+				|| r.getReadFailsVendorQualityCheckFlag() || r.getDuplicateReadFlag() || (useUnpaired ? false : !r.getReadPairedFlag()) || (useBadMate ? false : !r.getProperPairFlag()) || Math.abs(r.getInferredInsertSize()) > maxDist || (diffChr ? (Math.abs(r.getInferredInsertSize()) < minDist && Math.abs(r.getInferredInsertSize())!=0 ): Math.abs(r.getInferredInsertSize()) < minDist);
 	}
 	
 	private VCFFileReader initiate(String vcfFile, String outputFile, String refFile, String altFile) throws IOException{
@@ -515,9 +642,26 @@ public class LongRangeAsm {
 		
 		writer =  new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(outputFile)), "UTF-8");
 		//write the file header
-		writer.write("#chr\tstart\tend\tAlleleA\tAlleleA_count\tAlleleA_C\tAlleleA_T\tAlleleA_meth_mean\t"
-				+ "AlleleB\tAlleleB_count\tAlleleB_C\tAlleleB_T\tAlleleB_meth_mean\tEnd2_anchor_point\tEnd2_AlleleA_C\tEnd2_AlleleA_T\tEnd2_AlleleA_meth_mean\t"
-				+ "End2_AlleleB_C\tEnd2_AlleleB_T\tEnd2_AlleleB_meth_mean\tMaxEnd2Dist\n");
+		if(methyPattern2ndSearch == null){
+			writer.write("#chr\tstart\tend\tAlleleA\tAlleleA_count\tAlleleA_C\tAlleleA_T\tAlleleA_meth_mean\t"
+					+ "AlleleB\tAlleleB_count\tAlleleB_C\tAlleleB_T\tAlleleB_meth_mean\tEnd2_anchor_point\tEnd2_AlleleA_C\tEnd2_AlleleA_T\tEnd2_AlleleA_meth_mean\t"
+					+ "End2_AlleleB_C\tEnd2_AlleleB_T\tEnd2_AlleleB_meth_mean\tMaxEnd2Dist\t"
+					+ "AlleleA_local_count\tAlleleA_local_C\tAlleleA_local_T\tAlleleA_local_meth_mean\t"
+					+ "AlleleB_local_count\tAlleleB_local_C\tAlleleB_local_T\tAlleleB_local_meth_mean\n");
+		}else{
+			writer.write("#chr\tstart\tend\tAlleleA\tAlleleA_count\tAlleleA_C\tAlleleA_T\tAlleleA_meth_mean\t"
+					+ "AlleleB\tAlleleB_count\tAlleleB_C\tAlleleB_T\tAlleleB_meth_mean\tEnd2_anchor_point\tEnd2_AlleleA_C\tEnd2_AlleleA_T\tEnd2_AlleleA_meth_mean\t"
+					+ "End2_AlleleB_C\tEnd2_AlleleB_T\tEnd2_AlleleB_meth_mean\tMaxEnd2Dist\t"
+					+ "AlleleA_local_count\tAlleleA_local_C\tAlleleA_local_T\tAlleleA_local_meth_mean\t"
+					+ "AlleleB_local_count\tAlleleB_local_C\tAlleleB_local_T\tAlleleB_local_meth_mean\t"
+					+ "AlleleA_2nd_local_C\tAlleleA_2nd_local_T\tAlleleA_2nd_local_meth_mean\t"
+					+ "AlleleB_2nd_local_C\tAlleleB_2nd_local_T\tAlleleB_2nd_local_meth_mean\t"
+					+ "AlleleA_2nd_C\tAlleleA_2nd_T\tAlleleA_2nd_meth_mean\t"
+					+ "AlleleB_2nd_C\tAlleleB_2nd_T\tAlleleB_2nd_meth_mean\t"
+					+ "End2_AlleleA_2nd_C\tEnd2_AlleleA_2nd_T\tEnd2_AlleleA_2nd_meth_mean\t"
+					+ "End2_AlleleB_2nd_C\tEnd2_AlleleB_2nd_T\tEnd2_AlleleB_2nd_meth_mean\n");
+		}
+
 		refWriter =  new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(refFile)), "UTF-8");
 		altWriter =  new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(altFile)), "UTF-8");
 		

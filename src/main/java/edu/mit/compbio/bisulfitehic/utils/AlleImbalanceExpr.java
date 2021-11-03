@@ -17,7 +17,10 @@ import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFFileReader;
 import main.java.edu.mit.compbio.ccinference.utils.CcInferenceUtils;
+import org.apache.commons.math3.stat.inference.AlternativeHypothesis;
 import org.apache.commons.math3.util.Pair;
+import org.apache.commons.lang3.tuple.Triple;
+import org.apache.commons.math3.stat.inference.BinomialTest;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.utils.GenomeLoc;
@@ -67,6 +70,9 @@ public class AlleImbalanceExpr {
 	@Option(name="-consistentPrefix",usage="check the consistent of chr prefix, basically, add chr at the beginning of GRch37 genome in VCF or bed gene file's location, default: false")
 	public boolean consistentPrefix = false;
 
+	@Option(name="-waspFilter",usage="use WASP filter when enabling --waspOutputMode SAMtag in STAR aligner. Basically, when reads have vW flag, only keep reads with vW:i:1, default: false")
+	public boolean waspFilter = false;
+
 	@Option(name="-sample",usage="specify the sample number in the VCF file if contain multiple sample genotype. number started at 0. default: 0")
 	public int sample = 0;
 
@@ -89,6 +95,8 @@ public class AlleImbalanceExpr {
 	private final static int PURGE_INTERVAL = 1000;
 	
 	private long VCFCOUNT = 0L;
+
+	private final static String WASP_FLAG = "vW";
 	
 	/**
 	 * @param args
@@ -198,7 +206,7 @@ public class AlleImbalanceExpr {
 		}
 
 		GenomeLocSortedSet gss = new GenomeLocSortedSet(glp);
-		TreeMap<GenomeLoc, Pair<Byte, Byte>> genotypeMapList = new TreeMap<GenomeLoc, Pair<Byte, Byte>>();
+		TreeMap<GenomeLoc, Triple<Byte, Byte, Byte>> genotypeMapList = new TreeMap<GenomeLoc, Triple<Byte, Byte, Byte>>();
 		while(itSnp.hasNext()){
 			VariantContext vc = itSnp.next();
 			//if(vc.getEnd()==221974){
@@ -212,7 +220,8 @@ public class AlleImbalanceExpr {
 				GenomeLoc genomeLoc = glp.createGenomeLoc(vc.getChr(), vc.getStart(), vc.getEnd());
 				Byte alleleA = vc.getAlleles().get(0).getBases()[0];
 				Byte alleleB = vc.getAlleles().get(1).getBases()[0];
-				Pair<Byte, Byte> tmp = new Pair<Byte, Byte>(alleleA, alleleB);
+				Byte alleleRef = vc.getReference().getBases()[0];
+				Triple<Byte, Byte, Byte> tmp = Triple.of(alleleA, alleleB, alleleRef);
 				genotypeMapList.put(genomeLoc, tmp);
 				gss.add(genomeLoc);
 			}else{
@@ -224,8 +233,9 @@ public class AlleImbalanceExpr {
 					
 					Byte alleleA = gt.getAllele(0).getBases()[0]; // the first one (alleleA) is indeed the first at genotype. e,g, 1|0, the first is indeed the alternative allele. not the reference allele.
 					Byte alleleB = gt.getAllele(1).getBases()[0];
+					Byte alleleRef = vc.getReference().getBases()[0];
 					//System.err.println(vc.getChr() + "\t" + vc.getStart() + "\t" + vc.getEnd() + "\t" + String.valueOf(alleleA) + "\t" + String.valueOf(alleleB) + "\t" + vc.toStringDecodeGenotypes());
-					Pair<Byte, Byte> tmp = new Pair<Byte, Byte>(alleleA, alleleB);
+					Triple<Byte, Byte, Byte> tmp = Triple.of(alleleA, alleleB, alleleRef);
 					if(!gss.contains(genomeLoc)){
 						genotypeMapList.put(genomeLoc, tmp);
 						gss.add(genomeLoc);
@@ -238,7 +248,7 @@ public class AlleImbalanceExpr {
 		itSnp.close();
 		vcfReader.close();
 
-		return new GenotypeList(gss, genotypeMapList, glp);
+		return new GenotypeList(gss, glp, genotypeMapList);
 	}
 	
 	
@@ -247,30 +257,36 @@ public class AlleImbalanceExpr {
 		if(!BamFileIoUtils.isBamFile(bamF))
 			throw new SAMException ("Not a Bam file: " + bamFile);
 		SamReader reader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(bamF);
-		
+		BinomialTest bTest = new BinomialTest();
 		for(GenomeLoc locGene : geneList.keySet()){
 			String geneString = geneList.get(locGene);
 			List<GenomeLoc> locsOveralpped = gl.genomeLocsCol.getOverlapping(locGene);
+			int alleleRefCount = 0;
 			int alleleACount = 0;
 			int alleleBCount = 0;
+			int alleleNCount = 0;
 			String allelePos = "";
 			String alleleAStr = "";
 			String alleleBStr = "";
+			String alleleRefStr = "";
 			for(GenomeLoc loc : locsOveralpped){
 				if(VCFCOUNT % PURGE_INTERVAL == 0 ){
 					writer.flush();
 					log.info("Processing allele ... " + VCFCOUNT);
 				}
 				if(!mergedInSameGene){
+					alleleRefCount = 0;
 					alleleACount = 0;
 					alleleBCount = 0;
+					alleleNCount = 0;
 					allelePos = "";
 					alleleAStr = "";
 					alleleBStr = "";
+					alleleRefStr = "";
 				}
 				VCFCOUNT++;
 
-				Pair<Byte, Byte> alleles = gl.genomeLocsAlleleMap.get(loc);
+				Triple<Byte, Byte, Byte> alleles = gl.genomeLocsAlleleMapWithRef.get(loc);
 
 				SAMRecordIterator samIt = reader.queryOverlapping(consistentPrefix ? (loc.getContig().startsWith("chr") ? loc.getContig() : ("chr" + loc.getContig()) ): loc.getContig(), loc.getStart(), loc.getStop());
 
@@ -302,41 +318,52 @@ public class AlleImbalanceExpr {
 					if(readBasesQ[pos] < minBaseQ){
 						continue;
 					}
-					boolean AlleleA = SequenceUtil.basesEqual(alleles.getFirst(), snpBase);
-					boolean AlleleB = SequenceUtil.basesEqual(alleles.getSecond(), snpBase);
+					boolean AlleleA = SequenceUtil.basesEqual(alleles.getLeft(), snpBase);
+					boolean AlleleB = SequenceUtil.basesEqual(alleles.getMiddle(), snpBase);
+					boolean AlleleRef = SequenceUtil.basesEqual(alleles.getRight(), snpBase);
 
 					if(AlleleA){
 						alleleACount++;
 					}else if(AlleleB){
 						alleleBCount++;
+					}else{
+						alleleNCount++;
+					}
+
+					if(AlleleRef){
+						alleleRefCount++;
 					}
 				}
 				if(!mergedInSameGene){ // write each SNP position.
 					if(alleleACount < minCov && alleleBCount< minCov)
 						continue;
 					allelePos = String.format("%d", loc.getStart());
-					alleleAStr = String.format("%c", alleles.getFirst());
-					alleleBStr = String.format("%c", alleles.getSecond());
-					writer.write(geneString + "\t" + allelePos  + "\t" + alleleAStr + "\t" + alleleACount
-							+ "\t" + alleleBStr + "\t" + alleleBCount + "\n");
+					alleleAStr = String.format("%c", alleles.getLeft());
+					alleleBStr = String.format("%c", alleles.getMiddle());
+					alleleRefStr = String.format("%c", alleles.getRight());
+					double pvalue = bTest.binomialTest(alleleACount+alleleBCount, alleleACount,0.5, AlternativeHypothesis.TWO_SIDED);
+					writer.write(geneString + "\t" + allelePos  + "\t" + alleleRefStr + "\t" + alleleRefCount + "\t" + alleleAStr + "\t" + alleleACount
+							+ "\t" + alleleBStr + "\t" + alleleBCount + "\t" + String.format("%.3f", pvalue) + "\t" + alleleNCount + "\n");
 				}else{
 					if(allelePos.isEmpty()){
 						allelePos = String.format("%d", loc.getStart());
-						alleleAStr = String.format("%c", alleles.getFirst());
-						alleleBStr = String.format("%c", alleles.getSecond());
+						alleleAStr = String.format("%c", alleles.getLeft());
+						alleleBStr = String.format("%c", alleles.getMiddle());
+						alleleRefStr = String.format("%c", alleles.getRight());
 					}else{
 						allelePos = allelePos + ":" + String.format("%d", loc.getStart());
-						alleleAStr = alleleAStr + ":" + String.format("%c", alleles.getFirst());
-						alleleBStr = alleleBStr + ":" + String.format("%c", alleles.getSecond());
+						alleleAStr = alleleAStr + ":" + String.format("%c", alleles.getLeft());
+						alleleBStr = alleleBStr + ":" + String.format("%c", alleles.getMiddle());
+						alleleRefStr = alleleRefStr + ":" + String.format("%c", alleles.getRight());
 					}
 				}
 			}
 			if(mergedInSameGene) { // write each gene position.
 				if(alleleACount < minCov && alleleBCount< minCov)
 					continue;
-
-				writer.write(geneString + "\t" + allelePos  + "\t" + alleleAStr + "\t" + alleleACount
-						+ "\t" + alleleBStr + "\t" + alleleBCount + "\n");
+				double pvalue = bTest.binomialTest(alleleACount+alleleBCount, alleleACount,0.5, AlternativeHypothesis.TWO_SIDED);
+				writer.write(geneString + "\t" + allelePos  + "\t" + alleleACount
+						+ "\t" + alleleBCount + "\t" + String.format("%.3f", pvalue) + "\t" + alleleNCount + "\n");
 			}
 		}
 
@@ -346,7 +373,7 @@ public class AlleImbalanceExpr {
 
 	private boolean failFlagFilter(SAMRecord r){
 		return r.getReadUnmappedFlag() || r.getNotPrimaryAlignmentFlag() || r.getMappingQuality() < minMapQ
-				|| r.getReadFailsVendorQualityCheckFlag();
+				|| r.getReadFailsVendorQualityCheckFlag() || (waspFilter && r.getAttribute(WASP_FLAG)!=null && ((Integer)r.getAttribute(WASP_FLAG))!=1);
 	}
 	
 	private VCFFileReader initiate(String vcfFile, String outputFile) throws IOException{
@@ -359,8 +386,14 @@ public class AlleImbalanceExpr {
 		
 		writer =  new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(outputFile)), "UTF-8");
 		//write the file header
-		writer.write("#chr\tgene_start\tgene_end\tgene_name\t.\tstrand\tsnp_pos\tAlleleA\tAlleleA_count\t"
-					+ "AlleleB\tAlleleB_count\n");
+		if(mergedInSameGene){
+			writer.write("#chr\tgene_start\tgene_end\tgene_name\t.\tstrand\tsnp_pos\tAlleleRef_count\tAlleleA_count\t"
+					+ "AlleleB_count\tBinomial_p\tAlleleN_count\n");
+		}else{
+			writer.write("#chr\tgene_start\tgene_end\tgene_name\t.\tstrand\tsnp_pos\tAlleleRef\tAlleleRef_count\tAlleleA\tAlleleA_count\t"
+					+ "AlleleB\tAlleleB_count\tBinomial_p\tAlleleN_count\n");
+		}
+
 
 
 		 return new VCFFileReader(new File(vcfFile), true);

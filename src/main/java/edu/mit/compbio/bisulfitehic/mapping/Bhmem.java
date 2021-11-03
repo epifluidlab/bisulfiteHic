@@ -56,8 +56,8 @@ public class Bhmem {
 	public int clip5 = 0;	
 	@Option(name="-clip3",usage="bp at 3' end to clip. default: 0")
 	public int clip3 = 0;	
-	@Option(name="-buffer",usage="number of reads to buffer in memory. default: 10000")
-	public int buffer = 10000;	
+	@Option(name="-buffer",usage="number of reads to buffer in memory. default: 100000")
+	public int buffer = 100000;
 
 	@Option(name="-rgId",usage="readgroup ID to add. default: null")
 	public String rgId = null;	
