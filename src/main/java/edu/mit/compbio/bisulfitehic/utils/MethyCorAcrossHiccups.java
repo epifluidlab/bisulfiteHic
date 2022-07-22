@@ -103,6 +103,9 @@ public class MethyCorAcrossHiccups {
 	@Option(name="-randomHiccupsInput",usage="when the input file is random hiccups links for the control, no need to restrict each end of fragment at the same hiccups links.., default: not enabled")
 	public boolean randomHiccupsInput = false;
 
+	@Option(name="-randomNotLinked",usage="randomly sample the reads from the regions specified, the random reads do not need to be linked with each other in long-range, good for low-coverage data. default: not enabled")
+	public boolean randomNotLinked = false;
+
 	@Option(name="-shortLowerBound",usage="only use the paired end within certain short distance. this is the lower bound of distance, use it together with -onlyShort. default: -1")
 	public int shortLowerBound = -1;
 
@@ -741,7 +744,10 @@ public class MethyCorAcrossHiccups {
 						name = name.substring(0, name.length() - 2);
 					}
 					if(countedReadsEnd1.containsKey(name)){
-						countedReadsEnd1.remove(name); //if two ends are within the same half end of hiccup links
+						if(!randomNotLinked){//when randomNotLinked, just keep the first one
+							countedReadsEnd1.remove(name); //if two ends are within the same half end of hiccup links
+						}
+
 					}else{
 						countedReadsEnd1.put(name, r);
 					}
@@ -767,7 +773,9 @@ public class MethyCorAcrossHiccups {
 						name = name.substring(0, name.length() - 2);
 					}
 					if(countedReadsEnd2.containsKey(name)){
-						countedReadsEnd2.remove(name); //if two ends are within the same half end of hiccup links
+						if(!randomNotLinked){ //when randomNotLinked, just keep the first one
+							countedReadsEnd2.remove(name); //if two ends are within the same half end of hiccup links
+						}
 					}else{
 						countedReadsEnd2.put(name, r);
 					}
@@ -777,52 +785,96 @@ public class MethyCorAcrossHiccups {
 			
 			//System.err.println(countedReadsEnd1.size() + "\t" + countedReadsEnd2.size());
 			int readNum = 0;
-			ArrayList<String> sharedReadNames = new ArrayList<String>();
-			for(String readName : countedReadsEnd1.keySet()) {
-				if (countedReadsEnd2.containsKey(readName)) {
-					sharedReadNames.add(readName);
+			if(randomNotLinked){
+				ArrayList<String> readNamesEnd1 = new ArrayList<String>(countedReadsEnd1.keySet());
+				ArrayList<String> readNamesEnd2 = new ArrayList<String>(countedReadsEnd2.keySet());
+				int minLen = readNamesEnd1.size() < readNamesEnd2.size() ? readNamesEnd1.size() : readNamesEnd2.size();
+				if(minLen > minReads) {
+					for (int i = 0; i < randomSampleReads; i++) {
+						Collections.shuffle(readNamesEnd1);
+						for (int j = 0; j < minLen; j++) {
+							String readName1 = readNamesEnd1.get(j);
+							String readName2 = readNamesEnd2.get(j);
+							SAMRecord r1 = countedReadsEnd1.get(readName1);
+
+							SAMRecord r2 = countedReadsEnd2.get(readName2);
+
+
+							Triple<Integer, Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummaryGeneral(r1, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+							Triple<Integer, Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummaryGeneral(r2, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+							int numC1 = ctSummary1.getLeft();
+							int numT1 = ctSummary1.getMiddle();
+							int numCg1 = ctSummary1.getRight();
+							int numC2 = ctSummary2.getLeft();
+							int numT2 = ctSummary2.getMiddle();
+							int numCg2 = ctSummary2.getRight();
+							if ((numC1 + numT1) == 0 || numCg1 < minCgNum || (numC2 + numT2) == 0 || numCg2 < minCgNum)
+								continue;
+
+
+							//chr1,read.start1,read.end1,chr2,read.start2,read.end2,region_name, id, hiccups_ob, hiccups_exp, hiccups_fdr, methy_end1, cpg_num_end1, methy_end2, cpg_num_end2
+
+							methyCorWriter.write(chr + "\t" + start1 + "\t" + end1 + "\t" + chr2 + "\t" + start2 + "\t" + end2 + "\t" +
+									regionName + "\t" + readNum + "\t" + ob + "\t" + exp + "\t" + fdr + "\t" + (double) numC1 / (double) (numC1 + numT1) + "\t" + (numC1 + numT1)
+									+ "\t" + (double) numC2 / (double) (numC2 + numT2) + "\t" + (numC2 + numT2) + "\n");
+
+
+							readNum++;
+
+
+
+						}
+					}
 				}
-			}
+			}else{
+				ArrayList<String> sharedReadNames = new ArrayList<String>();
+				for(String readName : countedReadsEnd1.keySet()) {
+					if (countedReadsEnd2.containsKey(readName)) {
+						sharedReadNames.add(readName);
+					}
+				}
 
-			String[] readNames = sharedReadNames.toArray(new String[sharedReadNames.size()]);
-			//if(readNames1.length>10 && readNames2.length>10){
-			if(readNames.length > minReads) {
-				for (int i = 0; i < randomSampleReads; i++) {
-					Collections.shuffle(sharedReadNames);
-					for (int j = 0; j < readNames.length; j++) {
-						String readName1 = readNames[j];
-						String readName2 = sharedReadNames.get(j);
-						SAMRecord r1 = countedReadsEnd1.get(readName1);
+				String[] readNames = sharedReadNames.toArray(new String[sharedReadNames.size()]);
+				//if(readNames1.length>10 && readNames2.length>10){
+				if(readNames.length > minReads) {
+					for (int i = 0; i < randomSampleReads; i++) {
+						Collections.shuffle(sharedReadNames);
+						for (int j = 0; j < readNames.length; j++) {
+							String readName1 = readNames[j];
+							String readName2 = sharedReadNames.get(j);
+							SAMRecord r1 = countedReadsEnd1.get(readName1);
 
-						SAMRecord r2 = countedReadsEnd2.get(readName2);
-
-
-						Triple<Integer, Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummaryGeneral(r1, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
-						Triple<Integer, Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummaryGeneral(r2, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
-						int numC1 = ctSummary1.getLeft();
-						int numT1 = ctSummary1.getMiddle();
-						int numCg1 = ctSummary1.getRight();
-						int numC2 = ctSummary2.getLeft();
-						int numT2 = ctSummary2.getMiddle();
-						int numCg2 = ctSummary2.getRight();
-						if ((numC1 + numT1) == 0 || numCg1 < minCgNum || (numC2 + numT2) == 0 || numCg2 < minCgNum)
-							continue;
+							SAMRecord r2 = countedReadsEnd2.get(readName2);
 
 
-						//chr1,read.start1,read.end1,chr2,read.start2,read.end2,region_name, id, hiccups_ob, hiccups_exp, hiccups_fdr, methy_end1, cpg_num_end1, methy_end2, cpg_num_end2
+							Triple<Integer, Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummaryGeneral(r1, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+							Triple<Integer, Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummaryGeneral(r2, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+							int numC1 = ctSummary1.getLeft();
+							int numT1 = ctSummary1.getMiddle();
+							int numCg1 = ctSummary1.getRight();
+							int numC2 = ctSummary2.getLeft();
+							int numT2 = ctSummary2.getMiddle();
+							int numCg2 = ctSummary2.getRight();
+							if ((numC1 + numT1) == 0 || numCg1 < minCgNum || (numC2 + numT2) == 0 || numCg2 < minCgNum)
+								continue;
 
-						methyCorWriter.write(chr + "\t" + start1 + "\t" + end1 + "\t" + chr2 + "\t" + start2 + "\t" + end2 + "\t" +
-								regionName + "\t" + readNum + "\t" + ob + "\t" + exp + "\t" + fdr + "\t" + (double) numC1 / (double) (numC1 + numT1) + "\t" + (numC1 + numT1)
-								+ "\t" + (double) numC2 / (double) (numC2 + numT2) + "\t" + (numC2 + numT2) + "\n");
+
+							//chr1,read.start1,read.end1,chr2,read.start2,read.end2,region_name, id, hiccups_ob, hiccups_exp, hiccups_fdr, methy_end1, cpg_num_end1, methy_end2, cpg_num_end2
+
+							methyCorWriter.write(chr + "\t" + start1 + "\t" + end1 + "\t" + chr2 + "\t" + start2 + "\t" + end2 + "\t" +
+									regionName + "\t" + readNum + "\t" + ob + "\t" + exp + "\t" + fdr + "\t" + (double) numC1 / (double) (numC1 + numT1) + "\t" + (numC1 + numT1)
+									+ "\t" + (double) numC2 / (double) (numC2 + numT2) + "\t" + (numC2 + numT2) + "\n");
 
 
-						readNum++;
+							readNum++;
 
 
 
+						}
 					}
 				}
 			}
+
 			
 
 			//System.err.println(readNum);
