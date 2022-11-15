@@ -790,7 +790,7 @@ public class MethyCorAcrossHiccups {
 				ArrayList<String> readNamesEnd2 = new ArrayList<String>(countedReadsEnd2.keySet());
 				int minLen = readNamesEnd1.size() < readNamesEnd2.size() ? readNamesEnd1.size() : readNamesEnd2.size();
 				if(minLen > minReads) {
-					for (int i = 0; i < randomSampleReads; i++) {
+
 						Collections.shuffle(readNamesEnd1);
 						for (int j = 0; j < minLen; j++) {
 							String readName1 = readNamesEnd1.get(j);
@@ -824,7 +824,7 @@ public class MethyCorAcrossHiccups {
 
 
 						}
-					}
+
 				}
 			}else{
 				ArrayList<String> sharedReadNames = new ArrayList<String>();
