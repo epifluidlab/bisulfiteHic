@@ -2,8 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="83376207-f3df-40e7-a87d-f0ce9b78cbba" name="Default" comment="">
+      <change afterPath="$PROJECT_DIR$/src/python/mh_hic_filter.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/MethyCorAcrossHiccups.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/edu/mit/compbio/bisulfitehic/utils/MethyCorAcrossHiccups.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bisulfitehic.iml" beforeDir="false" afterPath="$PROJECT_DIR$/bisulfitehic.iml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -41,16 +42,22 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/yaping/Documents/workspace/code/bisulfitehic&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "last_opened_file_path": "/Users/yaping/Documents/workspace/code/bisulfitehic/src/python",
+    "nodejs_package_manager_path": "npm",
+    "project.structure.last.edited": "Modules",
+    "project.structure.proportion": "0.15",
+    "project.structure.side.proportion": "0.2"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/python" />
+    </key>
     <key name="CopyClassDialog.RECENTS_KEY">
       <recent name="main.java.edu.mit.compbio.bisulfitehic.utils" />
       <recent name="main.java.edu.mit.compbio.bisulfitehic.mapping" />
@@ -340,6 +347,11 @@
       <workItem from="1666186125502" duration="1260000" />
       <workItem from="1667225324293" duration="2363000" />
       <workItem from="1667831218925" duration="4869000" />
+      <workItem from="1668797415663" duration="542000" />
+      <workItem from="1669991228529" duration="3331000" />
+      <workItem from="1677610002272" duration="12000" />
+      <workItem from="1680005686455" duration="6605000" />
+      <workItem from="1683724228006" duration="3588000" />
     </task>
     <servers />
   </component>
