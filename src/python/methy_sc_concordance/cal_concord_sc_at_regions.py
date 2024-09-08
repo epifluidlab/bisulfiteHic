@@ -4,10 +4,23 @@ import argparse
 import pyBigWig
 import multiprocessing
 from functools import partial
+from tqdm import tqdm
 
-def process_line(bw_tracks, line):
-    line = line.rstrip('\n')
-    chrom1, start1, end1, chrom2, start2, end2, name, _ = line.split("\t")
+def process_line(methy_file_list, line):
+    bw_tracks = [pyBigWig.open(filename) for filename in methy_file_list]
+    elements = line.split("\t")
+    # Ensure there are at least 8 elements to unpack
+    if line.startswith("#") or len(elements) < 8:
+        return None  # Or handle error more specifically if needed
+    chrom1, start1, end1, chrom2, start2, end2, name = elements[:7]
+    try:
+        start1 = int(start1)
+        end1 = int(end1)
+        start2 = int(start2)
+        end2 = int(end2)
+    except ValueError:
+        return f"Error converting positions to integers in line: {line}\n"
+
     methy_locus1 = []
     methy_locus2 = []
     for bw in bw_tracks:
@@ -16,40 +29,38 @@ def process_line(bw_tracks, line):
         if stat1 is not None and stat2 is not None:
             methy_locus1.append(stat1)
             methy_locus2.append(stat2)
-    if len(methy_locus1) > 0:
-        methy_locus1 = np.array(methy_locus1, dtype=float)
-        methy_locus2 = np.array(methy_locus2, dtype=float)
+        bw.close()
+    methy_locus1 = np.array(methy_locus1, dtype=float)
+    methy_locus2 = np.array(methy_locus2, dtype=float)
+    #methy_locus1 = methy_locus1[~np.isnan(methy_locus1) & ~np.isinf(methy_locus1)]
+    #methy_locus2 = methy_locus2[~np.isnan(methy_locus2) & ~np.isinf(methy_locus2)]
+    if methy_locus1.size > 10:
         cor_val, p_val = pearsonr(methy_locus1, methy_locus2)
         spearman_cor_val, spearman_p_val = spearmanr(methy_locus1, methy_locus2)
         num_point = len(methy_locus1)
         return f"{chrom1}\t{start1}\t{end1}\t{chrom2}\t{start2}\t{end2}\t{name}\t{cor_val:.3f}\t{p_val:.3f}\t{spearman_cor_val:.3f}\t{spearman_p_val:.3f}\t{num_point}\n"
-    else:
-        return None
+    return None
 
 def cal_concord_sc_at_regions(methy_file_list, bedpe, out_summary, threads=1):
-    bw_tracks = [pyBigWig.open(line.strip()) for line in open(methy_file_list, 'r')]
+    # Read filenames into a list
+    with open(methy_file_list, 'r') as f:
+        filenames = [line.strip() for line in f.readlines()]
 
-    # Open output file
+    # Open the output file
     with open(out_summary, 'w') as out:
         # Read all lines from the bedpe file into memory
         lines = open(bedpe, 'r').readlines()
 
         # Create a pool of workers
         with multiprocessing.Pool(processes=threads) as pool:
-            # Use functools.partial to create a function with some arguments pre-filled
-            func = partial(process_line, bw_tracks)
+            func = partial(process_line, filenames)
+            results = pool.imap(func, lines)
 
-            # Map func over the lines using pool.map
-            results = pool.map(func, lines)
-
-            # Write results that are not None to the output file
-            for result in results:
+            # Use tqdm for progress update
+            for result in tqdm(results, total=len(lines), desc="Processing lines"):
                 if result:
                     out.write(result)
 
-    # Close all BigWig tracks
-    for bw in bw_tracks:
-        bw.close()
 
 ##output loop bedpe + pearson cor, p value, spearman cor, p value, num point in anchors
 if __name__ == '__main__':
