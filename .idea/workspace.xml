@@ -5,12 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="83376207-f3df-40e7-a87d-f0ce9b78cbba" name="Default" comment="">
-      <change afterPath="$PROJECT_DIR$/src/python/methy_sc_concordance/cal_concord_sc_at_regions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bisulfitehic.iml" beforeDir="false" afterPath="$PROJECT_DIR$/bisulfitehic.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/python/methy_sc_concordance/cal_concord_sc_at_regions.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/python/methy_sc_concordance/cal_concord_sc_at_regions.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -55,6 +51,7 @@
   "keyToString": {
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "WebServerToolWindowFactoryState": "false",
     "dart.analysis.tool.window.visible": "false",
     "git-widget-placeholder": "master",
@@ -371,7 +368,7 @@
       <workItem from="1677610002272" duration="12000" />
       <workItem from="1680005686455" duration="6605000" />
       <workItem from="1683724228006" duration="3588000" />
-      <workItem from="1725637846780" duration="4553000" />
+      <workItem from="1725637846780" duration="6366000" />
     </task>
     <servers />
   </component>
