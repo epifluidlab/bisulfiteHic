@@ -9,10 +9,10 @@ from tqdm import tqdm
 def process_line(methy_file_list, line):
     bw_tracks = [pyBigWig.open(filename) for filename in methy_file_list]
     elements = line.split("\t")
-    # Ensure there are at least 8 elements to unpack
-    if line.startswith("#") or len(elements) < 8:
+    # Ensure there are at least 6 elements to unpack
+    if line.startswith("#") or len(elements) < 6:
         return None  # Or handle error more specifically if needed
-    chrom1, start1, end1, chrom2, start2, end2, name = elements[:7]
+    chrom1, start1, end1, chrom2, start2, end2 = elements[:6]
     try:
         start1 = int(start1)
         end1 = int(end1)
@@ -38,6 +38,7 @@ def process_line(methy_file_list, line):
         cor_val, p_val = pearsonr(methy_locus1, methy_locus2)
         spearman_cor_val, spearman_p_val = spearmanr(methy_locus1, methy_locus2)
         num_point = len(methy_locus1)
+        name = f"{chrom1}:{start1}:{end1}:{chrom2}:{start2}:{end2}"
         return f"{chrom1}\t{start1}\t{end1}\t{chrom2}\t{start2}\t{end2}\t{name}\t{cor_val:.3f}\t{p_val:.3f}\t{spearman_cor_val:.3f}\t{spearman_p_val:.3f}\t{num_point}\n"
     return None
 
