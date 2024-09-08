@@ -26,6 +26,8 @@ def process_line(methy_file_list, line):
     for bw in bw_tracks:
         chrom1_len = bw.chroms(chrom1)
         chrom2_len = bw.chroms(chrom2)
+        stat1 = None
+        stat2 = None
         if chrom1_len and chrom2_len and int(end1) < chrom1_len and int(end2) < chrom2_len:
             stat1 = bw.stats(chrom1, int(start1), int(end1), exact=True)[0]
             stat2 = bw.stats(chrom2, int(start2), int(end2), exact=True)[0]
