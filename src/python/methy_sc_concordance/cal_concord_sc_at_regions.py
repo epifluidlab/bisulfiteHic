@@ -24,11 +24,19 @@ def process_line(methy_file_list, line):
     methy_locus1 = []
     methy_locus2 = []
     for bw in bw_tracks:
-        stat1 = bw.stats(chrom1, int(start1), int(end1), exact=True)[0]
-        stat2 = bw.stats(chrom2, int(start2), int(end2), exact=True)[0]
+        chrom1_len = bw.chroms(chrom1)
+        chrom2_len = bw.chroms(chrom2)
+        if chrom1_len and chrom2_len and int(end1) < chrom1_len and int(end2) < chrom2_len:
+            stat1 = bw.stats(chrom1, int(start1), int(end1), exact=True)[0]
+            stat2 = bw.stats(chrom2, int(start2), int(end2), exact=True)[0]
+        else:
+            if chrom1_len and int(end1) >= chrom1_len:
+                stat1 = bw.stats(chrom1, int(start1), chrom1_len, exact=True)[0]
+            if chrom2_len and int(end2) >= chrom2_len:
+                stat2 = bw.stats(chrom2, int(start2), chrom2_len, exact=True)[0]
         if stat1 is not None and stat2 is not None:
-            methy_locus1.append(stat1)
-            methy_locus2.append(stat2)
+                methy_locus1.append(stat1)
+                methy_locus2.append(stat2)
         bw.close()
     methy_locus1 = np.array(methy_locus1, dtype=float)
     methy_locus2 = np.array(methy_locus2, dtype=float)
