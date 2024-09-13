@@ -76,7 +76,7 @@ def process_line(min_data, permutation, methy_file_list, line):
             return f"{chrom1}\t{start1}\t{end1}\t{chrom2}\t{start2}\t{end2}\t{name}\t{cor_val:.3f}\t{p_val:.3f}\t{spearman_cor_val:.3f}\t{spearman_p_val:.3f}\t{num_point}\n"
     return None
 
-def cal_concord_sc_at_regions(methy_file_list, bedpe, out_summary, threads=1, min_data=10, permutatin=0):
+def cal_concord_sc_at_regions(methy_file_list, bedpe, out_summary, threads=1, min_data=10, permutation=0):
     # Read filenames into a list
     with open(methy_file_list, 'r') as f:
         filenames = [line.strip() for line in f.readlines()]
@@ -88,7 +88,7 @@ def cal_concord_sc_at_regions(methy_file_list, bedpe, out_summary, threads=1, mi
 
         # Create a pool of workers
         with multiprocessing.Pool(processes=threads) as pool:
-            func = partial(process_line, min_data, permutatin,filenames)
+            func = partial(process_line, min_data, permutation,filenames)
             results = pool.imap(func, lines)
 
             # Use tqdm for progress update
