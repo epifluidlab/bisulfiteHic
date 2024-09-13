@@ -69,8 +69,8 @@ def process_line(min_data, permutation, methy_file_list, line):
                 spearman_cor_val_permut, spearman_p_val_permut = spearmanr(permutation_methy_locus1, methy_locus2)
                 cor_vals_permut.append(cor_val_permut)
                 spearman_cor_vals_permut.append(spearman_cor_val_permut)
-            pearson_permutated_p = find_rank(cor_val, cor_vals_permut)/permutation
-            spearman_permutated_p = find_rank(spearman_cor_val, spearman_cor_vals_permut)/permutation
+            pearson_permutated_p = 1.0-find_rank(cor_val, cor_vals_permut)/permutation  ## find correlation with higher than permuated value.
+            spearman_permutated_p = 1.0-find_rank(spearman_cor_val, spearman_cor_vals_permut)/permutation
             return f"{chrom1}\t{start1}\t{end1}\t{chrom2}\t{start2}\t{end2}\t{name}\t{cor_val:.5f}\t{p_val:.5f}\t{spearman_cor_val:.5f}\t{spearman_p_val:.5f}\t{num_point}\t{pearson_permutated_p:.5f}\t{spearman_permutated_p:.5f}\n"
         else:
             return f"{chrom1}\t{start1}\t{end1}\t{chrom2}\t{start2}\t{end2}\t{name}\t{cor_val:.3f}\t{p_val:.3f}\t{spearman_cor_val:.3f}\t{spearman_p_val:.3f}\t{num_point}\n"
