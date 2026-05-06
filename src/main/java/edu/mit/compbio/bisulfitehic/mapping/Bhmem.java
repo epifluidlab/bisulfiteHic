@@ -305,11 +305,22 @@ public class Bhmem {
 		HashMap<String, SAMRecord> samsEnd2CTHash = new HashMap<String, SAMRecord>();
 		HashMap<String, SAMRecord> samsEnd2GAHash = new HashMap<String, SAMRecord>();
 		HashSet<String> readsNameCollection = new HashSet<String>();
-		
+
+		// XG tag: actual converted genome, accounting for PBAT variable-name swap
+		String xgEnd1CT = pbat ? "GA" : "CT";
+		String xgEnd1GA = pbat ? "CT" : "GA";
+		String xgEnd2CT = pbat ? "GA" : "CT";
+		String xgEnd2GA = pbat ? "CT" : "GA";
+		// XR tag: how the read query was converted (same for all trials of a given end)
+		String xrEnd1 = pbat ? "GA" : "CT";  // R1: pbat -> G->A, non-pbat -> C->T
+		String xrEnd2 = pbat ? "CT" : "GA";  // R2: pbat -> C->T, non-pbat -> G->A
+
 		//make a hashmap about reads name
 		for(int i = 0; i < samsEnd1CT.length; i++){
 			for(SAMRecord r : String2SamRecord(samsEnd1CT[i], samFileHeader, L1.get(i), false)){
 				if(!failFlagFilter(r)){
+					r.setAttribute("XG", xgEnd1CT);
+					r.setAttribute("XR", xrEnd1);
 					String key = forceSameChr ? (r.getReadName() + "\t" + r.getReferenceName()) : r.getReadName();
 					if(samsEnd1CTHash.containsKey(key)){
 						samsEnd1CTHash.put(key, comparingSamRecord(samsEnd1CTHash.get(key), r));
@@ -323,6 +334,8 @@ public class Bhmem {
 		for(int i = 0; i < samsEnd1GA.length; i++){
 			for(SAMRecord r : String2SamRecord(samsEnd1GA[i], samFileHeader, L1.get(i), false)){
 				if(!failFlagFilter(r)){
+					r.setAttribute("XG", xgEnd1GA);
+					r.setAttribute("XR", xrEnd1);
 					String key = forceSameChr ? (r.getReadName() + "\t" + r.getReferenceName()) : r.getReadName();
 					if(samsEnd1GAHash.containsKey(key)){
 						samsEnd1GAHash.put(key, comparingSamRecord(samsEnd1GAHash.get(key), r));
@@ -336,6 +349,8 @@ public class Bhmem {
 		for(int i = 0; i < samsEnd2CT.length; i++){
 			for(SAMRecord r : String2SamRecord(samsEnd2CT[i], samFileHeader, L2.get(i), true)){
 				if(!failFlagFilter(r)){
+					r.setAttribute("XG", xgEnd2CT);
+					r.setAttribute("XR", xrEnd2);
 					String key = forceSameChr ? (r.getReadName() + "\t" + r.getReferenceName()) : r.getReadName();
 					if(samsEnd2CTHash.containsKey(key)){
 						samsEnd2CTHash.put(key, comparingSamRecord(samsEnd2CTHash.get(key), r));
@@ -349,6 +364,8 @@ public class Bhmem {
 		for(int i = 0; i < samsEnd2GA.length; i++){
 			for(SAMRecord r : String2SamRecord(samsEnd2GA[i], samFileHeader, L2.get(i), true)){
 				if(!failFlagFilter(r)){
+					r.setAttribute("XG", xgEnd2GA);
+					r.setAttribute("XR", xrEnd2);
 					String key = forceSameChr ? (r.getReadName() + "\t" + r.getReferenceName()) : r.getReadName();
 					if(samsEnd2GAHash.containsKey(key)){
 						samsEnd2GAHash.put(key, comparingSamRecord(samsEnd2GAHash.get(key), r));
@@ -359,8 +376,8 @@ public class Bhmem {
 				}
 			}
 		}
-		
-		
+
+
 		//for each reads name, find the best pair to represent it.
 		for(String name : readsNameCollection){
 			String[] splitin = name.split("\\t");
@@ -399,6 +416,18 @@ public class Bhmem {
 			//System.err.println(r1.getFlags() + "\t" + r1.getAlignmentStart() + "\t" + r1.getMateReferenceName() + "\t" + r1.getMateAlignmentStart() + "\t" + r1.getInferredInsertSize());
 			//System.err.println(r2.getFlags() + "\t" + r2.getAlignmentStart() + "\t" + r2.getMateReferenceName() + "\t" + r2.getMateAlignmentStart() + "\t" + r2.getInferredInsertSize());
 			SamPairUtil.setProperPairAndMateInfo(r1, r2, samFileHeader, ORITATION, true);
+			// scNOMe-HiC chimera-aware TLEN reset: htsjdk's PE-pair TLEN formula
+			// produces bogus ~0 values for chimeric Hi-C ligations because the
+			// 5'-to-5' distance equals the junction width, not the insert size.
+			// Downstream GATK 3.8 ReadUtils.isBaseInsideAdaptor misuses that
+			// small TLEN to clip the reverse mate's bases. Zero TLEN here so
+			// ReadUtils.hasWellDefinedFragmentSize short-circuits and the
+			// adaptor-clip filter is skipped for chimeras. Genuine FR PE pairs
+			// are NOT touched and retain correct paired-end metadata.
+			if (isLikelyChimericLigation(r1, r2)) {
+				r1.setInferredInsertSize(0);
+				r2.setInferredInsertSize(0);
+			}
 			//System.err.println(r1.getFlags() + "\t" + r1.getAlignmentStart() + "\t" + r1.getMateReferenceName() + "\t" + r1.getMateAlignmentStart() + "\t" + r1.getInferredInsertSize());
 			//System.err.println(r2.getFlags() + "\t" + r2.getAlignmentStart() + "\t" + r2.getMateReferenceName() + "\t" + r2.getMateAlignmentStart() + "\t" + r2.getInferredInsertSize());
 			bestPairs.put(name, new Pair<SAMRecord, SAMRecord>(r1, r2));
@@ -417,13 +446,24 @@ public class Bhmem {
 		HashMap<String, ArrayList<SAMRecord>> samsEnd2CTHash = new HashMap<String, ArrayList<SAMRecord>>();
 		HashMap<String, ArrayList<SAMRecord>> samsEnd2GAHash = new HashMap<String, ArrayList<SAMRecord>>();
 		HashSet<String> readsNameCollection = new HashSet<String>();
-		
+
+		// XG tag: actual converted genome, accounting for PBAT variable-name swap
+		String xgEnd1CT = pbat ? "GA" : "CT";
+		String xgEnd1GA = pbat ? "CT" : "GA";
+		String xgEnd2CT = pbat ? "GA" : "CT";
+		String xgEnd2GA = pbat ? "CT" : "GA";
+		// XR tag: how the read query was converted (same for all trials of a given end)
+		String xrEnd1 = pbat ? "GA" : "CT";  // R1: pbat -> G->A, non-pbat -> C->T
+		String xrEnd2 = pbat ? "CT" : "GA";  // R2: pbat -> C->T, non-pbat -> G->A
+
 		//make a hashmap about reads name
 		for(int i = 0; i < samsEnd1CT.length; i++){
 			for(SAMRecord r : String2SamRecord(samsEnd1CT[i], samFileHeader, L1.get(i), false)){
 				if(!failFlagFilter(r)){
+					r.setAttribute("XG", xgEnd1CT);
+					r.setAttribute("XR", xrEnd1);
 					String key = forceSameChr ? (r.getReadName() + "\t" + r.getReferenceName()) : r.getReadName();
-					
+
 					if(samsEnd1CTHash.containsKey(key)){
 						ArrayList<SAMRecord> newCollection = samsEnd1CTHash.get(key);
 						newCollection.add(r);
@@ -440,6 +480,8 @@ public class Bhmem {
 		for(int i = 0; i < samsEnd1GA.length; i++){
 			for(SAMRecord r : String2SamRecord(samsEnd1GA[i], samFileHeader, L1.get(i), false)){
 				if(!failFlagFilter(r)){
+					r.setAttribute("XG", xgEnd1GA);
+					r.setAttribute("XR", xrEnd1);
 					String key = forceSameChr ? (r.getReadName() + "\t" + r.getReferenceName()) : r.getReadName();
 					if(samsEnd1GAHash.containsKey(key)){
 						ArrayList<SAMRecord> newCollection = samsEnd1GAHash.get(key);
@@ -454,10 +496,12 @@ public class Bhmem {
 				}
 			}
 		}
-		
+
 		for(int i = 0; i < samsEnd2CT.length; i++){
 			for(SAMRecord r : String2SamRecord(samsEnd2CT[i], samFileHeader, L2.get(i), true)){
 				if(!failFlagFilter(r)){
+					r.setAttribute("XG", xgEnd2CT);
+					r.setAttribute("XR", xrEnd2);
 					String key = forceSameChr ? (r.getReadName() + "\t" + r.getReferenceName()) : r.getReadName();
 					if(samsEnd2CTHash.containsKey(key)){
 						ArrayList<SAMRecord> newCollection = samsEnd2CTHash.get(key);
@@ -475,6 +519,8 @@ public class Bhmem {
 		for(int i = 0; i < samsEnd2GA.length; i++){
 			for(SAMRecord r : String2SamRecord(samsEnd2GA[i], samFileHeader, L2.get(i), true)){
 				if(!failFlagFilter(r)){
+					r.setAttribute("XG", xgEnd2GA);
+					r.setAttribute("XR", xrEnd2);
 					String key = forceSameChr ? (r.getReadName() + "\t" + r.getReferenceName()) : r.getReadName();
 					if(samsEnd2GAHash.containsKey(key)){
 						ArrayList<SAMRecord> newCollection = samsEnd2GAHash.get(key);
@@ -489,10 +535,8 @@ public class Bhmem {
 				}
 			}
 		}
-		
-		
-		
-		
+
+
 		//for each reads name, find the best pair to represent it.
 		for(String name : readsNameCollection){
 			String[] splitin = name.split("\\t");
@@ -593,6 +637,12 @@ public class Bhmem {
 			//System.err.println(r1.getFlags() + "\t" + r1.getAlignmentStart() + "\t" + r1.getMateReferenceName() + "\t" + r1.getMateAlignmentStart() + "\t" + r1.getInferredInsertSize());
 			//System.err.println(r2.getFlags() + "\t" + r2.getAlignmentStart() + "\t" + r2.getMateReferenceName() + "\t" + r2.getMateAlignmentStart() + "\t" + r2.getInferredInsertSize());
 			SamPairUtil.setProperPairAndMateInfo(r1, r2, samFileHeader, ORITATION, true);
+			// scNOMe-HiC chimera-aware TLEN reset (PBAT path).
+			// See identical block in the PE path above (joinTwoEnds) for rationale.
+			if (isLikelyChimericLigation(r1, r2)) {
+				r1.setInferredInsertSize(0);
+				r2.setInferredInsertSize(0);
+			}
 			//System.err.println(r1.getFlags() + "\t" + r1.getAlignmentStart() + "\t" + r1.getMateReferenceName() + "\t" + r1.getMateAlignmentStart() + "\t" + r1.getInferredInsertSize());
 			//System.err.println(r2.getFlags() + "\t" + r2.getAlignmentStart() + "\t" + r2.getMateReferenceName() + "\t" + r2.getMateAlignmentStart() + "\t" + r2.getInferredInsertSize());
 			outputPairs.put(name, new Pair<SAMRecord, SAMRecord>(r1, r2));
@@ -917,5 +967,45 @@ public class Bhmem {
 		log.info(totalReads + " reads in total");
 		log.info("Unique Mapped and paired " + mappedReads + " reads (" + String.format("%.2f",100*(double)mappedReads/(double)totalReads) + "%)");
 		log.info("Bhmem's running time is: " + String.format("%.2f",totalTime) + " secs, " + String.format("%.2f",totalTimeMins) +  " mins, " + String.format("%.2f",totalTimeHours) +  " hours");
+	}
+
+	/**
+	 * Detect whether a paired-read alignment looks like a Hi-C chimeric
+	 * ligation rather than a genuine short-insert paired-end fragment.
+	 * When true, the caller should zero TLEN to avoid GATK 3.8's
+	 * adaptor-clip filter (ReadUtils.isBaseInsideAdaptor) silently
+	 * dropping the reverse mate's bases.
+	 *
+	 * Three independent signatures, any of which marks the pair as chimeric:
+	 *
+	 *   (1) Inter-chromosomal: trans Hi-C contact. TLEN is already 0 by SAM
+	 *       convention, but we set it explicitly for clarity.
+	 *
+	 *   (2) Same-strand pair (FF or RR): not a real PE fragment from a
+	 *       single molecule. Likely an inversion-like Hi-C ligation between
+	 *       OT and OB pieces (most have mixed XG tags).
+	 *
+	 *   (3) RF orientation (reverse mate at lower coord, forward mate at
+	 *       higher coord): the canonical Hi-C ligation signature. The 5'
+	 *       ends meet at the ligation junction so the SAM-spec 5'-to-5'
+	 *       TLEN = ~0-2 bp regardless of true mate distance.
+	 *
+	 * Genuine FR (innie) pairs are NOT flagged: they retain paired-end
+	 * metadata so downstream tools that need PE semantics (insert-size QC,
+	 * paired-end variant calling, fragment-overlap dedup for true short
+	 * inserts) work correctly. Empirically ~6% of pairs are genuine PE in
+	 * a scNOMe-HiC library; preserving them is the main advantage over
+	 * the post-hoc strip_paired_all.py (Fix D) approach.
+	 */
+	private static boolean isLikelyChimericLigation(SAMRecord r1, SAMRecord r2) {
+		// (1) inter-chromosomal
+		if (!r1.getReferenceName().equals(r2.getReferenceName())) return true;
+		// (2) same-strand pair (FF or RR)
+		if (r1.getReadNegativeStrandFlag() == r2.getReadNegativeStrandFlag()) return true;
+		// (3) RF orientation: reverse-strand mate sits at lower genomic coordinate
+		SAMRecord fwd = r1.getReadNegativeStrandFlag() ? r2 : r1;
+		SAMRecord rev = r1.getReadNegativeStrandFlag() ? r1 : r2;
+		if (rev.getAlignmentStart() < fwd.getAlignmentStart()) return true;
+		return false;
 	}
 }
