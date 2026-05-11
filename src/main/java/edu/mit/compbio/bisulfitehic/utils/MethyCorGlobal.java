@@ -29,7 +29,6 @@ import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
-import scala.tools.cmd.gen.AnyVals;
 
 import java.io.*;
 import java.util.ArrayList;
