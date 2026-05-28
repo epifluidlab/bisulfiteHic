@@ -14,6 +14,7 @@ def mh_reads_summary_v2(in_cram, out_summary):
     uniq_mapped_mapq30_nopcr_trans = 0
     uniq_mapped_mapq30_nopcr_cis = 0
     uniq_mapped_mapq30_nopcr_cis_1kb = 0
+    uniq_mapped_mapq30_nopcr_cis_10kb = 0
     uniq_mapped_mapq30_nopcr_cis_20kb = 0
     pre_read=None
     with pysam.AlignmentFile(in_cram, "rc") as samfile:
@@ -44,37 +45,50 @@ def mh_reads_summary_v2(in_cram, out_summary):
                                     uniq_mapped_mapq30_nopcr_trans = uniq_mapped_mapq30_nopcr_trans + 1
                                 else:
                                     uniq_mapped_mapq30_nopcr_cis =  uniq_mapped_mapq30_nopcr_cis + 1
-                                    if abs(read.template_length) >= 1000:
+                                    # Position-based distance (NOT BAM TLEN).
+                                    # bhmem sets TLEN=0 for chimeric Hi-C ligations,
+                                    # so abs(read.template_length) under-counts long-range cis.
+                                    dist = abs(read.reference_start - pre_read.reference_start)
+                                    if dist >= 1000:
                                         uniq_mapped_mapq30_nopcr_cis_1kb = uniq_mapped_mapq30_nopcr_cis_1kb + 1
-                                        if abs(read.template_length) >= 20000:
-                                            uniq_mapped_mapq30_nopcr_cis_20kb = uniq_mapped_mapq30_nopcr_cis_20kb + 1
+                                        if dist >= 10000:
+                                            uniq_mapped_mapq30_nopcr_cis_10kb = uniq_mapped_mapq30_nopcr_cis_10kb + 1
+                                            if dist >= 20000:
+                                                uniq_mapped_mapq30_nopcr_cis_20kb = uniq_mapped_mapq30_nopcr_cis_20kb + 1
             else:
                 print("Error!")
                 break
 
+    # Safe percentage: returns 0.0 if denominator is 0 (avoids ZeroDivisionError
+    # for cells with empty or very poor BAMs that have no MAPQ30/no-PCR reads).
+    def pct(num, den):
+        return (num * 100.0 / den) if den > 0 else 0.0
+
     with open(out_summary, 'w') as out:
         line = "TotalFragments:\t" + str(total_fragments) + "\t100%" \
-               + "\nUniqMapped:\t" + str(uniq_mapped) + "\t" + str(uniq_mapped * 100.0 / total_fragments) + "%" \
-               + "\nUniqMappedMapQ30:\t" + str(uniq_mapped_mapq30) + "\t" + str(uniq_mapped_mapq30 * 100.0 / total_fragments) + "%" \
+               + "\nUniqMapped:\t" + str(uniq_mapped) + "\t" + str(pct(uniq_mapped, total_fragments)) + "%" \
+               + "\nUniqMappedMapQ30:\t" + str(uniq_mapped_mapq30) + "\t" + str(pct(uniq_mapped_mapq30, total_fragments)) + "%" \
                + "\nUniqMappedMapQ30ToLambda:\t" + str(uniq_mapped_mapq30_to_lambda) + "\t" + str(
-            uniq_mapped_mapq30_to_lambda * 100.0 / uniq_mapped_mapq30) + "%" \
+            pct(uniq_mapped_mapq30_to_lambda, uniq_mapped_mapq30)) + "%" \
                + "\nUniqMappedMapQ30ToTargetSpecies:\t" + str(
             uniq_mapped_mapq30_to_target_species) + "\t" + str(
-            uniq_mapped_mapq30_to_target_species * 100.0 / uniq_mapped_mapq30) + "%" \
+            pct(uniq_mapped_mapq30_to_target_species, uniq_mapped_mapq30)) + "%" \
                + "\nUniqMappedMapQ30NoPcr:\t" + str(uniq_mapped_mapq30_nopcr) + "\t" + str(
-            uniq_mapped_mapq30_nopcr * 100.0 / uniq_mapped_mapq30) + "%" \
+            pct(uniq_mapped_mapq30_nopcr, uniq_mapped_mapq30)) + "%" \
                + "\nUniqMappedMapQ30NoPcrToLambda:\t" + str(uniq_mapped_mapq30_nopcr_to_lambda) + "\t" + str(
-            uniq_mapped_mapq30_nopcr_to_lambda * 100.0 / uniq_mapped_mapq30) + "%" \
+            pct(uniq_mapped_mapq30_nopcr_to_lambda, uniq_mapped_mapq30)) + "%" \
                + "\nUniqMappedMapQ30NoPcrToTargetSpecies:\t" + str(uniq_mapped_mapq30_nopcr_to_target_species) + "\t" + str(
-            uniq_mapped_mapq30_nopcr_to_target_species * 100.0 / uniq_mapped_mapq30) + "%" \
+            pct(uniq_mapped_mapq30_nopcr_to_target_species, uniq_mapped_mapq30)) + "%" \
                + "\nUniqMappedMapQ30NoPcrTrans:\t" + str(uniq_mapped_mapq30_nopcr_trans) + "\t" + str(
-            uniq_mapped_mapq30_nopcr_trans * 100.0 / uniq_mapped_mapq30_nopcr_to_target_species) + "%" \
+            pct(uniq_mapped_mapq30_nopcr_trans, uniq_mapped_mapq30_nopcr_to_target_species)) + "%" \
                + "\nUniqMappedMapQ30NoPcrCis:\t" + str(uniq_mapped_mapq30_nopcr_cis) + "\t" + str(
-            uniq_mapped_mapq30_nopcr_cis * 100.0 / uniq_mapped_mapq30_nopcr_to_target_species) + "%" \
+            pct(uniq_mapped_mapq30_nopcr_cis, uniq_mapped_mapq30_nopcr_to_target_species)) + "%" \
                + "\nUniqMappedMapQ30NoPcrCisMore1kb:\t" + str(uniq_mapped_mapq30_nopcr_cis_1kb) + "\t" + str(
-            uniq_mapped_mapq30_nopcr_cis_1kb * 100.0 / uniq_mapped_mapq30_nopcr_to_target_species) + "%" \
+            pct(uniq_mapped_mapq30_nopcr_cis_1kb, uniq_mapped_mapq30_nopcr_to_target_species)) + "%" \
+               + "\nUniqMappedMapQ30NoPcrCisMore10kb:\t" + str(uniq_mapped_mapq30_nopcr_cis_10kb) + "\t" + str(
+            pct(uniq_mapped_mapq30_nopcr_cis_10kb, uniq_mapped_mapq30_nopcr_to_target_species)) + "%" \
                + "\nUniqMappedMapQ30NoPcrCisMore20kb:\t" + str(uniq_mapped_mapq30_nopcr_cis_20kb) + "\t" + str(
-            uniq_mapped_mapq30_nopcr_cis_20kb * 100.0 / uniq_mapped_mapq30_nopcr_to_target_species) + "%\n"
+            pct(uniq_mapped_mapq30_nopcr_cis_20kb, uniq_mapped_mapq30_nopcr_to_target_species)) + "%\n"
         out.write(line)
 
 
