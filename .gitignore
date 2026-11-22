@@ -69,3 +69,4 @@ target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/TestIndepPoiBinomOnB
 # regression test scratch output and Python bytecode
 test/regression/work/
 __pycache__/
+test/regression/last_run.log

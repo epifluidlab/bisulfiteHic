@@ -28,14 +28,14 @@ set -euo pipefail
 # Adjust paths and module names for your environment. Defaults match the
 # Yoshii lab layout on Quest.
 
-TARGET="${TARGET:-/gpfs/projects/b1198/epifluidlab/yoshii/software/bisulfitehic}"
+TARGET="${TARGET:-/gpfs/projects/b1198/epifluidlab/yoshii/software/bisulfiteHic}"
 REPO_URL="${REPO_URL:-https://github.com/epifluidlab/bisulfiteHic.git}"
 # Pin to a specific commit or branch (default: master HEAD)
 REPO_REF="${REPO_REF:-master}"
 
 # Quest module names — adjust if Quest's catalogue changes
 MOD_JAVA8="${MOD_JAVA8:-java/jdk1.8.0_191}"
-MOD_MAVEN="${MOD_MAVEN:-maven/3.6.3}"
+MOD_MAVEN="${MOD_MAVEN:-apache-maven-mvn3/3.9.7}"
 MOD_GCC="${MOD_GCC:-gcc/4.8.3}"
 MOD_SAMTOOLS="${MOD_SAMTOOLS:-samtools/1.10.1}"
 
@@ -72,6 +72,17 @@ fi
 # Check git / scp inputs
 command -v git >/dev/null    || fail "git not on PATH"
 
+# Check the build modules exist BEFORE the old install is moved aside, so a
+# renamed module cannot leave a half-finished install behind.
+if ! command -v module >/dev/null 2>&1 && [ -f /etc/profile.d/modules.sh ]; then
+    # shellcheck disable=SC1091
+    . /etc/profile.d/modules.sh
+fi
+command -v module >/dev/null 2>&1 || fail "module command not available. Load LMOD manually and re-run."
+for m in "$MOD_JAVA8" "$MOD_MAVEN" "$MOD_GCC"; do
+    module is-avail "$m" 2>/dev/null || fail "module '$m' not found. Set MOD_JAVA8 / MOD_MAVEN / MOD_GCC to names from 'module avail' and re-run."
+done
+
 # ─── 1. BACKUP OLD INSTALL ───────────────────────────────────────────────────
 
 if [ -d "$TARGET" ]; then
@@ -106,9 +117,12 @@ fi
 command -v module >/dev/null 2>&1 || fail "module command not available. Load LMOD manually and re-run."
 
 module purge       || true
-module load "$MOD_JAVA8"
 module load "$MOD_MAVEN"
 module load "$MOD_GCC"
+# Load JDK 8 LAST so it is first on PATH: the Maven module brings its own
+# newer JDK, and jbwa's Makefile needs javac and javah from the same JDK 8
+# (javah was removed in JDK 10 and cannot read classes compiled by a newer javac).
+module load "$MOD_JAVA8"
 module load "$MOD_SAMTOOLS" || log "(samtools module load failed — only needed at runtime, not build. Continuing.)"
 
 # jbwa's Makefile needs JAVA_HOME pointing at a JDK with jni.h
@@ -116,6 +130,9 @@ JAVA_BIN=$(command -v java)
 [ -n "$JAVA_BIN" ] || fail "java not on PATH after module load"
 export JAVA_HOME=$(dirname "$(dirname "$(readlink -f "$JAVA_BIN")")")
 [ -f "$JAVA_HOME/include/jni.h" ] || fail "JAVA_HOME=$JAVA_HOME has no include/jni.h — wrong JDK module."
+[ -x "$JAVA_HOME/bin/javah" ]     || fail "JAVA_HOME=$JAVA_HOME has no javah — a JDK 8 must be first on PATH (got: $(java -version 2>&1 | head -n1))."
+[ "$(command -v javac)" = "$JAVA_HOME/bin/javac" ] || [ "$(readlink -f "$(command -v javac)")" = "$(readlink -f "$JAVA_HOME/bin/javac")" ] \
+    || fail "javac on PATH is not the one in JAVA_HOME=$JAVA_HOME"
 log "JAVA_HOME=$JAVA_HOME"
 java -version 2>&1 | sed 's/^/  /'
 
@@ -141,12 +158,13 @@ fi
 log "  ✓ isLikelyChimericLigation present ($CHIM bytecode refs)"
 
 # 5b. XG/XR setAttribute strings present in Bhmem class constant pool
-unzip -p "$JAR" main/java/edu/mit/compbio/bisulfitehic/mapping/Bhmem.class \
-    | strings | grep -qE '^XG$' \
-    || fail "Bhmem.class is missing XG constant — XG/XR tag patch NOT in this build."
-unzip -p "$JAR" main/java/edu/mit/compbio/bisulfitehic/mapping/Bhmem.class \
-    | strings | grep -qE '^XR$' \
-    || fail "Bhmem.class is missing XR constant — XG/XR tag patch NOT in this build."
+# (javap -v, not `strings`: strings skips constants shorter than 4 characters,
+#  and grep -c instead of grep -q so pipefail cannot trip on SIGPIPE.)
+CONSTANT_POOL=$(javap -v -p -cp "$JAR" main.java.edu.mit.compbio.bisulfitehic.mapping.Bhmem 2>/dev/null || true)
+for TAG in XG XR; do
+    HITS=$(printf '%s\n' "$CONSTANT_POOL" | grep -cE "Utf8 +${TAG}\$" || true)
+    [ "$HITS" -ge 1 ] || fail "Bhmem.class is missing the $TAG constant — XG/XR tag patch NOT in this build."
+done
 log "  ✓ XG and XR constants present"
 
 # 5c. ccInference slim jar present and referenced by pom.xml
@@ -155,6 +173,14 @@ SLIM="$TARGET/lib/ccInference-0.19-slim.jar"
 SLIM_SIZE=$(du -k "$SLIM" | awk '{print $1}')
 [ "$SLIM_SIZE" -lt 1024 ] || fail "ccInference jar at $SLIM is unexpectedly large (${SLIM_SIZE} KB) — expected <1 MB slim jar."
 log "  ✓ ccInference slim jar present (${SLIM_SIZE} KB)"
+
+# 5d. end-to-end regression tests against the jar just built (RUN_TESTS=0 to skip)
+if [ "${RUN_TESTS:-1}" = "1" ]; then
+    log "Running regression tests (test/regression/run_tests.sh)..."
+    bash "$TARGET/test/regression/run_tests.sh" > "$TARGET/test/regression/last_run.log" 2>&1 \
+        || fail "Regression tests failed — see $TARGET/test/regression/last_run.log"
+    log "  ✓ regression tests passed"
+fi
 
 # ─── 6. OPTIONAL — TAG THE JAR WITH A VERSION LABEL ──────────────────────────
 
@@ -186,9 +212,9 @@ NEXT STEPS
   2. To roll back to the previous install (if anything looks wrong):
        rm -rf $TARGET && mv $BACKUP_PATH $TARGET
 
-  3. Run a test alignment against a known-good fastq pair before deleting the
-     backup. See scripts/cluster_run_test.sh in bissnp_upgrade for the test
-     pipeline that compares against the Fix-D baseline.
+  3. The synthetic regression tests can be re-run at any time with
+       bash $TARGET/test/regression/run_tests.sh
+     Run a test alignment on a real fastq pair before deleting the backup.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EOF
