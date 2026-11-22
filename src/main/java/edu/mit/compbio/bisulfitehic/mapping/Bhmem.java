@@ -673,20 +673,22 @@ public class Bhmem {
 			record.setMateReferenceName(splitin[6]);
 			record.setMateAlignmentStart(0);
 			record.setInferredInsertSize(0);
+			// SAM stores SEQ and QUAL on the reference forward strand. BWA aligned the
+			// in-silico converted read, so SEQ is rebuilt here from the unconverted
+			// read in the orientation BWA reported for THIS line. originalSeq must not
+			// be modified: one read can produce several lines (primary + supplementary)
+			// with different strands.
+			// QUAL is taken from BWA unchanged; BWA already reversed it for
+			// reverse-strand alignments (and clipped it for hard-clipped ones).
+			boolean bwaReverseStrand = record.getReadNegativeStrandFlag();
+			String seq = bwaReverseStrand ? SequenceUtil.reverseComplement(originalSeq) : originalSeq;
 			String baseQ = splitin[10];
 			if(pbat){
-				record.setReadNegativeStrandFlag(!record.getReadNegativeStrandFlag());
-				originalSeq = SequenceUtil.reverseComplement(originalSeq);
-				baseQ = new StringBuilder(baseQ).reverse().toString();
+				// PBAT reads come from the complement of the bisulfite-converted strand:
+				// only the strand flag is inverted, SEQ/QUAL stay on the reference forward strand.
+				record.setReadNegativeStrandFlag(!bwaReverseStrand);
 			}
-			//record.setReadString(splitin[9]);
-			
-			if(record.getReadNegativeStrandFlag()){
-				originalSeq = SequenceUtil.reverseComplement(originalSeq);
-				//originalSeq = new StringBuilder(originalSeq).reverse().toString(); //the string output by bwa need to be reversed complement when the mapping strand is negative...
-				baseQ = new StringBuilder(baseQ).reverse().toString();
-			}
-			record.setReadString(modifySeqByCigar(originalSeq, record.getCigarString()));
+			record.setReadString(modifySeqByCigar(seq, record.getCigarString()));
 			record.setBaseQualityString(baseQ);
 			if(record.getReadBases().length != record.getBaseQualities().length){
 				//throw new IllegalArgumentException("SAMrecord " + record.getReadName()  + " read bases length: " + record.getReadBases().length + " is different from baseQ length: " + record.getBaseQualities().length);

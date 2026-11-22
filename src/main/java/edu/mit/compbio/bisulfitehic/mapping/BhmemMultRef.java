@@ -647,14 +647,14 @@ public class BhmemMultRef {
 			record.setMateReferenceName(splitin[6]);
 			record.setMateAlignmentStart(0);
 			record.setInferredInsertSize(0);
-			//record.setReadString(splitin[9]);
+			// SEQ is rebuilt from the unconverted read in the orientation BWA reported for
+			// THIS line; originalSeq must not be modified because one read can produce
+			// several lines (primary + supplementary) on different strands. QUAL is used
+			// as BWA wrote it: BWA already reversed it for reverse-strand alignments.
+			// (Same fix as Bhmem.String2SamRecord.)
+			String seq = record.getReadNegativeStrandFlag() ? SequenceUtil.reverseComplement(originalSeq) : originalSeq;
 			String baseQ = splitin[10];
-			if(record.getReadNegativeStrandFlag()){
-				originalSeq = SequenceUtil.reverseComplement(originalSeq);
-				//originalSeq = new StringBuilder(originalSeq).reverse().toString(); //the string output by bwa need to be reversed complement when the mapping strand is negative...
-				baseQ = new StringBuilder(baseQ).reverse().toString();
-			}
-			record.setReadString(modifySeqByCigar(originalSeq, record.getCigarString()));
+			record.setReadString(modifySeqByCigar(seq, record.getCigarString()));
 			record.setBaseQualityString(baseQ);
 			if(record.getReadBases().length != record.getBaseQualities().length){
 				//throw new IllegalArgumentException("SAMrecord " + record.getReadName()  + " read bases length: " + record.getReadBases().length + " is different from baseQ length: " + record.getBaseQualities().length);
