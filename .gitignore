@@ -65,3 +65,7 @@ target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/TestIndepPoiBinom.cl
 target/bisulfitehic-0.22-jar-with-dependencies.jar
 target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/SepAlleleMethySC2.class
 target/classes/main/java/edu/mit/compbio/bisulfitehic/utils/TestIndepPoiBinomOnBam.class
+
+# regression test scratch output and Python bytecode
+test/regression/work/
+__pycache__/
