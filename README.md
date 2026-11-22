@@ -35,13 +35,20 @@ export JAVA_HOME=/usr/libexec/java_home
 
 ## Analysis 1: Map Methyl-HiC or NOMe-HiC reads (DNA) to the reference genome
 ```
-java -Xmx20G -Djava.library.path=/your/path/to/bisulfitehic/jbwa/src/main/native/ -cp "/your/path/to/bisulfitehic/target/bisulfitehic-0.38-jar-with-dependencies.jar:/your/path/to/bisulfitehic/lib/jbwa.jar" main.java.edu.mit.compbio.bisulfitehic.mapping.Bhmem /your/path/to/reference_genome/human_g1k_v37.fa testOut.bam test_R1.fq.gz test_R2.fq.gz -t 5 -rgId test -rgSm sample_id -outputMateDiffChr -buffer 100000
+java -Xmx20G -Djava.library.path=/your/path/to/bisulfitehic/jbwa/jbwa-1.0.0/src/main/native/ -cp "/your/path/to/bisulfitehic/target/bisulfitehic-0.38-jar-with-dependencies.jar:/your/path/to/bisulfitehic/jbwa/jbwa-1.0.0/jbwa.jar" main.java.edu.mit.compbio.bisulfitehic.mapping.Bhmem /your/path/to/reference_genome/human_g1k_v37.fa testOut.bam test_R1.fq.gz test_R2.fq.gz -t 5 -rgId test -rgSm sample_id -outputMateDiffChr -buffer 100000
 ```
 
 ### Analysis 1.1: Map single-cell Methyl-HiC reads to the reference genome
 ```
-java -Xmx15G -Djava.library.path=/your/path/to/bisulfitehic/jbwa/src/main/native/ -cp "/your/path/to/bisulfitehic/target/bisulfitehic-0.38-jar-with-dependencies.jar:/your/path/to/bisulfitehic/lib/jbwa.jar" main.java.edu.mit.compbio.bisulfitehic.mapping.Bhmem /your/path/to/reference_genome/human_g1k_v37.fa testOut.bam test_R1.fq.gz test_R2.fq.gz -t 1 -rgId test -rgSm sample_id -outputMateDiffChr -buffer 1000 -nonDirectional -pbat -enzymeList hg19_MboI.span_region.bedgraph
+java -Xmx15G -Djava.library.path=/your/path/to/bisulfitehic/jbwa/jbwa-1.0.0/src/main/native/ -cp "/your/path/to/bisulfitehic/target/bisulfitehic-0.38-jar-with-dependencies.jar:/your/path/to/bisulfitehic/jbwa/jbwa-1.0.0/jbwa.jar" main.java.edu.mit.compbio.bisulfitehic.mapping.Bhmem /your/path/to/reference_genome/human_g1k_v37.fa testOut.bam test_R1.fq.gz test_R2.fq.gz -t 1 -rgId test -rgSm sample_id -outputMateDiffChr -buffer 1000 -nonDirectional -pbat -enzymeList hg19_MboI.span_region.bedgraph
 ```
+
+### Notes on the Bhmem output
+* The reference needs a sequence dictionary: `genome.dict` next to `genome.fa` (`samtools dict`), or at least `genome.fa.fai` (`samtools faidx`).
+* SEQ and QUAL are written on the reference forward strand. With `-pbat` only the strand flag is inverted, so that downstream bisulfite callers read the conversion strand from the flag.
+* `-enzymeList` takes a BED/bedGraph of restriction sites (chrom, start, end). When several candidate pairs of a read tie on mapping quality, the pair whose two ends both lie on contigs with sites is preferred, then the pair whose two ends both lie within 50 bp of a site.
+* `XG` (CT/GA) is the converted genome the read aligned to and `XR` (CT/GA) is the in-silico conversion applied to the read.
+* TLEN is set to 0 for chimeric Hi-C pairs (inter-chromosomal, same-strand, or reverse-forward orientation); use mate positions, not TLEN, to measure contact distance.
 
 ## Analysis 2: Identify SNPs, DNA methylation, and GpC accessibility in bisulfite sequencing (WGBS, Methyl-HiC, and NOMe-HiC) with high accuracy.
 * need to preprocess and index the bam files first
@@ -101,7 +108,7 @@ gatk Concordance -R /your/path/to/reference_genome/human_g1k_v37.fa -eval testOu
 ## Analysis 3: Characterize 3D genome information from the mapped bam files
 * convert bam files to .hic file
 ```
-python /your/path/to/bisulfitehic/src/python/sam2juicer.py -s testOut.calmd.bam -f /your/path/to/juicer/restriction_sites/hg19_DpnII.txt | gzip -fc > testOut.hic.txt.gz
+python /your/path/to/bisulfitehic/src/python/sam2juicer_new.py -s testOut.calmd.bam -f /your/path/to/juicer/restriction_sites/hg19_DpnII.txt | gzip -fc > testOut.hic.txt.gz
 java -Xmx20G -jar /your/path/to/juicer/scripts/common/juicer_tools.jar pre -d -q 30 -f /your/path/to/juicer/restriction_sites/hg19_DpnII.txt testOut.hic.txt.gz testOut.mapQ30.hic hg19
 ```
 
@@ -120,20 +127,20 @@ python /your/path/to/mustache/mustache.py -f testOut.mapQ30.hic -ch 22 -p 5 -r 2
 
 ### Analysis 4.1: long-range (>20kb) GCH methylation correlation in NOMe-HiC
 ```
-java -Xmx20G -cp "/your/path/to/bisulfitehic/target/bisulfitehic-0.38-jar-with-dependencies.jar:/your/path/to/bisulfitehic/lib/ccInference-0.19-jar-with-dependencies.jar:/your/path/to/bisulfitehic/lib/gatk-package-distribution-3.3.jar" main.java.edu.mit.compbio.bisulfitehic.utils.MethyCorAcrossHiccups GCH_concordance.testOut.mustache testOut.all_chr.mustache.bedpe testOut.b37.calmd.bam -methyPatternSearch GCH -methyPatternCytPos 2 -bsConvPatternSearch WCH -bsConvPatternCytPos 2 -useBadMate -useGeneralBedPe
+java -Xmx20G -cp "/your/path/to/bisulfitehic/target/bisulfitehic-0.38-jar-with-dependencies.jar:/your/path/to/bisulfitehic/lib/ccInference-0.19-slim.jar:/your/path/to/bisulfitehic/lib/gatk-package-distribution-3.3.jar" main.java.edu.mit.compbio.bisulfitehic.utils.MethyCorAcrossHiccups GCH_concordance.testOut.mustache testOut.all_chr.mustache.bedpe testOut.b37.calmd.bam -methyPatternSearch GCH -methyPatternCytPos 2 -bsConvPatternSearch WCH -bsConvPatternCytPos 2 -useBadMate -useGeneralBedPe
 ```
 ### Analysis 4.2: long-range (>20kb) WCG methylation correlation in NOMe-HiC
 ```
-java -Xmx20G -cp "/your/path/to/bisulfitehic/target/bisulfitehic-0.38-jar-with-dependencies.jar:/your/path/to/bisulfitehic/lib/ccInference-0.19-jar-with-dependencies.jar:/your/path/to/bisulfitehic/lib/gatk-package-distribution-3.3.jar" main.java.edu.mit.compbio.bisulfitehic.utils.MethyCorAcrossHiccups WCG_concordance.testOut.mustache testOut.all_chr.mustache.bedpe testOut.b37.calmd.bam -methyPatternSearch WCG -methyPatternCytPos 2 -bsConvPatternSearch WCH -bsConvPatternCytPos 2 -useBadMate -useGeneralBedPe
+java -Xmx20G -cp "/your/path/to/bisulfitehic/target/bisulfitehic-0.38-jar-with-dependencies.jar:/your/path/to/bisulfitehic/lib/ccInference-0.19-slim.jar:/your/path/to/bisulfitehic/lib/gatk-package-distribution-3.3.jar" main.java.edu.mit.compbio.bisulfitehic.utils.MethyCorAcrossHiccups WCG_concordance.testOut.mustache testOut.all_chr.mustache.bedpe testOut.b37.calmd.bam -methyPatternSearch WCG -methyPatternCytPos 2 -bsConvPatternSearch WCH -bsConvPatternCytPos 2 -useBadMate -useGeneralBedPe
 ```
 
 ### Analysis 4.3: short-range (<1lb) GCH methylation correlation in NOMe-HiC
 ```
-java -Xmx20G -cp "/your/path/to/bisulfitehic/target/bisulfitehic-0.38-jar-with-dependencies.jar:/your/path/to/bisulfitehic/lib/ccInference-0.19-jar-with-dependencies.jar:/your/path/to/bisulfitehic/lib/gatk-package-distribution-3.3.jar" main.java.edu.mit.compbio.bisulfitehic.utils.MethyCorAcrossHiccups GCH_concordance_short.testOut.mustache testOut.all_chr.mustache.bedpe testOut.b37.calmd.bam -methyPatternSearch GCH -methyPatternCytPos 2 -bsConvPatternSearch WCH -bsConvPatternCytPos 2 -useBadMate -onlyShort 1000 -randomSampleReads 100 -useGeneralBedPe
+java -Xmx20G -cp "/your/path/to/bisulfitehic/target/bisulfitehic-0.38-jar-with-dependencies.jar:/your/path/to/bisulfitehic/lib/ccInference-0.19-slim.jar:/your/path/to/bisulfitehic/lib/gatk-package-distribution-3.3.jar" main.java.edu.mit.compbio.bisulfitehic.utils.MethyCorAcrossHiccups GCH_concordance_short.testOut.mustache testOut.all_chr.mustache.bedpe testOut.b37.calmd.bam -methyPatternSearch GCH -methyPatternCytPos 2 -bsConvPatternSearch WCH -bsConvPatternCytPos 2 -useBadMate -onlyShort 1000 -randomSampleReads 100 -useGeneralBedPe
 ```
 ### Analysis 4.4: long-range (>20kb) GCH methylation correlation but in shuffled reads in NOMe-HiC
 ```
-java -Xmx20G -cp "/your/path/to/bisulfitehic/target/bisulfitehic-0.38-jar-with-dependencies.jar:/your/path/to/bisulfitehic/lib/ccInference-0.19-jar-with-dependencies.jar:/your/path/to/bisulfitehic/lib/gatk-package-distribution-3.3.jar" main.java.edu.mit.compbio.bisulfitehic.utils.MethyCorAcrossHiccups GCH_concordance_shuffle.testOut.mustache testOut.all_chr.mustache.bedpe testOut.b37.calmd.bam -methyPatternSearch GCH -methyPatternCytPos 2 -bsConvPatternSearch WCH -bsConvPatternCytPos 2 -useBadMate -randomHiccupsInput -randomSampleReads 100 -useGeneralBedPe
+java -Xmx20G -cp "/your/path/to/bisulfitehic/target/bisulfitehic-0.38-jar-with-dependencies.jar:/your/path/to/bisulfitehic/lib/ccInference-0.19-slim.jar:/your/path/to/bisulfitehic/lib/gatk-package-distribution-3.3.jar" main.java.edu.mit.compbio.bisulfitehic.utils.MethyCorAcrossHiccups GCH_concordance_shuffle.testOut.mustache testOut.all_chr.mustache.bedpe testOut.b37.calmd.bam -methyPatternSearch GCH -methyPatternCytPos 2 -bsConvPatternSearch WCH -bsConvPatternCytPos 2 -useBadMate -randomHiccupsInput -randomSampleReads 100 -useGeneralBedPe
 ```
 
 * GCH_concordance.testOut.mustache.methyCor.txt.gz can used as an input to calculate the correlation level in R
@@ -183,7 +190,7 @@ dev.off()
 
 ## Analysis 5: Identify the long-range allele-specific epigenetic events (NOMe-HiC) at chr22
 ```
-java -Xmx20G -cp "/your/path/to/bisulfitehic/target/bisulfitehic-0.38-jar-with-dependencies.jar:/your/path/to/bisulfitehic/lib/ccInference-0.19-jar-with-dependencies.jar:/your/path/to/bisulfitehic/lib/gatk-package-distribution-3.3.jar" main.java.edu.mit.compbio.bisulfitehic.utils.LongRangeAsm /your/path/to/phased_vcf_files/testOut.vcf.gz testOut.b37.calmd.bam testOut.ASM_GCH_HCG_20kb_minCov2.chr22.tab.gz testOut.ASM_GCH_HCG_20kb_minCov2.ref.chr22.tab.gz testOut.ASM_GCH_HCG_20kb_minCov2.alt.chr22.tab.gz -minDist 20000 -sample 0 -coverageRef 2 -coverageAlt 2 -methyPatternSearch GCH -methyPatternCytPos 2 -methyPattern2ndSearch HCG -methyPattern2ndCytPos 2 -bsConvPatternSearch WCH -bsConvPatternCytPos 2 -useBadMate  -minMapQ 30 -region 22
+java -Xmx20G -cp "/your/path/to/bisulfitehic/target/bisulfitehic-0.38-jar-with-dependencies.jar:/your/path/to/bisulfitehic/lib/ccInference-0.19-slim.jar:/your/path/to/bisulfitehic/lib/gatk-package-distribution-3.3.jar" main.java.edu.mit.compbio.bisulfitehic.utils.LongRangeAsm /your/path/to/phased_vcf_files/testOut.vcf.gz testOut.b37.calmd.bam testOut.ASM_GCH_HCG_20kb_minCov2.chr22.tab.gz testOut.ASM_GCH_HCG_20kb_minCov2.ref.chr22.tab.gz testOut.ASM_GCH_HCG_20kb_minCov2.alt.chr22.tab.gz -minDist 20000 -sample 0 -coverageRef 2 -coverageAlt 2 -methyPatternSearch GCH -methyPatternCytPos 2 -methyPattern2ndSearch HCG -methyPattern2ndCytPos 2 -bsConvPatternSearch WCH -bsConvPatternCytPos 2 -useBadMate  -minMapQ 30 -region 22
 ```
 * testOut.ASM_GCH_HCG_20kb_minCov2.chr22.tab.gz is the output file, 
 * Merged files from all the chromosome:
@@ -246,8 +253,25 @@ write.table(x[rownames(ASM.1stEnd),],"GM12878_bT_WGBS_merged_final.ASM_GCH_HCG_2
 
 ## Help information about specific options in each command can be obtained by simply type: 
 ```
-java -Xmx20G -cp "/your/path/to/bisulfitehic/target/bisulfitehic-0.38-jar-with-dependencies.jar:/your/path/to/bisulfitehic/lib/ccInference-0.19-jar-with-dependencies.jar:/your/path/to/bisulfitehic/lib/gatk-package-distribution-3.3.jar" main.java.edu.mit.compbio.bisulfitehic.utils.LongRangeAsm
+java -Xmx20G -cp "/your/path/to/bisulfitehic/target/bisulfitehic-0.38-jar-with-dependencies.jar:/your/path/to/bisulfitehic/lib/ccInference-0.19-slim.jar:/your/path/to/bisulfitehic/lib/gatk-package-distribution-3.3.jar" main.java.edu.mit.compbio.bisulfitehic.utils.LongRangeAsm
 ```
+
+## Regression tests
+```
+bash test/regression/run_tests.sh
+```
+Builds a tiny synthetic bisulfite reference, simulates directional and PBAT Hi-C read pairs, runs Bhmem from the built jar and checks the BAM (about one minute, no external data). See `test/regression/README.md`.
+
+## Change log
+### 2026-11-21
+BAMs written by earlier builds are affected by the first two items; re-align to correct them.
+* **Base qualities (Bhmem, BhmemMultRef, BsmemMultRef):** QUAL was reversed a second time for every read aligned to the reverse strand of the converted genome, so it was stored in FASTQ order next to a reverse-complemented SEQ (about half of all records). QUAL is now taken from BWA unchanged.
+* **SEQ of split reads (Bhmem, BhmemMultRef, BsmemMultRef):** when a read had several alignments (primary + supplementary), the sequence was reverse-complemented cumulatively across them, so a later alignment could be written with SEQ in the wrong orientation. Each alignment now starts from the original read.
+* **`-enzymeList` (Bhmem):** the option was parsed but had no effect (the site index was never stored and the overlap test was always true). It now works as described above, and the preference is applied symmetrically so the result does not depend on the order in which candidate pairs are compared.
+* **Sequence dictionary (Bhmem, BhmemMultRef, BsmemMultRef):** the `.dict` path was derived with an unanchored regex (`.fa` anywhere in the path) and the fallback for a missing `.dict` always failed. Now `genome.dict`, `genome.fa.dict` or `genome.fa.fai` is used; a reference given as a bare file name also works.
+* **`mh_hic_filter.py`:** cis distance is measured from mate positions instead of TLEN (TLEN is 0 for chimeric pairs).
+* README: corrected the jbwa library/jar paths and the ccInference jar name; Analysis 3 now uses `sam2juicer_new.py` (Python 3).
+* Added `test/regression/`.
 
 ## Citations:
 ### For NOMe-HiC application
