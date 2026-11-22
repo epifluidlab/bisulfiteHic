@@ -110,6 +110,8 @@ public class Bhmem {
 	//private final static String ORIGINAL_SEQ_TAG = "OS";
 	private final static String MISMATCHES = "NM";
 	private final static String ALIGNMENT_SCORE = "AS";
+	/** Distance (bp) around an alignment within which a restriction site counts as support (-enzymeList). */
+	private final static int ENZYME_SITE_FLANK = 50;
 	private static List<SamPairUtil.PairOrientation> ORITATION;
 	
 	/**
@@ -179,14 +181,16 @@ public class Bhmem {
 								
 							
 								IntervalTree<String> tree;
-								
+
 								if(regionsEnzyme.containsKey(chr)){
 									tree = regionsEnzyme.get(chr);
 								}else{
 									tree = new IntervalTree<String>();
+									regionsEnzyme.put(chr, tree);
 								}
-								
-								tree.put(start, end, "1");
+
+								// BED is 0-based half-open; SAM coordinates and the tree are 1-based closed.
+								tree.put(start + 1, end, "1");
 								
 								
 								i++;
@@ -854,24 +858,11 @@ public class Bhmem {
 				if((!r1.getFirst().getContig().equalsIgnoreCase(r1.getSecond().getContig())) && r2.getFirst().getContig().equalsIgnoreCase(r2.getSecond().getContig())){
 					return r2;
 				}else{
-					boolean returnR2 = false;
-					if(!regionsEnzyme.isEmpty()){
-						if(regionsEnzyme.containsKey(r2.getFirst().getContig()) && regionsEnzyme.containsKey(r2.getSecond().getContig())){
-							if(!regionsEnzyme.containsKey(r1.getFirst().getContig()) || !regionsEnzyme.containsKey(r1.getSecond().getContig())){
-								returnR2 = true;
-							}else{
-								if(regionsEnzyme.get(r2.getFirst().getContig()).overlappers(r2.getFirst().getAlignmentStart()-50, r2.getFirst().getAlignmentEnd()+50) != null 
-										&& regionsEnzyme.get(r2.getSecond().getContig()).overlappers(r2.getSecond().getAlignmentStart()-50, r2.getSecond().getAlignmentEnd()+50) != null){
-									if(regionsEnzyme.get(r1.getFirst().getContig()).overlappers(r1.getFirst().getAlignmentStart()-50, r1.getFirst().getAlignmentEnd()+50) == null 
-											|| regionsEnzyme.get(r1.getSecond().getContig()).overlappers(r1.getSecond().getAlignmentStart()-50, r1.getSecond().getAlignmentEnd()+50) == null){
-										returnR2 = true;
-									}
-								}
-							}
-						}
-					}
-					if(returnR2){
-						return r2;
+					// -enzymeList: with mapping quality tied, prefer the pair supported by
+					// restriction sites (see chooseByEnzymeSites).
+					Pair<SAMRecord, SAMRecord> enzymeChoice = chooseByEnzymeSites(r1, r2, regionsEnzyme);
+					if(enzymeChoice != null){
+						return enzymeChoice;
 					}else{
 						if(((Integer)r2.getFirst().getAttribute(ALIGNMENT_SCORE) + (Integer)r2.getSecond().getAttribute(ALIGNMENT_SCORE)) > ((Integer)r1.getFirst().getAttribute(ALIGNMENT_SCORE) + (Integer)r1.getSecond().getAttribute(ALIGNMENT_SCORE))){
 							return r2;
@@ -892,6 +883,37 @@ public class Bhmem {
 		}
 		
 		return r1;
+	}
+	
+	/**
+	 * -enzymeList tie-break between two candidate pairs. Prefers the pair whose two
+	 * ends both lie on contigs that have restriction sites, then the pair whose two
+	 * ends both lie within ENZYME_SITE_FLANK bp of a site. Applied in both
+	 * directions, so the result does not depend on the order in which candidates
+	 * are compared. Returns null when the sites do not separate the two pairs
+	 * (or no -enzymeList was given).
+	 */
+	private static Pair<SAMRecord, SAMRecord> chooseByEnzymeSites(Pair<SAMRecord, SAMRecord> r1, Pair<SAMRecord, SAMRecord> r2, HashMap<String,IntervalTree<String>> regionsEnzyme){
+		if(regionsEnzyme.isEmpty()){
+			return null;
+		}
+		boolean r1OnListedContigs = regionsEnzyme.containsKey(r1.getFirst().getContig()) && regionsEnzyme.containsKey(r1.getSecond().getContig());
+		boolean r2OnListedContigs = regionsEnzyme.containsKey(r2.getFirst().getContig()) && regionsEnzyme.containsKey(r2.getSecond().getContig());
+		if(r1OnListedContigs != r2OnListedContigs){
+			return r2OnListedContigs ? r2 : r1;
+		}
+		boolean r1NearSites = nearEnzymeSite(r1.getFirst(), regionsEnzyme) && nearEnzymeSite(r1.getSecond(), regionsEnzyme);
+		boolean r2NearSites = nearEnzymeSite(r2.getFirst(), regionsEnzyme) && nearEnzymeSite(r2.getSecond(), regionsEnzyme);
+		if(r1NearSites != r2NearSites){
+			return r2NearSites ? r2 : r1;
+		}
+		return null;
+	}
+
+	/** True if the alignment lies within ENZYME_SITE_FLANK bp of a restriction site from -enzymeList. */
+	private static boolean nearEnzymeSite(SAMRecord r, HashMap<String,IntervalTree<String>> regionsEnzyme){
+		IntervalTree<String> tree = regionsEnzyme.get(r.getContig());
+		return tree != null && tree.overlappers(r.getAlignmentStart() - ENZYME_SITE_FLANK, r.getAlignmentEnd() + ENZYME_SITE_FLANK).hasNext();
 	}
 	
 	private Pair<SAMRecord, SAMRecord> comparingSamRecordPbat(Pair<SAMRecord, SAMRecord> r1, Pair<SAMRecord, SAMRecord> r2){
