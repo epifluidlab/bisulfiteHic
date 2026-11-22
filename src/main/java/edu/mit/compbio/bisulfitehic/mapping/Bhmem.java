@@ -11,6 +11,8 @@ import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMFileWriterFactory;
 import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.SamPairUtil;
 import htsjdk.samtools.util.CigarUtil;
 import htsjdk.samtools.util.IntervalTree;
@@ -21,6 +23,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,8 +42,6 @@ import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
-
-import picard.sam.CreateSequenceDictionary;
 
 import com.github.lindenb.jbwa.jni.BwaIndex;
 import com.github.lindenb.jbwa.jni.BwaMem;
@@ -204,13 +205,7 @@ public class Bhmem {
 					
 					
 					SAMFileHeader samFileHeader = new SAMFileHeader();
-					File sequenceDict = new File(refFile.replaceAll(".fa", ".dict"));
-					if(sequenceDict.exists() && !sequenceDict.isDirectory()){
-						samFileHeader.setSequenceDictionary(SAMSequenceDictionaryExtractor.extractDictionary(sequenceDict));
-					}else{
-						CreateSequenceDictionary csd = new CreateSequenceDictionary();
-						samFileHeader.setSequenceDictionary(csd.makeSequenceDictionary(sequenceDict));
-					}
+					samFileHeader.setSequenceDictionary(loadSequenceDictionary(refFile));
 					if(rgId != null && !rgId.isEmpty() && rgSm != null && !rgSm.isEmpty()){
 						SAMReadGroupRecord rg = new SAMReadGroupRecord(rgId);
 						rg.setLibrary(rgId);
@@ -225,11 +220,11 @@ public class Bhmem {
 					SAMFileWriterFactory writerFactory = new SAMFileWriterFactory();
 					SAMFileWriter writer = writerFactory.makeBAMWriter(samFileHeader, true, new File(outputFile));
 					
-					BwaIndex indexCT=new BwaIndex(new File(new File(refFile).getParent() + "/Bisulfite_Genome/CT_conversion/genome_mfa.CT_conversion.fa"));
+					BwaIndex indexCT=new BwaIndex(new File(new File(refFile).getAbsoluteFile().getParent() + "/Bisulfite_Genome/CT_conversion/genome_mfa.CT_conversion.fa"));
 					BwaMem memCT=new BwaMem(indexCT);
 					memCT.updateMoreScoringParameters(thread, score, noSoftClipOnSuppl ? 0 : 1, clip5, clip3); //1 means use softclip supplement mapping. 0 means NO softclip supplement mapping.
 					
-					BwaIndex indexGA=new BwaIndex(new File(new File(refFile).getParent() + "/Bisulfite_Genome/GA_conversion/genome_mfa.GA_conversion.fa"));
+					BwaIndex indexGA=new BwaIndex(new File(new File(refFile).getAbsoluteFile().getParent() + "/Bisulfite_Genome/GA_conversion/genome_mfa.GA_conversion.fa"));
 					BwaMem memGA=new BwaMem(indexGA);
 					memGA.updateMoreScoringParameters(thread, score, noSoftClipOnSuppl ? 0 : 1, clip5, clip3); //1 means use softclip supplement mapping. 0 means NO softclip supplement mapping.
 
@@ -656,6 +651,41 @@ public class Bhmem {
 	}
 	
 	
+	/**
+	 * Sequence dictionary for the BAM header. Looks for genome.dict next to
+	 * genome.fa (Picard convention; .fasta/.fna also accepted), then genome.fa.dict,
+	 * and finally builds it from the samtools index genome.fa.fai.
+	 */
+	static SAMSequenceDictionary loadSequenceDictionary(String refFile) throws IOException {
+		File picardDict = new File(refFile.replaceFirst("\\.(fa|fasta|fna)$", "") + ".dict");
+		for(File dict : new File[]{picardDict, new File(refFile + ".dict")}){
+			if(dict.isFile()){
+				return SAMSequenceDictionaryExtractor.extractDictionary(dict);
+			}
+		}
+		File fai = new File(refFile + ".fai");
+		if(fai.isFile()){
+			List<SAMSequenceRecord> sequences = new ArrayList<SAMSequenceRecord>();
+			// .fai columns: name, length, offset, line bases, line width
+			BufferedReader faiReader = new BufferedReader(new FileReader(fai));
+			try{
+				String faiLine;
+				while((faiLine = faiReader.readLine()) != null){
+					if(faiLine.isEmpty()){
+						continue;
+					}
+					String[] columns = faiLine.split("\t");
+					sequences.add(new SAMSequenceRecord(columns[0], Integer.parseInt(columns[1])));
+				}
+			}finally{
+				faiReader.close();
+			}
+			return new SAMSequenceDictionary(sequences);
+		}
+		throw new IOException("No sequence dictionary found for " + refFile + ": create " + picardDict.getName()
+				+ " with 'samtools dict' or " + fai.getName() + " with 'samtools faidx'");
+	}
+
 	private ArrayList<SAMRecord> String2SamRecord(String lines, SAMFileHeader samFileHeader, String originalSeq, boolean SecondEnd){
 		ArrayList<SAMRecord> records = new ArrayList<SAMRecord>();
 		for(String line : lines.split("\\n")){

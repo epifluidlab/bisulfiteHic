@@ -16,7 +16,6 @@ import htsjdk.samtools.liftover.LiftOver;
 import htsjdk.samtools.util.CigarUtil;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.SequenceUtil;
-import htsjdk.variant.utils.SAMSequenceDictionaryExtractor;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,7 +36,6 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 
-import picard.sam.CreateSequenceDictionary;
 
 import com.github.lindenb.jbwa.jni.BwaIndex;
 import com.github.lindenb.jbwa.jni.BwaMem;
@@ -171,13 +169,7 @@ public class BhmemMultRef {
 					initiate();	
 					
 					SAMFileHeader samFileHeaderMerge = new SAMFileHeader();
-					File sequenceDictMerge = new File(refFile.replaceAll(".fa", ".dict"));
-					if(sequenceDictMerge.exists() && !sequenceDictMerge.isDirectory()){
-						samFileHeaderMerge.setSequenceDictionary(SAMSequenceDictionaryExtractor.extractDictionary(sequenceDictMerge));
-					}else{
-						CreateSequenceDictionary csd = new CreateSequenceDictionary();
-						samFileHeaderMerge.setSequenceDictionary(csd.makeSequenceDictionary(sequenceDictMerge));
-					}
+					samFileHeaderMerge.setSequenceDictionary(Bhmem.loadSequenceDictionary(refFile));
 					if(rgId != null && !rgId.isEmpty() && rgSm != null && !rgSm.isEmpty()){
 						SAMReadGroupRecord rg = new SAMReadGroupRecord(rgId);
 						rg.setLibrary(rgId);
@@ -212,13 +204,7 @@ public class BhmemMultRef {
 					int numRef = 1;
 					for(String ref : refs){
 						SAMFileHeader samFileHeader = new SAMFileHeader();
-						File sequenceDict = new File(ref.replaceAll(".fa", ".dict"));
-						if(sequenceDict.exists() && !sequenceDict.isDirectory()){
-							samFileHeader.setSequenceDictionary(SAMSequenceDictionaryExtractor.extractDictionary(sequenceDict));
-						}else{
-							CreateSequenceDictionary csd = new CreateSequenceDictionary();
-							samFileHeader.setSequenceDictionary(csd.makeSequenceDictionary(sequenceDict));
-						}
+						samFileHeader.setSequenceDictionary(Bhmem.loadSequenceDictionary(ref));
 						if(rgId != null && !rgId.isEmpty() && rgSm != null && !rgSm.isEmpty()){
 							SAMReadGroupRecord rg = new SAMReadGroupRecord(rgId);
 							rg.setLibrary(rgId);
