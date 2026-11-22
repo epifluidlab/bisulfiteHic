@@ -29,14 +29,19 @@ def mh_hic_filter(in_cram, out_summary):
                 if read.is_paired and (not read.is_unmapped) and (not pre_read.is_unmapped) and (not read.is_secondary) and (not pre_read.is_secondary) \
                         and read.mapping_quality >= 30 and pre_read.mapping_quality >= 30 and (not read.is_duplicate) \
                     and read.reference_name == read.next_reference_name:
-                    if abs(read.template_length) >= 1000:
+                    # Position-based distance (NOT BAM TLEN): bhmem sets TLEN=0 for
+                    # chimeric Hi-C ligations, so abs(read.template_length) would
+                    # under-count long-range cis contacts. Same rule as
+                    # mh_reads_summary.v2.py.
+                    dist = abs(read.reference_start - pre_read.reference_start)
+                    if dist >= 1000:
                         uniq_mapped_mapq30_nopcr_cis_1kb = uniq_mapped_mapq30_nopcr_cis_1kb + 1
-                        if abs(read.template_length) >= 10000:
+                        if dist >= 10000:
                             uniq_mapped_mapq30_nopcr_cis_10kb = uniq_mapped_mapq30_nopcr_cis_10kb + 1
                             chrom = read.reference_name
                             if (not chrom.startswith('chrUn')) and (not chrom.endswith('random')) and (not chrom=='chrM') and (not chrom=='chrX') and (not chrom=='chrY'):
                                 cis_chrom_dict[chrom] = cis_chrom_dict[chrom] + 1
-                            if abs(read.template_length) >= 20000:
+                            if dist >= 20000:
                                 uniq_mapped_mapq30_nopcr_cis_20kb = uniq_mapped_mapq30_nopcr_cis_20kb + 1
 
     for chrom in sam_chrom_dict.keys():
