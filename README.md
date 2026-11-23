@@ -262,7 +262,26 @@ bash test/regression/run_tests.sh
 ```
 Builds a tiny synthetic bisulfite reference, simulates directional and PBAT Hi-C read pairs, runs Bhmem from the built jar and checks the BAM (about one minute, no external data). See `test/regression/README.md`.
 
+## Unit tests
+```
+bash test/unit/run_all.sh
+```
+Tests for the analysis classes and helper scripts on synthetic inputs (see `test/unit/README.md`).
+
 ## Change log
+### 2026-11-23
+Correctness fixes across the analysis classes and helper scripts; each has a test under `test/unit/` unless marked "compiled only" in the commit message. Results of the affected tools can change.
+* **Distances no longer use TLEN** (0 for chimeric pairs since the TLEN reset): `LongRangeAsm` `-minDist/-maxDist`, `MethyCorAcrossHiccups(SC)` `-onlyShort/-shortLowerBound`, `mh_reads_summary.py`, `interact_density_around_regions.py` now use mate positions (`BisulfiteHicUtils.mateDistance`). Before, `LongRangeAsm` dropped every chimeric pair and `-onlyShort` let long-range pairs through.
+* **`LongRangeAsm`:** per-CpG tables no longer mix chromosomes in whole-genome runs; the SNP base is read at the right offset in soft-clipped reads (also `AlleImbalanceExpr`, `SepAlleleMethySC`, `SepAlleleMethySC2`, `MethyCorSepAlleleSC`); CpG coordinates of G->A-strand reads are no longer mirrored; `-diffChr` works without `-useBadMate`; header labels `*_T` renamed `*_CT` (the columns hold C+T totals; column order unchanged).
+* **`MethyCorAcrossHiccups`:** `-randomHiccupsInput` without `-randomSampleReads` produced no output; `-useUnpaired`, `-sample`, `-diffChr` (distance filter, second anchor chromosome) and the `-outputCount` total are fixed; a read is no longer paired with itself. **`MethyCorGlobal`:** `-useBadMate` and `-randomSampleReads` now take effect.
+* **Methylation pattern matching (`BisulfiteHicUtils`):** inserted bases and N in the reference no longer match any pattern.
+* **Options that were silently ignored now work:** `-skipProcessFirstRow` (skipped every row) in `MethyCorAcrossHiccupsSC` and `SingleBaseResHicMatrix(V2)`; `-regions` in `SingleBaseResHicMatrix` and `SingleCellTest`; the `cpg_list.bed` gate in `EnhanceHicMatrix`.
+* **Statistics:** `TestIndepPoiBinomOnBam` put different cells into the same allele slot and used integer division in the permutation null; `FisherExactTest` two-sided p-values dropped exactly tied tables; `PoissonBinomial2` returned NaN when a probability was 1; `SingleCellTest` wrote a character instead of the coordinate and misaligned NA columns; last CpG / last window dropped in `SingleBaseResHicMatrix`, `EnhanceHicMatrix`, `TestIndepPoiBinom`; `AlleImbalanceExpr` merged-mode header, p-value precision and gene collapsing.
+* **`demultiplex_ecker_scWGBS.pl`:** the last base (and quality) of every R1 was dropped together with the barcode; R1 reads are now 1 bp longer.
+* **Python scripts:** `smooth_mgch.py` ignored `--s`; `betabinom_test_mgch.py` mixed natural and base-10 logs and mis-parsed boolean options; methylated counts were truncated instead of rounded; p-values lost precision or could be 0/negative; `sam2juicer_new.py` handles `MT` and reports a missing contig by name; scripts run again on current Python/SciPy (`binom_test`, `collections.Iterable`).
+* **`call_topdom_on_hic.R`:** optional third argument with the chromosome list (default unchanged: human 1-22, X).
+* Added `test/unit/`.
+
 ### 2026-11-21
 BAMs written by earlier builds are affected by the first two items; re-align to correct them.
 * **Base qualities (Bhmem, BhmemMultRef, BsmemMultRef):** QUAL was reversed a second time for every read aligned to the reverse strand of the converted genome, so it was stored in FASTQ order next to a reverse-complemented SEQ (about half of all records). QUAL is now taken from BWA unchanged.
