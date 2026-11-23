@@ -7,7 +7,11 @@ def pass_filter(read, min_mapq, min_insert_size):
     return (not (read.is_unmapped or read.mate_is_unmapped or read.is_secondary
                  or read.is_duplicate or read.is_qcfail or read.is_supplementary)) \
            and read.is_paired and read.mapping_quality >= min_mapq \
-           and (abs(read.template_length)>=min_insert_size or abs(read.template_length)==0)
+           and (read.reference_id != read.next_reference_id
+                or abs(read.reference_start - read.next_reference_start) >= min_insert_size)
+    # distance from mate positions, NOT BAM TLEN: bhmem sets TLEN=0 for chimeric Hi-C pairs
+    # (inter-chromosomal, same-strand or reverse-forward), so TLEN cannot tell short cis from long cis.
+    # Pairs on different chromosomes are not cis and always pass the insert-size filter.
 
 
 def split_regions(regions):
@@ -30,8 +34,10 @@ def interact_density_around_regions(in_bam, out_summary, from_region, plot_cente
                 if read.next_reference_name == plot_chr:
                     mate_start = read.next_reference_start
                     if to_intervals.find(mate_start, mate_start+1):
-                        bin_num_mate = (int)(num_bins/2) + (int)((mate_start-plot_cent_loc)/plot_bin_size)
-                        target_bins[bin_num_mate]+=1
+                        # floor division: int() truncates toward zero, which merged [-bin, 0) into the centre bin
+                        bin_num_mate = (int)(num_bins/2) + (mate_start-plot_cent_loc)//plot_bin_size
+                        if 0 <= bin_num_mate < num_bins:  # partial bins at the edges (bin size not dividing the boundary) are skipped
+                            target_bins[bin_num_mate]+=1
     print(sum(target_bins))
     with open(out_summary, 'w') as out:
         i = 0-(int)(num_bins/2)

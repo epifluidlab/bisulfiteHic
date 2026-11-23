@@ -1,7 +1,7 @@
 import sys, glob, gzip, subprocess, re, os
 import numpy as np
 #import methy_sc_concordance.poibin.PoiBin
-import collections
+import collections.abc
 import numpy as np
 
 
@@ -34,7 +34,7 @@ def call_methy_concordance(argv):
     for key, value in window_val.items():
         if (value is not None) and len(value) > 10:
             #print(np.array(value,dtype='float32'))
-            pb = PoiBin(np.array(value,dtype='float32'))
+            pb = PoiBin(np.array(value,dtype='float64'))  # float32 limits the p-values to ~1e-7 accuracy (and gives negative ones)
             poibin_collections[key] = pb
             window_count_collections[key] = np.sum(np.array(window_count_val[key], dtype='int32'))
     print("output...")
@@ -54,7 +54,10 @@ def call_methy_concordance(argv):
 
 
 def unwrap_interval(interval):
-    m = re.search('(chr\d+):(\d+)-(\d+)', interval)
+    # any contig name (chr19, chrX, 19, chrUn_gl000220, ...), not only chr<digits>
+    m = re.search(r'([\w.]+):(\d+)-(\d+)', interval)
+    if m is None:
+        raise ValueError("window name is not in chrom:start-end format: " + interval)
     chrom = m.group(1)
     start = m.group(2)
     end = m.group(3)
@@ -162,19 +165,20 @@ class PoiBin(object):
         self.check_rv_input(number_successes)
         i = 0
         try:
-            isinstance(number_successes, collections.Iterable)
+            isinstance(number_successes, collections.abc.Iterable)
             pvalues = np.array(number_successes, dtype='float')
             # if input is iterable (list, numpy.array):
             for k in number_successes:
                 pvalues[i] = 1. - self.cdf(k) + self.pmf(k)
                 i += 1
-            return pvalues
+            # FFT round-off can push far-tail values slightly outside [0, 1]
+            return np.clip(pvalues, 0.0, 1.0)
         except TypeError:
             # if input is an integer:
             if number_successes == 0:
                 return 1
             else:
-                return 1 - self.cdf(number_successes - 1)
+                return min(1.0, max(0.0, 1 - self.cdf(number_successes - 1)))
 
 # ------------------------------------------------------------------------------
 # Methods to obtain pmf and cdf
@@ -255,15 +259,14 @@ class PoiBin(object):
         :type number_successes: int or list of integers """
         try:
             for k in number_successes:
-                assert (type(k) == int or type(k) == np.int64), \
+                assert isinstance(k, (int, np.integer)), \
                         "Values in input list must be integers"
                 assert k >= 0, 'Values in input list cannot be negative.'
                 assert k <= self.number_trials, \
                     'Values in input list must be smaller or equal to the ' \
                     'number of input probabilities "n"'
         except TypeError:
-            assert (type(number_successes) == int or \
-                type(number_successes) == np.int64), \
+            assert isinstance(number_successes, (int, np.integer)), \
                 'Input value must be an integer.'
             assert number_successes >= 0, "Input value cannot be negative."
             assert number_successes <= self.number_trials, \

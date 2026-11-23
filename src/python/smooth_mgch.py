@@ -41,21 +41,25 @@ def smooth_mgch_per_chrom(tbx, out, chrom, size, window, max_window, min_gch, co
             while (num_gch < min_gch) and (
                     abs(w_start_1 - int(start)) <= max_window and abs(w_end_2 - int(site_after.end)) <= max_window):
                 for interval in intersecter.find(w_start_1, w_end_1):
-                    s = interval.start
+                    pos = interval.start  # do not reuse the name "s": that is the --s smoothing factor
                     m = interval.value['methylation']
                     methy_list.append(m)
-                    range_list.append(s)
+                    range_list.append(pos)
                     num_gch = num_gch + 1
                 for interval in intersecter.find(w_start_2, w_end_2):
-                    s = interval.start
+                    pos = interval.start
                     m = interval.value['methylation']
                     methy_list.append(m)
-                    range_list.append(s)
+                    range_list.append(pos)
                     num_gch = num_gch + 1
                 w_end_1 = w_start_1
                 w_start_1 = max(0, w_start_1 - window)
                 w_start_2 = w_end_2
                 w_end_2 = min(size, int(w_end_2 - 1) + window)
+                if w_start_1 >= w_end_1 and w_start_2 >= w_end_2:
+                    # both windows are clamped at the contig ends: nothing left to add, stop
+                    # (otherwise this loops forever on short contigs with fewer than min_gch sites)
+                    break
             methy_list = np.array(methy_list, dtype='float32')
             range_list = np.array(range_list, dtype='int32')
             # f = interpolate.interp1d(range_list, methy_list, kind=kind)

@@ -3,6 +3,14 @@ from bx.intervals.intersection import Intersecter, Interval
 from scipy import stats
 
 
+def binom_pvalue(k, n, p, alternative):
+    # scipy.stats.binom_test was removed in scipy 1.12; scipy.stats.binomtest exists since scipy 1.7
+    if n < 1:
+        return 1.0
+    if hasattr(stats, 'binomtest'):
+        return stats.binomtest(k, n=n, p=p, alternative=alternative).pvalue
+    return stats.binom_test(k, n=n, p=p, alternative=alternative)
+
 def binom_test_mgch(in_bed, out_bed, min_gch, min_point, window, max_window, global_acc):
     gch_intervals_dict = dict()
     num = 0
@@ -30,7 +38,7 @@ def binom_test_mgch(in_bed, out_bed, min_gch, min_point, window, max_window, glo
                 if line.startswith('track') or line.startswith('#'):
                     continue
                 chrom, start, end, _, score, strand, m, c = line.split("\t")
-                methy_count = int(float(m) * int(c) / 100.0)
+                methy_count = int(round(float(m) * int(c) / 100.0))
                 intersecter = gch_intervals_dict.get(chrom)
                 num_gch = 0
                 c_window = 0
@@ -43,12 +51,12 @@ def binom_test_mgch(in_bed, out_bed, min_gch, min_point, window, max_window, glo
                     for interval in intersecter.find(w_start_1, w_end_1):
                         c_int = interval.value['coverage']
                         c_window = c_window + c_int
-                        m_window = m_window + int(interval.value['methylation'] * c_int / 100.0)
+                        m_window = m_window + int(round(interval.value['methylation'] * c_int / 100.0))
                         num_gch = num_gch + 1
                     for interval in intersecter.find(w_start_2, w_end_2):
                         c_int = interval.value['coverage']
                         c_window = c_window + c_int
-                        m_window = m_window + int(interval.value['methylation'] * c_int / 100.0)
+                        m_window = m_window + int(round(interval.value['methylation'] * c_int / 100.0))
                         num_gch = num_gch + 1
                     w_start_1 = w_start_1 - window
                     w_end_1 = w_start_1 + window
@@ -58,8 +66,8 @@ def binom_test_mgch(in_bed, out_bed, min_gch, min_point, window, max_window, glo
                     window_p = m_window / c_window
                 else:
                     window_p = global_acc
-                p_value = stats.binom_test(methy_count, n=int(c), p=window_p, alternative='greater')
-                out.write(line + '\t' + str(round(p_value, 2)) + '\n')
+                p_value = binom_pvalue(methy_count, n=int(c), p=window_p, alternative='greater')
+                out.write(line + '\t' + ('%.6g' % p_value) + '\n')
 
 
 if __name__ == '__main__':

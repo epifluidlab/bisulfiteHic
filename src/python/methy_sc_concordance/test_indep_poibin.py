@@ -41,6 +41,7 @@ def test_indep_poibin(argv):
                 #print(cpgi_pos)
                 if abs(cpgj_pos - cpgi_pos) > max_dist:
                     ratio.append('NA')
+                    continue  # one value per CpG pair, otherwise the row gets an extra column
                 cpgj = data_mat[j, :]
                 cpgj_std = np.nanstd(cpgj)
                 obs_std = np.nanstd((cpgi + cpgj) / 2)

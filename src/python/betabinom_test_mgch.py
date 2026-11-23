@@ -10,6 +10,26 @@ def fit_betabinomial(methy_list, cov_list): # a should be an array of the number
     return (alpha, beta)
 
 
+def binom_pvalue(k, n, p, alternative):
+    # scipy.stats.binom_test was removed in scipy 1.12; scipy.stats.binomtest exists since scipy 1.7
+    if n < 1:
+        return 1.0
+    if hasattr(stats, 'binomtest'):
+        return stats.binomtest(k, n=n, p=p, alternative=alternative).pvalue
+    return stats.binom_test(k, n=n, p=p, alternative=alternative)
+
+
+def str2bool(v):
+    # argparse type=bool turns any non-empty string (including "False") into True
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('true', 't', 'yes', 'y', '1'):
+        return True
+    if v.lower() in ('false', 'f', 'no', 'n', '0'):
+        return False
+    raise argparse.ArgumentTypeError('boolean value expected (True/False), got: ' + v)
+
+
 def betabinom_test_mgch_per_chrom(tbx, out, chrom, size, min_gch, min_point, window1, window2, binomial_only, two_sided):
     intersecter = Intersecter()
     num = 0
@@ -24,8 +44,8 @@ def betabinom_test_mgch_per_chrom(tbx, out, chrom, size, min_gch, min_point, win
                               value={'score': int(score), 'methylation': float(m), 'coverage': int(c)})
         intersecter.add_interval(interv_tmp)
         c_global = c_global + int(c)
-        m_global = m_global + int(float(m) * int(c) / 100.0)
-        global_methy.append(int(float(m) * int(c) / 100.0))
+        m_global = m_global + int(round(float(m) * int(c) / 100.0))
+        global_methy.append(int(round(float(m) * int(c) / 100.0)))
         global_cov.append(int(c))
         global_m.append(float(m)/100.0)
         num = num + 1
@@ -60,7 +80,7 @@ def betabinom_test_mgch_per_chrom(tbx, out, chrom, size, min_gch, min_point, win
 
     for line in tbx.fetch(chrom, 0, size):
         chrom, start, end, _, score, strand, m, c = line.split("\t")
-        methy_count = int(float(m) * int(c) / 100.0)
+        methy_count = int(round(float(m) * int(c) / 100.0))
         total_count = int(c)
         methy = float(m) / 100
         num_gch_1 = 0
@@ -76,16 +96,16 @@ def betabinom_test_mgch_per_chrom(tbx, out, chrom, size, min_gch, min_point, win
         for interval in intersecter.find(w1_start_1, w1_end_1):
             c_int = interval.value['coverage']
             c_window_1 = c_window_1 + c_int
-            m_window_1 = m_window_1 + int(interval.value['methylation'] * c_int / 100.0)
-            meth_list1.append(int(interval.value['methylation'] * c_int / 100.0))
+            m_window_1 = m_window_1 + int(round(interval.value['methylation'] * c_int / 100.0))
+            meth_list1.append(int(round(interval.value['methylation'] * c_int / 100.0)))
             cov_list1.append(c_int)
             m_list1.append(float(interval.value['methylation'])/100.0)
             num_gch_1 = num_gch_1 + 1
         for interval in intersecter.find(w1_start_2, w1_end_2):
             c_int = interval.value['coverage']
             c_window_1 = c_window_1 + c_int
-            m_window_1 = m_window_1 + int(interval.value['methylation'] * c_int / 100.0)
-            meth_list1.append(int(interval.value['methylation'] * c_int / 100.0))
+            m_window_1 = m_window_1 + int(round(interval.value['methylation'] * c_int / 100.0))
+            meth_list1.append(int(round(interval.value['methylation'] * c_int / 100.0)))
             cov_list1.append(c_int)
             m_list1.append(float(interval.value['methylation']) / 100.0)
             num_gch_1 = num_gch_1 + 1
@@ -117,16 +137,16 @@ def betabinom_test_mgch_per_chrom(tbx, out, chrom, size, min_gch, min_point, win
         for interval in intersecter.find(w2_start_1, w2_end_1):
             c_int = interval.value['coverage']
             c_window_2 = c_window_2 + c_int
-            m_window_2 = m_window_2 + int(interval.value['methylation'] * c_int / 100.0)
-            meth_list2.append(int(interval.value['methylation'] * c_int / 100.0))
+            m_window_2 = m_window_2 + int(round(interval.value['methylation'] * c_int / 100.0))
+            meth_list2.append(int(round(interval.value['methylation'] * c_int / 100.0)))
             cov_list2.append(c_int)
             m_list2.append(float(interval.value['methylation']) / 100.0)
             num_gch_2 = num_gch_2 + 1
         for interval in intersecter.find(w2_start_2, w2_end_2):
             c_int = interval.value['coverage']
             c_window_2 = c_window_2 + c_int
-            m_window_2 = m_window_2 + int(interval.value['methylation'] * c_int / 100.0)
-            meth_list2.append(int(interval.value['methylation'] * c_int / 100.0))
+            m_window_2 = m_window_2 + int(round(interval.value['methylation'] * c_int / 100.0))
+            meth_list2.append(int(round(interval.value['methylation'] * c_int / 100.0)))
             cov_list2.append(c_int)
             m_list2.append(float(interval.value['methylation']) / 100.0)
             num_gch_2 = num_gch_2 + 1
@@ -157,9 +177,9 @@ def betabinom_test_mgch_per_chrom(tbx, out, chrom, size, min_gch, min_point, win
             #if not binomial_only:
                 #beta_binom_p_w1 = 0 - np.log10(stats.betabinom.cdf(methy_count, total_count, global_methy_alpha, global_methy_beta))
         if two_sided:
-            binomial_p_w1 = 0 - np.log10(stats.binom_test(methy_count, n=total_count, p=window1_p, alternative='two-sided'))
+            binomial_p_w1 = 0 - np.log10(binom_pvalue(methy_count, n=total_count, p=window1_p, alternative='two-sided'))
         else:
-            binomial_p_w1 = 0 - np.log10(stats.binom_test(methy_count, n=total_count, p=window1_p, alternative='less'))
+            binomial_p_w1 = 0 - np.log10(binom_pvalue(methy_count, n=total_count, p=window1_p, alternative='less'))
         if num_gch_2 >= min_gch and c_window_2 >= min_point :
             window2_p = m_window_2 / c_window_2
             #if not binomial_only:
@@ -169,15 +189,15 @@ def betabinom_test_mgch_per_chrom(tbx, out, chrom, size, min_gch, min_point, win
             #if not binomial_only:
                 #beta_binom_p_w2 = 0 - np.log10(stats.betabinom.cdf(methy_count, total_count, global_methy_alpha, global_methy_beta))
         if two_sided:
-            binomial_p_w2 = 0 - np.log(stats.binom_test(methy_count, n=total_count, p=window2_p, alternative='two-sided'))
+            binomial_p_w2 = 0 - np.log10(binom_pvalue(methy_count, n=total_count, p=window2_p, alternative='two-sided'))
         else:
-            binomial_p_w2 = 0 - np.log(stats.binom_test(methy_count, n=total_count, p=window2_p, alternative='less'))
+            binomial_p_w2 = 0 - np.log10(binom_pvalue(methy_count, n=total_count, p=window2_p, alternative='less'))
         if two_sided:
             binomial_p_global = 0 - np.log10(
-                stats.binom_test(methy_count, n=total_count, p=m_global / c_global, alternative='two-sided'))
+                binom_pvalue(methy_count, n=total_count, p=m_global / c_global, alternative='two-sided'))
         else:
             binomial_p_global = 0 - np.log10(
-                stats.binom_test(methy_count, n=total_count, p=m_global / c_global, alternative='less'))
+                binom_pvalue(methy_count, n=total_count, p=m_global / c_global, alternative='less'))
         binomial_p_final = np.nanmax((binomial_p_w1, binomial_p_w2, binomial_p_global))
 
 
@@ -228,8 +248,8 @@ if __name__ == '__main__':
     p.add_argument('--min_gch', type=int, default=10)  ##requires at least 10 GCH to fit a good beta-binomial distribution
     p.add_argument('--min_point', type=int,
                    default=100)  ##requires at least 100 data points
-    p.add_argument('--binomial_only', type=bool, default=False)
-    p.add_argument('--two_sided', type=bool, default=False)
+    p.add_argument('--binomial_only', type=str2bool, default=False)
+    p.add_argument('--two_sided', type=str2bool, default=False)
     args = p.parse_args()
     betabinom_test_mgch(**vars(
         args))  ##get beta-binomial test, -log10 pvalue, for regions greater methy, "greater", regions smaller methy, use "smaller"hypothesis testing. # maybe also get FDR value

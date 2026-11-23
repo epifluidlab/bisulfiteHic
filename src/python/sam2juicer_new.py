@@ -24,11 +24,14 @@ def main():
             read1 = read
             read2 = reads.pop(read.query_name)
 
+            # normalise contig names exactly like the fragment-file keys above (chrM / MT -> M)
+            chrom1 = read1.reference_name.replace("chr", "").replace("MT", "M")
+            chrom2 = read2.reference_name.replace("chr", "").replace("MT", "M")
             try:
-                frag1 = bisect(frag[read1.reference_name.replace("chr", "")], read1.reference_start)
-                frag2 = bisect(frag[read2.reference_name.replace("chr", "")], read2.reference_start)
-            except:
-                sys.exit(f"Something wrong locating fragments for {read1.reference_name.replace('chr', '')} or {read2.reference_name.replace('chr', '')}.\n")
+                frag1 = bisect(frag[chrom1], read1.reference_start)
+                frag2 = bisect(frag[chrom2], read2.reference_start)
+            except KeyError as e:
+                sys.exit(f"Contig '{e.args[0]}' is missing from the fragment file {args.frag} (read pair {read1.query_name} maps to {read1.reference_name} and {read2.reference_name}).\n")
 
             first = 0
             if read1.reference_id > read2.reference_id:

@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.stats import pearsonr, spearmanr
 import argparse
+import sys
 import pyBigWig
 import multiprocessing
 from functools import partial
@@ -29,7 +30,9 @@ def process_line(min_data, permutation, methy_file_list, line):
         start2 = int(start2)
         end2 = int(end2)
     except ValueError:
-        return f"Error converting positions to integers in line: {line}\n"
+        # report on stderr; returning the message would write it into the output table as a data row
+        sys.stderr.write(f"Skipped line, cannot convert positions to integers: {line.rstrip()}\n")
+        return None
 
     methy_locus1 = []
     methy_locus2 = []
@@ -69,11 +72,14 @@ def process_line(min_data, permutation, methy_file_list, line):
                 spearman_cor_val_permut, spearman_p_val_permut = spearmanr(permutation_methy_locus1, methy_locus2)
                 cor_vals_permut.append(cor_val_permut)
                 spearman_cor_vals_permut.append(spearman_cor_val_permut)
-            pearson_permutated_p = 1.0-find_rank(cor_val, cor_vals_permut)/permutation  ## find correlation with higher than permuated value.
-            spearman_permutated_p = 1.0-find_rank(spearman_cor_val, spearman_cor_vals_permut)/permutation
-            return f"{chrom1}\t{start1}\t{end1}\t{chrom2}\t{start2}\t{end2}\t{name}\t{cor_val:.5f}\t{p_val:.5f}\t{spearman_cor_val:.5f}\t{spearman_p_val:.5f}\t{num_point}\t{pearson_permutated_p:.5f}\t{spearman_permutated_p:.5f}\n"
+            ## find correlation with higher than permuated value: (number of permutations >= observed + 1) / (permutation + 1),
+            ## the +1 counts the observed value itself so the p value can never be exactly 0.
+            pearson_permutated_p = (permutation - find_rank(cor_val, cor_vals_permut) + 1.0)/(permutation + 1.0)
+            spearman_permutated_p = (permutation - find_rank(spearman_cor_val, spearman_cor_vals_permut) + 1.0)/(permutation + 1.0)
+            ## p values are written with 6 significant digits (.5f/.3f turned every small p value into 0.000)
+            return f"{chrom1}\t{start1}\t{end1}\t{chrom2}\t{start2}\t{end2}\t{name}\t{cor_val:.5f}\t{p_val:.6g}\t{spearman_cor_val:.5f}\t{spearman_p_val:.6g}\t{num_point}\t{pearson_permutated_p:.6g}\t{spearman_permutated_p:.6g}\n"
         else:
-            return f"{chrom1}\t{start1}\t{end1}\t{chrom2}\t{start2}\t{end2}\t{name}\t{cor_val:.3f}\t{p_val:.3f}\t{spearman_cor_val:.3f}\t{spearman_p_val:.3f}\t{num_point}\n"
+            return f"{chrom1}\t{start1}\t{end1}\t{chrom2}\t{start2}\t{end2}\t{name}\t{cor_val:.3f}\t{p_val:.6g}\t{spearman_cor_val:.3f}\t{spearman_p_val:.6g}\t{num_point}\n"
     return None
 
 def cal_concord_sc_at_regions(methy_file_list, bedpe, out_summary, threads=1, min_data=10, permutation=0):
