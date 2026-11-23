@@ -58,19 +58,22 @@ public class LongRangeAsm {
 	 *
 	 * output.ASM.tab format:
 	 * "#chr\tstart\tend\t"
-	 * 				+ "AlleleA\tAlleleA_count\tAlleleA_C\tAlleleA_T\tAlleleA_meth_mean\t"
-	 * 				+ "AlleleB\tAlleleB_count\tAlleleB_C\tAlleleB_T\tAlleleB_meth_mean\t"
-	 * 				+ "End2_anchor_point\tEnd2_AlleleA_C\tEnd2_AlleleA_T\tEnd2_AlleleA_meth_mean\t"
-	 * 				+ "End2_AlleleB_C\tEnd2_AlleleB_T\tEnd2_AlleleB_meth_mean\tMaxEnd2Dist\t"
+	 * 				+ "AlleleA\tAlleleA_count\tAlleleA_C\tAlleleA_CT\tAlleleA_meth_mean\t"
+	 * 				+ "AlleleB\tAlleleB_count\tAlleleB_C\tAlleleB_CT\tAlleleB_meth_mean\t"
+	 * 				+ "End2_anchor_point\tEnd2_AlleleA_C\tEnd2_AlleleA_CT\tEnd2_AlleleA_meth_mean\t"
+	 * 				+ "End2_AlleleB_C\tEnd2_AlleleB_CT\tEnd2_AlleleB_meth_mean\tMaxEnd2Dist\t"
 	 * 				//+ "AlleleRef\tAlleleRef_count\tAlleleAlt\tAlleleAlt_count\t"
-	 * 				+ "AlleleA_local_count\tAlleleA_local_C\tAlleleA_local_T\tAlleleA_local_meth_mean\t"
-	 * 				+ "AlleleB_local_count\tAlleleB_local_C\tAlleleB_local_T\tAlleleB_local_meth_mean\t"
-	 * 				+ "AlleleA_2nd_local_count\tAlleleA_2nd_local_C\tAlleleA_2nd_local_T\tAlleleA_2nd_local_meth_mean\t"
-	 * 				+ "AlleleB_2nd_local_count\tAlleleB_2nd_local_C\tAlleleB_2nd_local_T\tAlleleB_2nd_local_meth_mean\t"
-	 * 				+ "AlleleA_2nd_C\tAlleleA_2nd_T\tAlleleA_2nd_meth_mean\t"
-	 * 				+ "AlleleB_2nd_C\tAlleleB_2nd_T\tAlleleB_2nd_meth_mean\t"
-	 * 				+ "End2_AlleleA_2nd_C\tEnd2_AlleleA_2nd_T\tEnd2_AlleleA_2nd_meth_mean\t"
-	 * 				+ "End2_AlleleB_2nd_C\tEnd2_AlleleB_2nd_T\tEnd2_AlleleB_2nd_meth_mean\n"
+	 * 				+ "AlleleA_local_count\tAlleleA_local_C\tAlleleA_local_CT\tAlleleA_local_meth_mean\t"
+	 * 				+ "AlleleB_local_count\tAlleleB_local_C\tAlleleB_local_CT\tAlleleB_local_meth_mean\t"
+	 * 				+ "AlleleA_2nd_local_C\tAlleleA_2nd_local_CT\tAlleleA_2nd_local_meth_mean\t"
+	 * 				+ "AlleleB_2nd_local_C\tAlleleB_2nd_local_CT\tAlleleB_2nd_local_meth_mean\t"
+	 * 				+ "AlleleA_2nd_C\tAlleleA_2nd_CT\tAlleleA_2nd_meth_mean\t"
+	 * 				+ "AlleleB_2nd_C\tAlleleB_2nd_CT\tAlleleB_2nd_meth_mean\t"
+	 * 				+ "End2_AlleleA_2nd_C\tEnd2_AlleleA_2nd_CT\tEnd2_AlleleA_2nd_meth_mean\t"
+	 * 				+ "End2_AlleleB_2nd_C\tEnd2_AlleleB_2nd_CT\tEnd2_AlleleB_2nd_meth_mean\n"
+	 *
+	 * every *_C column is the number of methylated calls, every *_CT column is the number of all calls (methylated + unmethylated),
+	 * *_meth_mean = *_C / *_CT. The 2nd-pattern columns are only written with -methyPattern2ndSearch.
 	 *
 	 */
 	@Option(name="-region",usage="specify the genomic region to look at, use interval format. e.g. chr1:1000-2000 or chr1 for the whole chromsome. default: null, the whole bam file")
@@ -285,9 +288,10 @@ public class LongRangeAsm {
 		SamReader reader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(bamF);
 		
 		String preChr = "";
-		HashMap<Integer,Pair<Integer, Integer>> methyRef = new HashMap<Integer,Pair<Integer, Integer>>();
-		HashMap<Integer,Pair<Integer, Integer>> methyAlt = new HashMap<Integer,Pair<Integer, Integer>>();
-		
+		//key: contig, then the 1-based position of the cytosine. value: (methylated calls, all calls)
+		HashMap<String, HashMap<Integer,Pair<Integer, Integer>>> methyRef = new HashMap<String, HashMap<Integer,Pair<Integer, Integer>>>();
+		HashMap<String, HashMap<Integer,Pair<Integer, Integer>>> methyAlt = new HashMap<String, HashMap<Integer,Pair<Integer, Integer>>>();
+
 		
 		for(GenomeLoc loc : gl.genomeLocsAlleleMap.keySet()){
 			if(VCFCOUNT % PURGE_INTERVAL == 0 ){
@@ -306,16 +310,13 @@ public class LongRangeAsm {
 			}
 			
 			if(!preChr.equalsIgnoreCase(loc.getContig())){
-				
-					for(int refPos : methyRef.keySet()){
-						Pair<Integer, Integer> v = methyRef.get(refPos);
-						refWriter.write(preChr + "\t" + (refPos-1) + "\t" + refPos + "\t" + (double)v.getFirst()/(double)v.getSecond() + "\t" + v.getFirst() + "\t" + v.getSecond() + "\n");
-					}
-					for(int refPos : methyAlt.keySet()){
-						Pair<Integer, Integer> v = methyAlt.get(refPos);
-						altWriter.write(preChr + "\t" + (refPos-1) + "\t" + refPos + "\t" + (double)v.getFirst()/(double)v.getSecond() + "\t" + v.getFirst() + "\t" + v.getSecond() + "\n");
-					}
-				
+				//with -diffChr the mate of a read at a later SNP can still add calls to this chromosome, so everything is written once at the end
+				if(!diffChr){
+					writeMethy(refWriter, methyRef);
+					writeMethy(altWriter, methyAlt);
+					methyRef.clear();
+					methyAlt.clear();
+				}
 				preChr=loc.getContig();
 			}
 			
@@ -366,8 +367,10 @@ public class LongRangeAsm {
 			
 			for(String readName : countedReadsEnd1.keySet()){
 				SAMRecord d = countedReadsEnd1.get(readName);
-				SAMRecord r2 = reader.queryMate(d);
-				boolean badr2 = failFlagFilter(r2);
+				SAMRecord r2 = d.getReadPairedFlag() ? reader.queryMate(d) : null; //null when the mate record is not in the bam file
+				boolean badr2 = r2 == null || failFlagFilter(r2);
+				//a pair on two contigs is never flagged as proper pair, with -diffChr it is used anyway (same rule as in failFlagFilter)
+				boolean useBadMateHere = useBadMate || (diffChr && BisulfiteHicUtils.mateDistance(d) == Integer.MAX_VALUE);
 
 					boolean negStrand = d.getReadNegativeStrandFlag();
 					boolean secondPair = d.getReadPairedFlag() && d.getSecondOfPairFlag();
@@ -392,7 +395,8 @@ public class LongRangeAsm {
 					}
 					
 					//int pos = loc.getStart() - d.getAlignmentStart();
-					int pos = d.getReadPositionAtReferencePosition(loc.getStart())-1;
+					//readBases/readBasesQ are soft-clip trimmed, so the offset is counted from the first aligned base (negative when the read has no base at the SNP)
+					int pos = d.getReadPositionAtReferencePosition(loc.getStart()) - d.getReadPositionAtReferencePosition(d.getAlignmentStart());
 					if(pos < 0 || pos >= readBases.length) //no such a postion in the clipped reads
 						continue;
 						
@@ -412,20 +416,20 @@ public class LongRangeAsm {
 					}
 
 
-					TreeMap<Integer, Integer> ctSummary = BisulfiteHicUtils.readsMethySummaryAtEachLocGeneral(d, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+					TreeMap<Integer, Integer> ctSummary = BisulfiteHicUtils.readsMethySummaryAtEachLocGeneral(d, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMateHere);
 					TreeMap<Integer, Integer> ctSummaryEnd2 = new TreeMap<Integer, Integer>();
 					if(!badr2){
-						ctSummaryEnd2 = BisulfiteHicUtils.readsMethySummaryAtEachLocGeneral(r2, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+						ctSummaryEnd2 = BisulfiteHicUtils.readsMethySummaryAtEachLocGeneral(r2, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMateHere);
 					}
-					if(ctSummary.isEmpty())
+					if(ctSummary == null || ctSummary.isEmpty()) //null: the read is rejected by the helper's own flag filter (e.g. an unpaired read)
 						continue;
 
 					TreeMap<Integer, Integer> ctSummary2nd = new TreeMap<Integer, Integer>();
 					TreeMap<Integer, Integer> ctSummary2ndEnd2 = new TreeMap<Integer, Integer>();
 					if(methyPattern2ndSearch != null){
-						ctSummary2nd = BisulfiteHicUtils.readsMethySummaryAtEachLocGeneral(d, methyPattern2ndSearch, methyPattern2ndCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+						ctSummary2nd = BisulfiteHicUtils.readsMethySummaryAtEachLocGeneral(d, methyPattern2ndSearch, methyPattern2ndCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMateHere);
 						if(!badr2){
-							ctSummary2ndEnd2 = BisulfiteHicUtils.readsMethySummaryAtEachLocGeneral(r2, methyPattern2ndSearch, methyPattern2ndCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+							ctSummary2ndEnd2 = BisulfiteHicUtils.readsMethySummaryAtEachLocGeneral(r2, methyPattern2ndSearch, methyPattern2ndCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMateHere);
 						}
 					}
 
@@ -446,21 +450,9 @@ public class LongRangeAsm {
 						}
 
 						if(refStrand){
-							if(methyRef.containsKey(cpos)){
-								Pair<Integer, Integer> stat = methyRef.get(cpos);
-								methyRef.put(cpos, new Pair<Integer, Integer>(stat.getFirst() + methyStat,stat.getSecond() + 1));
-								
-							}else{
-								methyRef.put(cpos, new Pair<Integer, Integer>(methyStat,1));
-							}
+							addMethy(methyRef, d.getReferenceName(), cpos, methyStat);
 						}else if(altStrand){
-							if(methyAlt.containsKey(cpos)){
-								Pair<Integer, Integer> stat = methyAlt.get(cpos);
-								methyAlt.put(cpos, new Pair<Integer, Integer>(stat.getFirst() + methyStat,stat.getSecond() + 1));
-								
-							}else{
-								methyAlt.put(cpos, new Pair<Integer, Integer>(methyStat,1));
-							}
+							addMethy(methyAlt, d.getReferenceName(), cpos, methyStat);
 						}
 					}
 					
@@ -472,22 +464,11 @@ public class LongRangeAsm {
 							int cpos = r2Start + rpos;
 							numCEnd2 += methyStat;
 							numCTEnd2++;
+							//the mate can be on another contig (-diffChr), its calls are stored under its own contig
 							if(refStrand){
-								if(methyRef.containsKey(cpos)){
-									Pair<Integer, Integer> stat = methyRef.get(cpos);
-									methyRef.put(cpos, new Pair<Integer, Integer>(stat.getFirst() + methyStat,stat.getSecond() + 1));
-
-								}else{
-									methyRef.put(cpos, new Pair<Integer, Integer>(methyStat,1));
-								}
+								addMethy(methyRef, r2.getReferenceName(), cpos, methyStat);
 							}else if(altStrand){
-								if(methyAlt.containsKey(cpos)){
-									Pair<Integer, Integer> stat = methyAlt.get(cpos);
-									methyAlt.put(cpos, new Pair<Integer, Integer>(stat.getFirst() + methyStat,stat.getSecond() + 1));
-
-								}else{
-									methyAlt.put(cpos, new Pair<Integer, Integer>(methyStat,1));
-								}
+								addMethy(methyAlt, r2.getReferenceName(), cpos, methyStat);
 							}
 						}
 					}
@@ -615,21 +596,45 @@ public class LongRangeAsm {
 			
 			
 		}
-		for(int refPos : methyRef.keySet()){
-			Pair<Integer, Integer> v = methyRef.get(refPos);
-			refWriter.write(preChr + "\t" + (refPos-1) + "\t" + refPos + "\t" + (double)v.getFirst()/(double)v.getSecond() + "\t" + v.getFirst() + "\t" + v.getSecond() + "\n");
-		}
-		for(int refPos : methyAlt.keySet()){
-			Pair<Integer, Integer> v = methyAlt.get(refPos);
-			altWriter.write(preChr + "\t" + (refPos-1) + "\t" + refPos + "\t" + (double)v.getFirst()/(double)v.getSecond() + "\t" + v.getFirst() + "\t" + v.getSecond() + "\n");
-		}
+		writeMethy(refWriter, methyRef);
+		writeMethy(altWriter, methyAlt);
 		reader.close();
+	}
+
+	//add one methylation call (methyStat: 1 methylated, 0 unmethylated) at contig:cpos
+	private void addMethy(HashMap<String, HashMap<Integer,Pair<Integer, Integer>>> methy, String contig, int cpos, int methyStat){
+		HashMap<Integer,Pair<Integer, Integer>> methyContig = methy.get(contig);
+		if(methyContig == null){
+			methyContig = new HashMap<Integer,Pair<Integer, Integer>>();
+			methy.put(contig, methyContig);
+		}
+		if(methyContig.containsKey(cpos)){
+			Pair<Integer, Integer> stat = methyContig.get(cpos);
+			methyContig.put(cpos, new Pair<Integer, Integer>(stat.getFirst() + methyStat,stat.getSecond() + 1));
+		}else{
+			methyContig.put(cpos, new Pair<Integer, Integer>(methyStat,1));
+		}
+	}
+
+	private void writeMethy(OutputStreamWriter methyWriter, HashMap<String, HashMap<Integer,Pair<Integer, Integer>>> methy) throws IOException{
+		for(String contig : methy.keySet()){
+			HashMap<Integer,Pair<Integer, Integer>> methyContig = methy.get(contig);
+			for(int refPos : methyContig.keySet()){
+				Pair<Integer, Integer> v = methyContig.get(refPos);
+				methyWriter.write(contig + "\t" + (refPos-1) + "\t" + refPos + "\t" + (double)v.getFirst()/(double)v.getSecond() + "\t" + v.getFirst() + "\t" + v.getSecond() + "\n");
+			}
+		}
 	}
 
 
 	private boolean failFlagFilter(SAMRecord r){
+		//the distance between the two ends comes from their coordinates, not from TLEN: Bhmem writes TLEN=0 for chimeric pairs
+		int dist = BisulfiteHicUtils.mateDistance(r);
+		boolean otherContig = dist == Integer.MAX_VALUE; //mate on another contig (also: mate unmapped, read not paired)
 		return r.getReadUnmappedFlag() || r.getNotPrimaryAlignmentFlag() || r.getMappingQuality() < minMapQ
-				|| r.getReadFailsVendorQualityCheckFlag() || r.getDuplicateReadFlag() || (useUnpaired ? false : !r.getReadPairedFlag()) || (useBadMate ? false : !r.getProperPairFlag()) || Math.abs(r.getInferredInsertSize()) > maxDist || (diffChr ? (Math.abs(r.getInferredInsertSize()) < minDist && Math.abs(r.getInferredInsertSize())!=0 ): Math.abs(r.getInferredInsertSize()) < minDist);
+				|| r.getReadFailsVendorQualityCheckFlag() || r.getDuplicateReadFlag() || (useUnpaired ? false : !r.getReadPairedFlag())
+				|| ((useBadMate || (diffChr && otherContig)) ? false : !r.getProperPairFlag()) //a pair on two contigs is never a proper pair, -diffChr keeps it anyway
+				|| (otherContig ? !diffChr : (dist < minDist || dist > maxDist)); //same contig: minDist <= distance <= maxDist. other contig: only with -diffChr
 	}
 	
 	private VCFFileReader initiate(String vcfFile, String outputFile, String refFile, String altFile) throws IOException{
@@ -643,23 +648,23 @@ public class LongRangeAsm {
 		writer =  new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(outputFile)), "UTF-8");
 		//write the file header
 		if(methyPattern2ndSearch == null){
-			writer.write("#chr\tstart\tend\tAlleleA\tAlleleA_count\tAlleleA_C\tAlleleA_T\tAlleleA_meth_mean\t"
-					+ "AlleleB\tAlleleB_count\tAlleleB_C\tAlleleB_T\tAlleleB_meth_mean\tEnd2_anchor_point\tEnd2_AlleleA_C\tEnd2_AlleleA_T\tEnd2_AlleleA_meth_mean\t"
-					+ "End2_AlleleB_C\tEnd2_AlleleB_T\tEnd2_AlleleB_meth_mean\tMaxEnd2Dist\t"
-					+ "AlleleA_local_count\tAlleleA_local_C\tAlleleA_local_T\tAlleleA_local_meth_mean\t"
-					+ "AlleleB_local_count\tAlleleB_local_C\tAlleleB_local_T\tAlleleB_local_meth_mean\n");
+			writer.write("#chr\tstart\tend\tAlleleA\tAlleleA_count\tAlleleA_C\tAlleleA_CT\tAlleleA_meth_mean\t"
+					+ "AlleleB\tAlleleB_count\tAlleleB_C\tAlleleB_CT\tAlleleB_meth_mean\tEnd2_anchor_point\tEnd2_AlleleA_C\tEnd2_AlleleA_CT\tEnd2_AlleleA_meth_mean\t"
+					+ "End2_AlleleB_C\tEnd2_AlleleB_CT\tEnd2_AlleleB_meth_mean\tMaxEnd2Dist\t"
+					+ "AlleleA_local_count\tAlleleA_local_C\tAlleleA_local_CT\tAlleleA_local_meth_mean\t"
+					+ "AlleleB_local_count\tAlleleB_local_C\tAlleleB_local_CT\tAlleleB_local_meth_mean\n");
 		}else{
-			writer.write("#chr\tstart\tend\tAlleleA\tAlleleA_count\tAlleleA_C\tAlleleA_T\tAlleleA_meth_mean\t"
-					+ "AlleleB\tAlleleB_count\tAlleleB_C\tAlleleB_T\tAlleleB_meth_mean\tEnd2_anchor_point\tEnd2_AlleleA_C\tEnd2_AlleleA_T\tEnd2_AlleleA_meth_mean\t"
-					+ "End2_AlleleB_C\tEnd2_AlleleB_T\tEnd2_AlleleB_meth_mean\tMaxEnd2Dist\t"
-					+ "AlleleA_local_count\tAlleleA_local_C\tAlleleA_local_T\tAlleleA_local_meth_mean\t"
-					+ "AlleleB_local_count\tAlleleB_local_C\tAlleleB_local_T\tAlleleB_local_meth_mean\t"
-					+ "AlleleA_2nd_local_C\tAlleleA_2nd_local_T\tAlleleA_2nd_local_meth_mean\t"
-					+ "AlleleB_2nd_local_C\tAlleleB_2nd_local_T\tAlleleB_2nd_local_meth_mean\t"
-					+ "AlleleA_2nd_C\tAlleleA_2nd_T\tAlleleA_2nd_meth_mean\t"
-					+ "AlleleB_2nd_C\tAlleleB_2nd_T\tAlleleB_2nd_meth_mean\t"
-					+ "End2_AlleleA_2nd_C\tEnd2_AlleleA_2nd_T\tEnd2_AlleleA_2nd_meth_mean\t"
-					+ "End2_AlleleB_2nd_C\tEnd2_AlleleB_2nd_T\tEnd2_AlleleB_2nd_meth_mean\n");
+			writer.write("#chr\tstart\tend\tAlleleA\tAlleleA_count\tAlleleA_C\tAlleleA_CT\tAlleleA_meth_mean\t"
+					+ "AlleleB\tAlleleB_count\tAlleleB_C\tAlleleB_CT\tAlleleB_meth_mean\tEnd2_anchor_point\tEnd2_AlleleA_C\tEnd2_AlleleA_CT\tEnd2_AlleleA_meth_mean\t"
+					+ "End2_AlleleB_C\tEnd2_AlleleB_CT\tEnd2_AlleleB_meth_mean\tMaxEnd2Dist\t"
+					+ "AlleleA_local_count\tAlleleA_local_C\tAlleleA_local_CT\tAlleleA_local_meth_mean\t"
+					+ "AlleleB_local_count\tAlleleB_local_C\tAlleleB_local_CT\tAlleleB_local_meth_mean\t"
+					+ "AlleleA_2nd_local_C\tAlleleA_2nd_local_CT\tAlleleA_2nd_local_meth_mean\t"
+					+ "AlleleB_2nd_local_C\tAlleleB_2nd_local_CT\tAlleleB_2nd_local_meth_mean\t"
+					+ "AlleleA_2nd_C\tAlleleA_2nd_CT\tAlleleA_2nd_meth_mean\t"
+					+ "AlleleB_2nd_C\tAlleleB_2nd_CT\tAlleleB_2nd_meth_mean\t"
+					+ "End2_AlleleA_2nd_C\tEnd2_AlleleA_2nd_CT\tEnd2_AlleleA_2nd_meth_mean\t"
+					+ "End2_AlleleB_2nd_C\tEnd2_AlleleB_2nd_CT\tEnd2_AlleleB_2nd_meth_mean\n");
 		}
 
 		refWriter =  new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(refFile)), "UTF-8");

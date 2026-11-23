@@ -258,7 +258,7 @@ public class EnhanceHicMatrix {
 							Iterator<IntervalTree.Node<String>> cpgs = null;
 							if(allCpgLocCollections.containsKey(chr)){
 								cpgs = allCpgLocCollections.get(chr).overlappers(start, end);
-								if(cpgs == null){
+								if(cpgs == null || !cpgs.hasNext()){ //overlappers() never returns null, a read without any listed CpG gives an empty iterator
 									continue;
 								}
 								
@@ -266,7 +266,7 @@ public class EnhanceHicMatrix {
 								continue;
 							}
 							
-							Triple<Integer,Integer, Integer> cpgSummary = BisulfiteHicUtils.readsMethySummaryGeneral(r, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+							Triple<Integer,Integer, Integer> cpgSummary = BisulfiteHicUtils.readsMethySummaryGeneral(r, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate, useUnpaired);
 							int numC = cpgSummary.getLeft();
 							int numT = cpgSummary.getMiddle();
 							int numCg = cpgSummary.getRight();
@@ -306,7 +306,7 @@ public class EnhanceHicMatrix {
 							Iterator<IntervalTree.Node<String>> cpgs = null;
 							if(allCpgLocCollections.containsKey(chr)){
 								cpgs = allCpgLocCollections.get(chr).overlappers(start, end);
-								if(cpgs == null){
+								if(cpgs == null || !cpgs.hasNext()){ //overlappers() never returns null, a read without any listed CpG gives an empty iterator
 									continue;
 								}
 								
@@ -314,7 +314,7 @@ public class EnhanceHicMatrix {
 								continue;
 							}
 							
-							Triple<Integer,Integer, Integer> cpgSummary = BisulfiteHicUtils.readsMethySummaryGeneral(r, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
+							Triple<Integer,Integer, Integer> cpgSummary = BisulfiteHicUtils.readsMethySummaryGeneral(r, methyPatternSearch, methyPatternCytPos, bsConvPatternSearch, bsConvPatternCytPos, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate, useUnpaired);
 							int numC = cpgSummary.getLeft();
 							int numT = cpgSummary.getMiddle();
 							int numCg = cpgSummary.getRight();
@@ -402,7 +402,8 @@ public class EnhanceHicMatrix {
 
 
 						}else{
-							for(int startW1 = interval1.getStart(); startW1 < interval1.getEnd()-window; startW1+=(slidingWindow ? window/10 : window)){
+							//<=: the last full window is used too, an interval exactly as long as the window gives one window
+							for(int startW1 = interval1.getStart(); startW1 <= interval1.getEnd()-window; startW1+=(slidingWindow ? window/10 : window)){
 								int endW1 = startW1 + window;
 								HashMap<String, Double> reads1 = new HashMap<String, Double>();
 								Iterator<Node<HashMap<String, Double>>> readsIt1 = cpgMethyMatrix1.overlappers(startW1, endW1);
@@ -417,7 +418,7 @@ public class EnhanceHicMatrix {
 								if(reads1.size() < minReadsInWindow){
 									continue;
 								}
-								for(int startW2 = interval2.getStart(); startW2 < interval2.getEnd()-window; startW2+=(slidingWindow ? window/10 : window)){
+								for(int startW2 = interval2.getStart(); startW2 <= interval2.getEnd()-window; startW2+=(slidingWindow ? window/10 : window)){
 									int endW2 = startW2 + window;
 									HashMap<String, Double> reads2 = new HashMap<String, Double>();
 									Iterator<Node<HashMap<String, Double>>> readsIt2 = cpgMethyMatrix2.overlappers(startW2, endW2);

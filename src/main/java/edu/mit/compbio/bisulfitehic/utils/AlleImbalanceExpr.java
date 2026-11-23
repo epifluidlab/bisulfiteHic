@@ -142,7 +142,8 @@ public class AlleImbalanceExpr {
 					GenomeLocParser glp = new GenomeLocParser(seqDict);
 
 					log.info("Parsing input gene bed file ...");
-					HashMap<GenomeLoc, String> geneList = new HashMap<GenomeLoc, String>();
+					//a list, not a map keyed by location: two genes with the same coordinates are both kept
+					ArrayList<Pair<GenomeLoc, String>> geneList = new ArrayList<Pair<GenomeLoc, String>>();
 					GZIPInputStream gzipInputStream = null;
 					BufferedReader br;
 					if(geneFile.endsWith(".gz")){
@@ -167,8 +168,9 @@ public class AlleImbalanceExpr {
 								if(chrom != null && !chrom.equalsIgnoreCase(chr)){
 									continue;
 								}
-								GenomeLoc genomeLoc = glp.createGenomeLoc(chr, start, end);
-								geneList.put(genomeLoc, line);
+								//bed start is 0-based, GenomeLoc and VCF positions are 1-based
+								GenomeLoc genomeLoc = glp.createGenomeLoc(chr, Math.min(start + 1, end), end);
+								geneList.add(new Pair<GenomeLoc, String>(genomeLoc, line));
 							}
 					}
 					if(geneFile.endsWith(".gz")){
@@ -252,14 +254,15 @@ public class AlleImbalanceExpr {
 	}
 	
 	
-	private void processBam(String bamFile, GenotypeList gl, HashMap<GenomeLoc, String> geneList) throws Exception {
+	private void processBam(String bamFile, GenotypeList gl, ArrayList<Pair<GenomeLoc, String>> geneList) throws Exception {
 		File bamF = new File(bamFile);
 		if(!BamFileIoUtils.isBamFile(bamF))
 			throw new SAMException ("Not a Bam file: " + bamFile);
 		SamReader reader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(bamF);
 		BinomialTest bTest = new BinomialTest();
-		for(GenomeLoc locGene : geneList.keySet()){
-			String geneString = geneList.get(locGene);
+		for(Pair<GenomeLoc, String> gene : geneList){
+			GenomeLoc locGene = gene.getFirst();
+			String geneString = gene.getSecond();
 			List<GenomeLoc> locsOveralpped = gl.genomeLocsCol.getOverlapping(locGene);
 			int alleleRefCount = 0;
 			int alleleACount = 0;
@@ -310,7 +313,8 @@ public class AlleImbalanceExpr {
 					byte[] readBasesQ = BisulfiteHicUtils.getClippedReadsBaseQuality(d);
 					byte[] readBases = CcInferenceUtils.toUpperCase(BisulfiteHicUtils.getClippedReadsBase(d));
 					//int pos = loc.getStart() - d.getAlignmentStart();
-					int pos = d.getReadPositionAtReferencePosition(loc.getStart())-1;
+					//readBases/readBasesQ are soft-clip trimmed, so the offset is counted from the first aligned base (negative when the read has no base at the SNP)
+					int pos = d.getReadPositionAtReferencePosition(loc.getStart()) - d.getReadPositionAtReferencePosition(d.getAlignmentStart());
 					if(pos < 0 || pos >= readBases.length) //no such a postion in the clipped reads
 						continue;
 
@@ -343,7 +347,7 @@ public class AlleImbalanceExpr {
 					alleleRefStr = String.format("%c", alleles.getRight());
 					double pvalue = bTest.binomialTest(alleleACount+alleleBCount, alleleACount,0.5, AlternativeHypothesis.TWO_SIDED);
 					writer.write(geneString + "\t" + allelePos  + "\t" + alleleRefStr + "\t" + alleleRefCount + "\t" + alleleAStr + "\t" + alleleACount
-							+ "\t" + alleleBStr + "\t" + alleleBCount + "\t" + String.format("%.3f", pvalue) + "\t" + alleleNCount + "\n");
+							+ "\t" + alleleBStr + "\t" + alleleBCount + "\t" + String.format("%.3g", pvalue) + "\t" + alleleNCount + "\n"); //%.3g: 3 significant digits, a small p value is not printed as 0.000
 				}else{
 					if(allelePos.isEmpty()){
 						allelePos = String.format("%d", loc.getStart());
@@ -363,7 +367,7 @@ public class AlleImbalanceExpr {
 					continue;
 				double pvalue = bTest.binomialTest(alleleACount+alleleBCount, alleleACount,0.5, AlternativeHypothesis.TWO_SIDED);
 				writer.write(geneString + "\t" + allelePos  + "\t" + alleleACount
-						+ "\t" + alleleBCount + "\t" + String.format("%.3f", pvalue) + "\t" + alleleNCount + "\n");
+						+ "\t" + alleleBCount + "\t" + String.format("%.3g", pvalue) + "\t" + alleleNCount + "\n");
 			}
 		}
 
@@ -387,7 +391,8 @@ public class AlleImbalanceExpr {
 		writer =  new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(outputFile)), "UTF-8");
 		//write the file header
 		if(mergedInSameGene){
-			writer.write("#chr\tgene_start\tgene_end\tgene_name\t.\tstrand\tsnp_pos\tAlleleRef_count\tAlleleA_count\t"
+			//the merged rows have no AlleleRef_count column
+			writer.write("#chr\tgene_start\tgene_end\tgene_name\t.\tstrand\tsnp_pos\tAlleleA_count\t"
 					+ "AlleleB_count\tBinomial_p\tAlleleN_count\n");
 		}else{
 			writer.write("#chr\tgene_start\tgene_end\tgene_name\t.\tstrand\tsnp_pos\tAlleleRef\tAlleleRef_count\tAlleleA\tAlleleA_count\t"

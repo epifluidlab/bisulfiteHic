@@ -238,6 +238,8 @@ public class MethyCorSepAlleleSC {
 									int pos = r1.getReadPositionAtReferencePosition(genomeLoc.getStart())-1;
 									if(pos < 0) //no such a postion in the clipped reads
 										continue;
+									//the keys of ctSummary are offsets from the first aligned base, so take the leading soft clip off pos before comparing
+									int posAligned = pos - (r1.getReadPositionAtReferencePosition(r1.getAlignmentStart()) - 1);
 										
 									byte snpBase = CcInferenceUtils.toUpperCase(readBases[pos]);
 									//if(negStrand){
@@ -256,7 +258,7 @@ public class MethyCorSepAlleleSC {
 									if(BisulfiteHicUtils.baseMatchInBisulfiteSpace(alleles.getFirst(), snpBase, negStrand, secondPair)){
 										int cellNum = i*2 + 0;
 										for(int cpgLoc : ctSummary.keySet()) {
-											if(pos == cpgLoc) {
+											if(posAligned == cpgLoc) {
 												continue;
 											}
 											int methy = ctSummary.get(cpgLoc);
@@ -282,7 +284,7 @@ public class MethyCorSepAlleleSC {
 									}else if(BisulfiteHicUtils.baseMatchInBisulfiteSpace(alleles.getSecond(), snpBase, negStrand, secondPair)){
 										int cellNum = i*2 + 1;
 										for(int cpgLoc : ctSummary.keySet()) {
-											if(pos == cpgLoc) {
+											if(posAligned == cpgLoc) {
 												continue;
 											}
 											int methy = ctSummary.get(cpgLoc);

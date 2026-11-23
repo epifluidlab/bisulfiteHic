@@ -161,9 +161,21 @@ public class SepAlleleMethySC2 {
 							SamReader wgsReader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(new File(bamFile));
 								//System.err.println(chr + "\t" + start + "\t" + end + "\n");
 								SAMRecordIterator samIt = wgsReader.iterator();
-								while(samIt.hasNext()){
-									SAMRecord r1 = samIt.next();
+								SAMRecord pending = null; //a record that was read ahead and turned out to belong to the next read name
+								while(pending != null || samIt.hasNext()){
+									SAMRecord r1 = pending != null ? pending : samIt.next();
+									pending = null;
+									if(r1.getNotPrimaryAlignmentFlag() || r1.getSupplementaryAlignmentFlag() || !samIt.hasNext()){ //an extra alignment line, or the last read has no mate
+										continue;
+									}
 									SAMRecord r2 = samIt.next();
+									while((r2.getNotPrimaryAlignmentFlag() || r2.getSupplementaryAlignmentFlag()) && samIt.hasNext()){ //extra alignment lines between the two ends
+										r2 = samIt.next();
+									}
+									if(r2.getNotPrimaryAlignmentFlag() || r2.getSupplementaryAlignmentFlag() || !r1.getReadName().equals(r2.getReadName())){ //r1 has no mate in the bam file, r2 starts the next pair
+										pending = r2;
+										continue;
+									}
 									if(failFlagFilter(r1) || failFlagFilter(r2)){
 										continue;
 									}
@@ -236,6 +248,11 @@ public class SepAlleleMethySC2 {
 									int pos = snpInRead2 ? (r2.getReadPositionAtReferencePosition(snpStart)-1) : (r1.getReadPositionAtReferencePosition(snpStart)-1);
 									if(pos < 0) //no such a postion in the clipped reads
 										continue;
+									//the keys of ctSummary1/ctSummary2 are offsets from the first aligned base of each read, so take the leading soft clip off pos.
+									//only the read that carries the SNP has a call to skip there (-1 never matches a key)
+									int posAligned = pos - ((snpInRead2 ? r2.getReadPositionAtReferencePosition(r2.getAlignmentStart()) : r1.getReadPositionAtReferencePosition(r1.getAlignmentStart())) - 1);
+									int snpLoc1 = snpInRead2 ? -1 : posAligned;
+									int snpLoc2 = snpInRead2 ? posAligned : -1;
 
 									byte snpBase = CcInferenceUtils.toUpperCase(readBases[pos]);
 									//if(negStrand){
@@ -254,7 +271,7 @@ public class SepAlleleMethySC2 {
 
 									if(BisulfiteHicUtils.baseMatchInBisulfiteSpace(alleles.getFirst(), snpBase, negStrand, secondPair)){
 										for(int cpgLoc : ctSummary1.keySet()) {
-											if(pos == cpgLoc) {
+											if(snpLoc1 == cpgLoc) {
 												continue;
 											}
 											int methy = ctSummary1.get(cpgLoc);
@@ -263,7 +280,7 @@ public class SepAlleleMethySC2 {
 											alleleAWriter.write(chr1 + "\t" + cpg_start + "\t" + cpg_end + "\t" + methy + "\n");
 										}
 										for(int cpgLoc : ctSummary2.keySet()) {
-											if(pos == cpgLoc) {
+											if(snpLoc2 == cpgLoc) {
 												continue;
 											}
 											int methy = ctSummary2.get(cpgLoc);
@@ -273,7 +290,7 @@ public class SepAlleleMethySC2 {
 										}
 									}else if(BisulfiteHicUtils.baseMatchInBisulfiteSpace(alleles.getSecond(), snpBase, negStrand, secondPair)){
 										for(int cpgLoc : ctSummary1.keySet()) {
-											if(pos == cpgLoc) {
+											if(snpLoc1 == cpgLoc) {
 												continue;
 											}
 											int methy = ctSummary1.get(cpgLoc);
@@ -282,7 +299,7 @@ public class SepAlleleMethySC2 {
 											alleleBWriter.write(chr1 + "\t" + cpg_start + "\t" + cpg_end + "\t" + methy + "\n");
 										}
 										for(int cpgLoc : ctSummary2.keySet()) {
-											if(pos == cpgLoc) {
+											if(snpLoc2 == cpgLoc) {
 												continue;
 											}
 											int methy = ctSummary2.get(cpgLoc);
