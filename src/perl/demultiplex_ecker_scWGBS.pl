@@ -79,7 +79,7 @@ while(my $seq1 = <FH1>, my $seq2 = <FH2>){
 			if(exists $index_dict_r1{$key}){
 				$find_match=1;
 				my $trimmed="";
-				for(my $i=6;$i<$#bases1;$i++){
+				for(my $i=6;$i<=$#bases1;$i++){ # $#bases1 is the LAST index: keep it (it used to be dropped)
 					$trimmed.=$bases1[$i];
 				}
 				 $seq_within_1st_line1 .= "$trimmed\n";
@@ -98,7 +98,7 @@ while(my $seq1 = <FH1>, my $seq2 = <FH2>){
         	if($find_match==1){
         		my @bases1 = split "",$seq1;
         		my $trimmed="";
-				for(my $i=6;$i<$#bases1;$i++){
+				for(my $i=6;$i<=$#bases1;$i++){ # $#bases1 is the LAST index: keep it (it used to be dropped)
 					$trimmed.=$bases1[$i];
 					
 				}
