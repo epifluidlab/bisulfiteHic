@@ -196,7 +196,7 @@ public class MethyCorAcrossHiccupsSC {
 										}
 										//strand = splitLines[5].equalsIgnoreCase("-") ? "-" : "+";
 									}
-									tree.put(start, end, strand);
+									tree.put(start+1, end, strand); //bed start is 0-based, the tree is queried with 1-based inclusive read coordinates
 									cpgList.put(chr, tree);
 								}
 								if(cpgListFile.endsWith(".gz")){
@@ -222,6 +222,7 @@ public class MethyCorAcrossHiccupsSC {
 						
 						while( (line = br.readLine()) != null){
 							if((skipProcessFirstRow && lineNum==0) || line.startsWith("#")){
+								lineNum++;
 								continue;
 							}else{
 								String[] splitin = line.split("\t");
@@ -298,6 +299,9 @@ public class MethyCorAcrossHiccupsSC {
 			HashMap<String,ArrayList<Integer>> cpgInterEachCell = new HashMap<String,ArrayList<Integer>>();
 			String regionName = chr + ":" + start1 + ":" + end1 + ":" + start2 + ":" + end2;
 			IntervalTree<String> cgs = cpgList.get(chr);
+			if(cgs == null){ //no CpG listed on this chromosome, nothing to output for this row
+				return;
+			}
 			//get a template for each cell.
 			ArrayList<Integer> cpgEachCellTemp = new ArrayList<Integer>(bams.size());
 			for(int i = 0; i < bams.size(); i++) {
@@ -350,6 +354,9 @@ public class MethyCorAcrossHiccupsSC {
 						
 						SAMRecord r1 = countedReadsEnd1.get(readName);
 						SAMRecord r2 = countedReadsEnd2.get(readName);
+						if(BisulfiteHicUtils.sameAlignment(r1, r2)){ //a read overlapping both regions is fetched twice, it is not its own mate
+							continue;
+						}
 						int startR1 = r1.getAlignmentStart();
 						int endR1 = r1.getAlignmentEnd();
 						int startR2 = r2.getAlignmentStart();
@@ -440,6 +447,9 @@ public class MethyCorAcrossHiccupsSC {
 			HashMap<String,ArrayList<Integer>> cpgInterEachCell = new HashMap<String,ArrayList<Integer>>();
 			String regionName = chr + ":" + start1 + ":" + end1 + ":" + start2 + ":" + end2;
 			IntervalTree<String> cgs = cpgList.get(chr);
+			if(cgs == null){ //no CpG listed on this chromosome, nothing to output for this row
+				return;
+			}
 			//get a template for each cell.
 			ArrayList<Integer> cpgEachCellTemp = new ArrayList<Integer>(bams.size());
 			for(int i = 0; i < bams.size(); i++) {
@@ -594,6 +604,9 @@ public class MethyCorAcrossHiccupsSC {
 			HashMap<String,ArrayList<Integer>> cpgInterEachCell = new HashMap<String,ArrayList<Integer>>();
 			String regionName = chr + ":" + start1 + ":" + end1 + ":" + start2 + ":" + end2;
 			IntervalTree<String> cgs = cpgList.get(chr);
+			if(cgs == null){ //no CpG listed on this chromosome, nothing to output for this row
+				return;
+			}
 			//get a template for each cell.
 			ArrayList<Integer> cpgEachCellTemp = new ArrayList<Integer>(bams.size());
 			for(int i = 0; i < bams.size(); i++) {
@@ -611,7 +624,7 @@ public class MethyCorAcrossHiccupsSC {
 				HashMap<String, SAMRecord> countedReadsEnd1 = new HashMap<String, SAMRecord>();	
 				while(wgsIt.hasNext()){
 					SAMRecord r = wgsIt.next();
-					if(failFlagFilter(r) || Math.abs(r.getInferredInsertSize()) > onlyShort){
+					if(failFlagFilter(r) || BisulfiteHicUtils.mateDistance(r) > onlyShort){
 						continue;
 					}else{
 						
@@ -629,7 +642,7 @@ public class MethyCorAcrossHiccupsSC {
 				wgsIt = wgsReader.queryOverlapping(chr,start2,end2);
 				while(wgsIt.hasNext()){
 					SAMRecord r = wgsIt.next();
-					if(failFlagFilter(r) || Math.abs(r.getInferredInsertSize())  > onlyShort){
+					if(failFlagFilter(r) || BisulfiteHicUtils.mateDistance(r)  > onlyShort){
 						continue;
 					}else{
 						if(countedReadsEnd2.containsKey(r.getReadName())){
@@ -646,6 +659,9 @@ public class MethyCorAcrossHiccupsSC {
 						
 						SAMRecord r1 = countedReadsEnd1.get(readName);
 						SAMRecord r2 = countedReadsEnd2.get(readName);
+						if(BisulfiteHicUtils.sameAlignment(r1, r2)){ //a read overlapping both regions is fetched twice, it is not its own mate
+							continue;
+						}
 						int startR1 = r1.getAlignmentStart();
 						int endR1 = r1.getAlignmentEnd();
 						int startR2 = r2.getAlignmentStart();

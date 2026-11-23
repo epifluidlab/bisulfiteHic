@@ -84,18 +84,26 @@ public class BisulfiteHicUtils {
 		//System.err.println(new String(seqByte) + "\t" + seqByte.length + "\t" + cigarString);
 		int offSet = 0;
 		boolean startWithInsertion = true;
+		int lastMatchSize = 0; //size of seqsNew after the last aligned (M) base
 		for(char cigar : cigarList){
 			
 			if(cigar == 'M' || (cigar == 'I' && !startWithInsertion)){
 				seqsNew.add(seqByte[offSet]);
 				offSet++;
 				startWithInsertion = false;
+				if(cigar == 'M'){
+					lastMatchSize = seqsNew.size();
+				}
 			}else if(cigar == 'D'){
 				//seqsNew.add(SequenceUtil.N);
 				
 			}else if(cigar == 'S' || (cigar == 'I' && startWithInsertion)){
 				offSet++;
 			}
+		}
+		//an insertion after the last aligned base is clipped by getClippedReadsBase()/getClippedReadsBaseQuality(), so drop it here too to keep the same length
+		while(seqsNew.size() > lastMatchSize){
+			seqsNew.remove(seqsNew.size()-1);
 		}
 		return ArrayUtils.toPrimitive(seqsNew.toArray(new Byte[seqsNew.size()]));
 	}
@@ -136,11 +144,16 @@ public class BisulfiteHicUtils {
 
 
 	static public Triple<Integer,Integer, Integer> readsMethySummaryGeneral(SAMRecord read, String patSearchMeth, int cPos, String patCheckBsConv, int cPosBs, int minMapQ, int minBaseQ, boolean turnOffBisulfiteFilter, boolean useBadMate) throws Exception{
+		return readsMethySummaryGeneral(read, patSearchMeth, cPos, patCheckBsConv, cPosBs, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate, false);
+	}
+
+	//useUnpaired: also accept reads without the paired flag (0x1). Such a read is always treated as a first end when the bisulfite strand is inferred.
+	static public Triple<Integer,Integer, Integer> readsMethySummaryGeneral(SAMRecord read, String patSearchMeth, int cPos, String patCheckBsConv, int cPosBs, int minMapQ, int minBaseQ, boolean turnOffBisulfiteFilter, boolean useBadMate, boolean useUnpaired) throws Exception{
 		boolean negStrand = read.getReadNegativeStrandFlag();
 		boolean secondPair = read.getReadPairedFlag() && read.getSecondOfPairFlag();
 		//filter if it is bad reads
 		if(read.getReadUnmappedFlag() || read.getNotPrimaryAlignmentFlag() || read.getDuplicateReadFlag()
-				|| read.getReadFailsVendorQualityCheckFlag() || !read.getReadPairedFlag() || (useBadMate ? false : !read.getProperPairFlag())
+				|| read.getReadFailsVendorQualityCheckFlag() || (useUnpaired ? false : !read.getReadPairedFlag()) || (useBadMate ? false : !read.getProperPairFlag())
 				|| read.getMappingQuality() < minMapQ){
 			return Triple.of(0,0,0);
 		}
@@ -171,11 +184,16 @@ public class BisulfiteHicUtils {
 
 
 	static public Triple<Integer,Integer, Integer> readsMethySummary(SAMRecord read, int minMapQ, int minBaseQ, boolean turnOffBisulfiteFilter, boolean useBadMate) throws Exception{
+		return readsMethySummary(read, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate, false);
+	}
+
+	//useUnpaired: also accept reads without the paired flag (0x1). Such a read is always treated as a first end when the bisulfite strand is inferred.
+	static public Triple<Integer,Integer, Integer> readsMethySummary(SAMRecord read, int minMapQ, int minBaseQ, boolean turnOffBisulfiteFilter, boolean useBadMate, boolean useUnpaired) throws Exception{
 		boolean negStrand = read.getReadNegativeStrandFlag();
 		boolean secondPair = read.getReadPairedFlag() && read.getSecondOfPairFlag();
 		//filter if it is bad reads
 		if(read.getReadUnmappedFlag() || read.getNotPrimaryAlignmentFlag() || read.getDuplicateReadFlag() 
-				|| read.getReadFailsVendorQualityCheckFlag() || !read.getReadPairedFlag() || (useBadMate ? false : !read.getProperPairFlag()) 
+				|| read.getReadFailsVendorQualityCheckFlag() || (useUnpaired ? false : !read.getReadPairedFlag()) || (useBadMate ? false : !read.getProperPairFlag()) 
 				|| read.getMappingQuality() < minMapQ){
 			return Triple.of(0,0,0);
 		}
@@ -387,7 +405,8 @@ public class BisulfiteHicUtils {
 			int j = i;
 			boolean found = true;
 			for(int index = 0; index < searchBases.length; j++,index++) {
-				if (!BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(searchBases[index], refBases[j])) {
+				//iupacCodeEqualNotConsiderMethyStatus() returns true for any reference byte that is not A/C/G/T (N, or the '0' that marks an inserted base), such a byte never matches here
+				if (!isAcgt(refBases[j]) || !BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(searchBases[index], refBases[j])) {
 					found = false;
 					break;
 				}
@@ -453,6 +472,7 @@ public class BisulfiteHicUtils {
 		if(bisulfiteConvertStart<0){
 			bisulfiteConvertStart=0;
 		}
+		boolean reverseComplemented = false;
 		if((!secondPair && !negStrand) || (secondPair && negStrand)) {
 
 		}else {
@@ -460,6 +480,7 @@ public class BisulfiteHicUtils {
 			bases = BaseUtils.simpleReverseComplement(bases);
 			refBases = BaseUtils.simpleReverseComplement(refBases);
 			basesQ = BaseUtilsMore.simpleReverse(basesQ);
+			reverseComplemented = true;
 		}
 		TreeMap<Integer, Integer> cpgMethy = new TreeMap<Integer, Integer>(); //key: relative location from beginning of fragment, value: 0:unmethy, 1: methy
 
@@ -467,7 +488,8 @@ public class BisulfiteHicUtils {
 			int j = i;
 			boolean found = true;
 			for(int index = 0; index < searchBases.length; j++,index++) {
-				if (!BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(searchBases[index], refBases[j])) {
+				//iupacCodeEqualNotConsiderMethyStatus() returns true for any reference byte that is not A/C/G/T (N, or the '0' that marks an inserted base), such a byte never matches here
+				if (!isAcgt(refBases[j]) || !BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(searchBases[index], refBases[j])) {
 					found = false;
 					break;
 				}
@@ -475,15 +497,18 @@ public class BisulfiteHicUtils {
 			if(found){
 				int currentCytPos = i+cPos-1;
 				//System.err.println(new String(refBases) + "\t" + bisulfiteConvertStart + "\t" + i + "\t" + new String(bases) + "\t" + j + "\t" + new String(basesQ) + "\t" + negStrand + "\t" + secondPair);
+				//the key is always the 0-based offset on the reference forward strand (index into the arrays as they were passed in),
+				//for a G->A read that is the offset of the reference G that pairs with the cytosine
+				int forwardCytPos = reverseComplemented ? refBases.length - 1 - currentCytPos : currentCytPos;
 				if(SequenceUtil.basesEqual(bases[currentCytPos], SequenceUtil.C) && basesQ[currentCytPos] >= minBaseQ){
-					cpgMethy.put(currentCytPos, 1);
+					cpgMethy.put(forwardCytPos, 1);
 				}else if(SequenceUtil.basesEqual(bases[currentCytPos], SequenceUtil.T) && basesQ[currentCytPos] >= minBaseQ){
-					cpgMethy.put(currentCytPos, 0);
+					cpgMethy.put(forwardCytPos, 0);
 				}
 			}
 		}
 
-		return cpgMethy; //key: relative location from beginning of fragment, value: 0:unmethy, 1: methy
+		return cpgMethy; //key: 0-based offset from the first aligned base on the reference forward strand, value: 0:unmethy, 1: methy
 	}
 	
 	static public TreeMap<Integer, Integer> readsMethyAndLocWithFivePrimeFilter(byte[] refBases, byte[] bases, byte[] basesQ, 
@@ -573,4 +598,36 @@ public class BisulfiteHicUtils {
 		
 	}
 	
+	//true only for A/C/G/T (either case)
+	private static boolean isAcgt(byte base){
+		return base == 'A' || base == 'C' || base == 'G' || base == 'T' || base == 'a' || base == 'c' || base == 'g' || base == 't';
+	}
+
+	/**
+	 * true when a and b are the same alignment record (one read fetched twice by two overlapping
+	 * region queries), as opposed to the two mates of a pair that share a read name.
+	 */
+	public static boolean sameAlignment(SAMRecord a, SAMRecord b){
+		return a.getFlags() == b.getFlags() && a.getAlignmentStart() == b.getAlignmentStart()
+				&& a.getReferenceIndex().equals(b.getReferenceIndex()) && a.getReadName().equals(b.getReadName())
+				&& a.getCigarString().equals(b.getCigarString());
+	}
+
+	/**
+	 * Distance between the two mates of a pair, measured from their alignment starts.
+	 * Use this instead of the BAM TLEN (getInferredInsertSize): Bhmem writes TLEN=0 for
+	 * chimeric Hi-C pairs (inter-chromosomal, same-strand, or reverse-forward), so TLEN
+	 * says nothing about how far apart such mates are.
+	 *
+	 * @return |start - mateStart| for mates on the same contig; Integer.MAX_VALUE when the
+	 *         mate is on another contig, unmapped, or the read is unpaired
+	 */
+	public static int mateDistance(SAMRecord r){
+		if(!r.getReadPairedFlag() || r.getMateUnmappedFlag() || r.getReferenceName() == null
+				|| !r.getReferenceName().equals(r.getMateReferenceName())){
+			return Integer.MAX_VALUE;
+		}
+		return Math.abs(r.getAlignmentStart() - r.getMateAlignmentStart());
+	}
+
 }

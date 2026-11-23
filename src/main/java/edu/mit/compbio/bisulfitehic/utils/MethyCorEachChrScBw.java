@@ -112,6 +112,8 @@ public class MethyCorEachChrScBw {
 						//if( bws==null || bws.isEmpty() || (bwCounts != null && !bwCounts.isEmpty() && bwCounts.size() != bws.size()))
 						if( bws==null || bws.isEmpty() )
 							throw new CmdLineException(parser, USAGE, new Throwable());
+						if(shuffleWithinCell && bws.size() % 2 != 0)
+							throw new CmdLineException(parser, "-shuffleWithinCell needs an even number of -bws (AlleleA.bw, AlleleB.bw for each cell), got " + bws.size(), new Throwable());
 
 						String outputPrefix = arguments.get(0);
 						String chromSizeFile = arguments.get(1);

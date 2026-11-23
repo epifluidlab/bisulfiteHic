@@ -245,8 +245,8 @@ public class MethyCorGlobal {
 					SAMRecord r1 = countedReadsEnd1.get(readName);
 					SAMRecord r2 = countedReadsEnd2.get(readName);
 					
-					Triple<Integer,Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummary(r1, minMapQ, minBaseQ, turnOffBisulfiteFilter);
-					Triple<Integer,Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummary(r2, minMapQ, minBaseQ, turnOffBisulfiteFilter);
+					Triple<Integer,Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummary(r1, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate, useUnpaired);
+					Triple<Integer,Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummary(r2, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate, useUnpaired);
 					int numC1 = ctSummary1.getLeft();
 					int numT1 = ctSummary1.getMiddle();
 					int numCg1 = ctSummary1.getRight();
@@ -339,8 +339,8 @@ public class MethyCorGlobal {
 					SAMRecord r2=countedReadsEnd2.get(readNames2[randomItem]);
 					
 					
-					Triple<Integer,Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummary(r1, minMapQ, minBaseQ, turnOffBisulfiteFilter);
-					Triple<Integer,Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummary(r2, minMapQ, minBaseQ, turnOffBisulfiteFilter);
+					Triple<Integer,Integer, Integer> ctSummary1 = BisulfiteHicUtils.readsMethySummary(r1, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate, useUnpaired);
+					Triple<Integer,Integer, Integer> ctSummary2 = BisulfiteHicUtils.readsMethySummary(r2, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate, useUnpaired);
 					int numC1 = ctSummary1.getLeft();
 					int numT1 = ctSummary1.getMiddle();
 					int numCg1 = ctSummary1.getRight();
@@ -352,8 +352,9 @@ public class MethyCorGlobal {
 
 					regionArray1.add((double)numC1/(double)(numC1+numT1));
 					regionArray2.add((double)numC2/(double)(numC2+numT2));
+					readNum++;
 					
-					if(randomSampleReads>0 && readNum > randomSampleReads){
+					if(randomSampleReads>0 && readNum >= randomSampleReads){
 						break;
 					}
 					
