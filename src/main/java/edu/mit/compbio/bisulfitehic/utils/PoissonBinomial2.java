@@ -65,6 +65,31 @@ public class PoissonBinomial2 {
 	}
 	
 	public double[] pmf(double[] pr) {
+		//a trial with p == 1 always succeeds, but its odds p/(1-p) are infinite and turn the whole recurrence into NaN:
+		//compute the PMF of the other trials and shift it by the number of such trials
+		int numOnes = 0;
+		for(double p : pr) {
+			if(p == 1.0) {
+				numOnes++;
+			}
+		}
+		if(numOnes > 0) {
+			double[] rest = new double[pr.length - numOnes];
+			for(int i = 0, j = 0; i < pr.length; i++) {
+				if(pr[i] != 1.0) {
+					rest[j] = pr[i];
+					j++;
+				}
+			}
+			double[] restPmf = pmf(rest, Integer.MAX_VALUE, 2);
+			double[] shifted = new double[pr.length + 1];
+			System.arraycopy(restPmf, 0, shifted, numOnes, restPmf.length);
+			//the recurrence only returns a shorter array when it hit NaN (a NaN probability): keep the rest NaN, not 0
+			for(int i = numOnes + restPmf.length; i < shifted.length; i++) {
+				shifted[i] = Double.NaN;
+			}
+			return shifted;
+		}
 		return pmf(pr, Integer.MAX_VALUE, 2);
 	}
 	
@@ -127,7 +152,8 @@ public class PoissonBinomial2 {
 		    int i = 0;
 		    double t = a[0];
 		    int j = 0;
-		    while (i <= n) {
+		    //i < n, not i <= n: for an even length the extra round swapped the two middle elements back
+		    while (i < n) {
 		      j = a.length - i - 1;
 		      t = a[i];
 		      a[i] = a[j];

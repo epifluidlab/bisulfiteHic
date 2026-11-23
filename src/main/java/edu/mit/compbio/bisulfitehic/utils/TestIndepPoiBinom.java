@@ -210,6 +210,12 @@ public class TestIndepPoiBinom {
 							
 							
 						}
+						//the loop above only stores a window when a later CpG lies beyond it, so store the last window of the file here
+						if(aveWindow>1 && !statsByAllelesInEachCpgBlock.isEmpty()) {
+							statsByCpgs.add(statInEachCpgBlock.copy());
+							statsByAlleles.add((ArrayList<DescriptiveStatistics>) statsByAllelesInEachCpgBlock.clone());
+							cpgPos.add(pos);
+						}
 						if(inputFile.endsWith(".gz")){
 							gzipInputStream.close();
 						}

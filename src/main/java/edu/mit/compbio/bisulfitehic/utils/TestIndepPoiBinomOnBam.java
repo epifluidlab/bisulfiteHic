@@ -352,7 +352,7 @@ public class TestIndepPoiBinomOnBam {
 								numCg+=ctSummary1.size();
 								numCg+=ctSummary2.size();
 								if (BisulfiteHicUtils.baseMatchInBisulfiteSpace(alleles.getFirst(), snpBase, negStrand, secondPair)) {
-									int allelePos = i + 0;
+									int allelePos = i*2 + 0; //two slots per bam (i + 0 / i + 1 put the alt allele of bam i and the ref allele of bam i+1 in the same slot)
 
 									HashMap<String, ArrayList<Integer>> readStatus1 = alleleStatusInRead1.get(allelePos);
 									readStatus1.putAll(read1CgInfo);
@@ -368,7 +368,7 @@ public class TestIndepPoiBinomOnBam {
 									numCg_A+=ctSummary2.size();
 
 								} else if (BisulfiteHicUtils.baseMatchInBisulfiteSpace(alleles.getSecond(), snpBase, negStrand, secondPair)) {
-									int allelePos = i + 1;
+									int allelePos = i*2 + 1;
 
 									HashMap<String, ArrayList<Integer>> readStatus1 = alleleStatusInRead1.get(allelePos);
 									readStatus1.putAll(read1CgInfo);
@@ -493,7 +493,7 @@ public class TestIndepPoiBinomOnBam {
 									Collections.shuffle(cpg_j_d);
 									double[] sd_tmp = new double[size];
 									for(int z = 0; z < size; z++) {
-										sd_tmp[z] = (cpg_i_d.get(z).getFirst() + cpg_j_d.get(z).getFirst())/(cpg_i_d.get(z).getSecond() + cpg_j_d.get(z).getSecond());
+										sd_tmp[z] = (double)(cpg_i_d.get(z).getFirst() + cpg_j_d.get(z).getFirst())/(double)(cpg_i_d.get(z).getSecond() + cpg_j_d.get(z).getSecond()); //was an integer division (0 or 1)
 									}
 
 									cpg_i_j_random_sd_list.add(sd.evaluate(sd_tmp));

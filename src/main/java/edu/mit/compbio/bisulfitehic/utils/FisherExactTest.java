@@ -25,6 +25,10 @@ package main.java.edu.mit.compbio.bisulfitehic.utils;
 
 public class FisherExactTest {
     private static final boolean DEBUG = false;
+    // relative tolerance used by getTwoTailedP() to decide that a table is "as probable as" the observed one
+    // (same value as R's fisher.test). The probabilities are exp() of sums of log-factorials, so two tables
+    // with exactly the same probability can differ in the last bits, and a bare <= dropped such ties.
+    private static final double REL_ERR = 1 + 1e-7;
     private double[] f;
     int maxSize;
 
@@ -210,7 +214,7 @@ public class FisherExactTest {
         for (i = 0; i < min; i++) {
             if (DEBUG) {System.out.print("doing round " + i);}
             double tempP = getP(++a, --b, --c, ++d);
-            if (tempP <= baseP) {
+            if (tempP <= baseP * REL_ERR) {
                 if (DEBUG) {System.out.print("\ttempP (" + tempP + ") is less than baseP (" + baseP + ")");}
                 p += tempP;
             }
@@ -230,7 +234,7 @@ public class FisherExactTest {
             if (DEBUG) {System.out.print("doing round " + i);}
             double pTemp = getP(--a, ++b, ++c, --d);
             if (DEBUG) {System.out.println("  pTemp = " + pTemp);}
-            if (pTemp <= baseP) {
+            if (pTemp <= baseP * REL_ERR) {
                 if (DEBUG) {System.out.print("\ttempP (" + pTemp + ") is less than baseP (" + baseP + ")");}
                 p += pTemp;
             }

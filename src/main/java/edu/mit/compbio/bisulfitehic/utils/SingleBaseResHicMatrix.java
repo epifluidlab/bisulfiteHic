@@ -184,7 +184,9 @@ public class SingleBaseResHicMatrix {
 									String line;
 									long i = 0;
 									while( (line = br.readLine()) != null){
-										if(line.startsWith("#") || (skipProcessFirstRow && i == 0))
+										if(line.startsWith("#"))
+											continue;
+										if(skipProcessFirstRow && i++ == 0) //i has to advance here: with "i == 0" every row was skipped, not only the first one
 											continue;
 										String[] splitin = line.split("\t");
 										String chr = splitin[0];
@@ -201,6 +203,7 @@ public class SingleBaseResHicMatrix {
 										}
 										
 										tree.put(start, end, "1");
+										regionsOverlapped.put(chr, tree); //without this the tree was dropped and -regions was ignored
 										
 										
 										i++;
@@ -229,7 +232,9 @@ public class SingleBaseResHicMatrix {
 									String line;
 									long i = 0;
 									while( (line = br.readLine()) != null){
-										if(line.startsWith("#") || (skipProcessFirstRow && i == 0))
+										if(line.startsWith("#"))
+											continue;
+										if(skipProcessFirstRow && i++ == 0) //i has to advance here: with "i == 0" every row was skipped, not only the first one
 											continue;
 										String[] splitin = line.split("\t");
 										String chr1 = splitin[0];
@@ -328,7 +333,8 @@ public class SingleBaseResHicMatrix {
 										
 										if(!regionsOverlapped.isEmpty()){
 											if(regionsOverlapped.containsKey(chr)){
-												if(regionsOverlapped.get(chr).overlappers(start-maxDistEnds > 0 ? start-maxDistEnds : 0, end+maxDistEnds) == null){
+												//overlappers() never returns null; long arithmetic so that a large -maxDistEnds cannot overflow
+												if(!regionsOverlapped.get(chr).overlappers(start-maxDistEnds > 0 ? start-maxDistEnds : 0, (int)Math.min((long)end+maxDistEnds, Integer.MAX_VALUE)).hasNext()){
 													continue;
 												}
 											}else{
@@ -450,7 +456,10 @@ public class SingleBaseResHicMatrix {
 								//System.err.println();
 								while(cpgs.hasNext()){
 									IntervalTree.Node<String> cpg = cpgs.next();
-									int pos = cpg.getStart() - start;
+									//the keys of cpgSummary are offsets in the aligned read bases; after an insertion/deletion in the read
+									//that is not the reference offset (cpg.getStart() - start), so map the reference position through the CIGAR
+									int cpgReadPos = r.getReadPositionAtReferencePosition(cpg.getStart());
+									int pos = cpgReadPos > 0 ? cpgReadPos - r.getReadPositionAtReferencePosition(start) : -1;
 									//System.err.println(cpg.getStart() + "\t" + pos);
 									if(cpgSummary.containsKey(pos)){
 										
@@ -483,7 +492,7 @@ public class SingleBaseResHicMatrix {
 						//IntervalTree<HashMap<String,Integer>> cpgs = cpgMethyMatrix.get(chr);
 						List<Node<HashMap<String, Integer>>> cpgListTmp  = IteratorUtils.toList(cpgMethyMatrix.iterator()); 
 						List<Node<HashMap<String, Integer>>> cpgList = new ArrayList<Node<HashMap<String, Integer>>>();
-						for(int i = 0; i < cpgListTmp.size()-1; i++){
+						for(int i = 0; i < cpgListTmp.size(); i++){ //size()-1 dropped the last CpG of every chromosome
 							Node<HashMap<String, Integer>> cpgi = cpgListTmp.get(i);
 							if(cpgi.getValue().size() < minReadsInWindow){
 								
@@ -568,7 +577,7 @@ public class SingleBaseResHicMatrix {
 								}
 								if(!regionsOverlapped.isEmpty()){
 									if(regionsOverlapped.containsKey(chr)){
-										if(regionsOverlapped.get(chr).overlappers(cpgi.getStart(), cpgi.getEnd()) == null && regionsOverlapped.get(chr).overlappers(cpgj.getStart(), cpgj.getEnd()) == null){
+										if(!regionsOverlapped.get(chr).overlappers(cpgi.getStart(), cpgi.getEnd()).hasNext() && !regionsOverlapped.get(chr).overlappers(cpgj.getStart(), cpgj.getEnd()).hasNext()){ //overlappers() never returns null
 											continue;
 										}
 									}else{
@@ -783,8 +792,11 @@ public class SingleBaseResHicMatrix {
 				double entropyRandomMean = getMeanFromList(entropyRandomMeanList);
 				
 				Collections.sort(entropyRandomMeanList);
-				int pos = BisulfiteHicUtils.findPosition(entropyRandomMeanList, entropyObserved, 0, entropyRandomMeanList.size()-1);
-				double entropyPermutatedPvalue = (double)(pos)/(double)entropyRandomMeanList.size();
+				double entropyPermutatedPvalue = Double.NaN; //no permutation (-permutations 0): no p value, and findPosition() needs a non-empty list
+				if(!entropyRandomMeanList.isEmpty()){
+					int pos = BisulfiteHicUtils.findPosition(entropyRandomMeanList, entropyObserved, 0, entropyRandomMeanList.size()-1);
+					entropyPermutatedPvalue = (double)(pos)/(double)entropyRandomMeanList.size();
+				}
 				
 				
 				Double corEffRandom = getMeanFromList(corEffRandomList);
@@ -971,8 +983,11 @@ public class SingleBaseResHicMatrix {
 				double entropyRandomMean = getMeanFromList(entropyRandomMeanList);
 				
 				Collections.sort(entropyRandomMeanList);
-				int pos = BisulfiteHicUtils.findPosition(entropyRandomMeanList, entropyObserved, 0, entropyRandomMeanList.size()-1);
-				double entropyPermutatedPvalue = (double)(pos)/(double)entropyRandomMeanList.size();
+				double entropyPermutatedPvalue = Double.NaN; //no permutation (-permutations 0): no p value, and findPosition() needs a non-empty list
+				if(!entropyRandomMeanList.isEmpty()){
+					int pos = BisulfiteHicUtils.findPosition(entropyRandomMeanList, entropyObserved, 0, entropyRandomMeanList.size()-1);
+					entropyPermutatedPvalue = (double)(pos)/(double)entropyRandomMeanList.size();
+				}
 				
 				
 				Double corEffRandom = getMeanFromList(corEffRandomList);

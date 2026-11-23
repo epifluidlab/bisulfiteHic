@@ -133,6 +133,7 @@ public class SingleCellTest {
                 }
 
                 tree.put(start, end, "1");
+                regionsOverlapped.put(chr, tree); //without this the tree was dropped and -regions was ignored
 
             }
             if(regions.endsWith(".gz")){
@@ -167,7 +168,7 @@ public class SingleCellTest {
                 int end = Integer.parseInt(splitin[2]);
                 if(!regionsOverlapped.isEmpty()){
                     if(regionsOverlapped.containsKey(chr)){
-                        if(regionsOverlapped.get(chr).overlappers(start, end) == null){
+                        if(!regionsOverlapped.get(chr).overlappers(start, end).hasNext()){ //overlappers() never returns null
                             continue;
                         }
                     }else{
@@ -213,7 +214,7 @@ public class SingleCellTest {
         for(int i = 0; i < cpgMatrix.size(); i++) {
             double[] cpg_i = cpgMatrix.get(i);
             int cpg_i_loc = cpgLoci.get(i);
-            writer.write(cpg_i_loc);
+            writer.write(String.valueOf(cpg_i_loc)); //write(int) writes one character, not the number
             for(int j = 0; j < cpgMatrix.size(); j++) {
                 double[] cpg_j = cpgMatrix.get(j);
                 //int cpg_j_loc = cpgLoci.get(j);
@@ -229,7 +230,7 @@ public class SingleCellTest {
 
                 }
                 if(cpg_i_nonan_list.isEmpty() || cpg_i_nonan_list.size() <= 2) {
-                    writer.write("NA" + "\t");
+                    writer.write("\t" + "NA"); //same "\t" + value layout as the scores below
                     continue;
                 }
                 double[] cpg_i_nonan = ArrayUtils.toPrimitive(cpg_i_nonan_list.toArray(new Double[cpg_i_nonan_list.size()]));

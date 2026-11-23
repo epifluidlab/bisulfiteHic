@@ -179,7 +179,9 @@ public class SingleBaseResHicMatrixV2 {
 									String line;
 									long i = 0;
 									while( (line = br.readLine()) != null){
-										if(line.startsWith("#") || (skipProcessFirstRow && i == 0))
+										if(line.startsWith("#"))
+											continue;
+										if(skipProcessFirstRow && i++ == 0) //i has to advance here: with "i == 0" every row was skipped, not only the first one
 											continue;
 										String[] splitin = line.split("\t");
 										String chr1 = splitin[0];
@@ -400,7 +402,7 @@ public class SingleBaseResHicMatrixV2 {
 
 								ArrayList<Double> ratios = cpgContactFreq(cpgiMethVec, cpgjMethVec);
 								queryNum++;
-								if(!ratios.get(0).isNaN()){
+								if(!ratios.get(2).isNaN()){ //observed_ratio, as in SingleBaseResHicMatrix: get(0) is concordCount, which is never NaN, so CpG pairs without any shared read were written too
 									//writer.write(chr + "\t" + cpgi.getStart() + "_" + cpgi.getEnd() + "\t" + cpgj.getStart() + "_" + cpgj.getEnd() + "\t" + ratios.getFirst() + "\t" + ratios.getSecond());
 									String name = chr + ":" + cpgi.getStart() + ":" + cpgi.getEnd() + ":" + cpgj.getStart() + ":" + cpgj.getEnd();
 									if(interval2 != null && interval1 != null){
@@ -443,7 +445,10 @@ public class SingleBaseResHicMatrixV2 {
 				continue;
 			}else{
 				TreeMap<Integer, Integer> cpgSummary = BisulfiteHicUtils.readsMethySummaryAtEachLoc(r, minMapQ, minBaseQ, turnOffBisulfiteFilter, useBadMate);
-				int pos = cpg.getStart() - start;					
+				//the keys of cpgSummary are offsets in the aligned read bases; after an insertion/deletion in the read
+				//that is not the reference offset (cpg.getStart() - start), so map the reference position through the CIGAR
+				int cpgReadPos = r.getReadPositionAtReferencePosition(cpg.getStart());
+				int pos = cpgReadPos > 0 ? cpgReadPos - r.getReadPositionAtReferencePosition(start) : -1;					
 				if(cpgSummary.containsKey(pos)){
 						if(cpgMethyMatrix.containsKey(readName)){
 									// two ends overlapped and have not be trimmed? usually not need to worry about here for bisulfiteHiC, since most in long range distant reads..
@@ -601,8 +606,11 @@ public class SingleBaseResHicMatrixV2 {
 				double entropyRandomMean = getMeanFromList(entropyRandomMeanList);
 				
 				Collections.sort(entropyRandomMeanList);
-				int pos = BisulfiteHicUtils.findPosition(entropyRandomMeanList, entropyObserved, 0, entropyRandomMeanList.size()-1);
-				double entropyPermutatedPvalue = (double)(pos)/(double)entropyRandomMeanList.size();
+				double entropyPermutatedPvalue = Double.NaN; //no permutation (-permutations 0): no p value, and findPosition() needs a non-empty list
+				if(!entropyRandomMeanList.isEmpty()){
+					int pos = BisulfiteHicUtils.findPosition(entropyRandomMeanList, entropyObserved, 0, entropyRandomMeanList.size()-1);
+					entropyPermutatedPvalue = (double)(pos)/(double)entropyRandomMeanList.size();
+				}
 				
 				
 				Double corEffRandom = getMeanFromList(corEffRandomList);
