@@ -1,6 +1,8 @@
 # Bhmem
 A mapping and analysis toolkit for NOMe-HiC, Methyl-HiC, and single-cell Methyl-HiC data
 
+**Usage guide:** [docs/USAGE.md](docs/USAGE.md) explains how to run every tool (inputs, every option, output columns, known limitations) without reading the source. The sections below are worked examples of the published analyses.
+
 
 ## Pre-requisite:
 * JAVA oracle JDK8
@@ -134,7 +136,7 @@ java -Xmx20G -cp "/your/path/to/bisulfitehic/target/bisulfitehic-0.38-jar-with-d
 java -Xmx20G -cp "/your/path/to/bisulfitehic/target/bisulfitehic-0.38-jar-with-dependencies.jar:/your/path/to/bisulfitehic/lib/ccInference-0.19-slim.jar:/your/path/to/bisulfitehic/lib/gatk-package-distribution-3.3.jar" main.java.edu.mit.compbio.bisulfitehic.utils.MethyCorAcrossHiccups WCG_concordance.testOut.mustache testOut.all_chr.mustache.bedpe testOut.b37.calmd.bam -methyPatternSearch WCG -methyPatternCytPos 2 -bsConvPatternSearch WCH -bsConvPatternCytPos 2 -useBadMate -useGeneralBedPe
 ```
 
-### Analysis 4.3: short-range (<1lb) GCH methylation correlation in NOMe-HiC
+### Analysis 4.3: short-range (<1kb) GCH methylation correlation in NOMe-HiC
 ```
 java -Xmx20G -cp "/your/path/to/bisulfitehic/target/bisulfitehic-0.38-jar-with-dependencies.jar:/your/path/to/bisulfitehic/lib/ccInference-0.19-slim.jar:/your/path/to/bisulfitehic/lib/gatk-package-distribution-3.3.jar" main.java.edu.mit.compbio.bisulfitehic.utils.MethyCorAcrossHiccups GCH_concordance_short.testOut.mustache testOut.all_chr.mustache.bedpe testOut.b37.calmd.bam -methyPatternSearch GCH -methyPatternCytPos 2 -bsConvPatternSearch WCH -bsConvPatternCytPos 2 -useBadMate -onlyShort 1000 -randomSampleReads 100 -useGeneralBedPe
 ```
@@ -168,7 +170,7 @@ data<-matrix(c(length(s[s[,1]==0&s[,2]==0,2]), length(s[s[,1]==0&s[,2]==1,2]), l
 phi.sameReads.long<-phi(data, digits = 3)
 t_cor.sameReads.long<-tetrachoric(data)[1]$rho
 
-d<-read.table("GCH_concordance_shuffled.testOut.mustache.methyCor.txt.gz",sep="\t",header=F)
+d<-read.table("GCH_concordance_shuffle.testOut.mustache.methyCor.txt.gz",sep="\t",header=F)
 cor.acrossReads<-cor.test(d[d[,13]>=minCT&d[,15]>=minCT,12],d[d[,13]>=minCT&d[,15]>=minCT,14])$estimate
 s<-cbind(d[d[,13]>=minCT&d[,15]>=minCT,12],d[d[,13]>=minCT&d[,15]>=minCT,14])
 s[s<0.5]=0
@@ -269,6 +271,10 @@ bash test/unit/run_all.sh
 Tests for the analysis classes and helper scripts on synthetic inputs (see `test/unit/README.md`).
 
 ## Change log
+### 2026-11-26
+* Added `docs/`: usage guide (`docs/USAGE.md`) and one reference page per tool group, each ending with a list of known limitations found while reading the source. No code changed.
+* README: the R example in Analysis 4 read `GCH_concordance_shuffled...` although the 4.4 command writes `GCH_concordance_shuffle...`; heading 4.3 said "<1lb".
+
 ### 2026-11-23
 Correctness fixes across the analysis classes and helper scripts; each has a test under `test/unit/` unless marked "compiled only" in the commit message. Results of the affected tools can change.
 * **Distances no longer use TLEN** (0 for chimeric pairs since the TLEN reset): `LongRangeAsm` `-minDist/-maxDist`, `MethyCorAcrossHiccups(SC)` `-onlyShort/-shortLowerBound`, `mh_reads_summary.py`, `interact_density_around_regions.py` now use mate positions (`BisulfiteHicUtils.mateDistance`). Before, `LongRangeAsm` dropped every chimeric pair and `-onlyShort` let long-range pairs through.
